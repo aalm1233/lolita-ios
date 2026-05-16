@@ -20,7 +20,9 @@ struct ItemListScreen: View {
                 coordinateTab.tag(ItemSubTab.coordinate)
                 catalogTab.tag(ItemSubTab.catalog)
             }
+            #if os(iOS)
             .tabViewStyle(.page(indexDisplayMode: .never))
+            #endif
         }
         .lolitaNavBar(title: "服饰")
         .onAppear { viewModel.load() }
