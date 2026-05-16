@@ -6,9 +6,11 @@ struct LolitaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            // Placeholder until navigation is built
             Text("Lolita iOS")
                 .environmentObject(skin)
+                .task {
+                    try? await AppModule.shared.initialize()
+                }
         }
     }
 }
