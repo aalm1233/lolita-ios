@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSCameraUsageDescription</key>
+    <string>用于拍摄服饰照片</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>用于选择服饰照片</string>
+    <key>UIApplicationSupportsIndirectInputEvents</key>
+    <true/>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>zh-CN</string>
+</dict>
+</plist>
