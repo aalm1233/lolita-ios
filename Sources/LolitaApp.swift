@@ -8,7 +8,7 @@ struct LolitaApp: App {
         WindowGroup {
             // Placeholder until navigation is built
             Text("Lolita iOS")
-                .environmentObject(skin as SkinProtocol)
+                .environmentObject(skin)
         }
     }
 }

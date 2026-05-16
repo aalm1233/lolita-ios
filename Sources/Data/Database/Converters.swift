@@ -3,37 +3,52 @@ import Foundation
 
 // MARK: - Enums
 
-enum ItemStatus: String, CaseIterable, DatabaseValueConvertible {
+enum ItemStatus: String, CaseIterable, Codable, DatabaseValueConvertible {
     case owned = "OWNED"
     case wished = "WISHED"
     case pendingBalance = "PENDING_BALANCE"
 }
 
-enum ItemPriority: String, CaseIterable, DatabaseValueConvertible {
+enum ItemPriority: String, CaseIterable, Codable, DatabaseValueConvertible {
     case high = "HIGH"
     case medium = "MEDIUM"
     case low = "LOW"
 }
 
-enum CategoryGroup: String, CaseIterable, DatabaseValueConvertible {
+enum CategoryGroup: String, CaseIterable, Codable, DatabaseValueConvertible {
     case clothing = "CLOTHING"
     case accessory = "ACCESSORY"
 }
 
 // MARK: - List<String> JSON converter
 
-extension [String]: @retroactive DatabaseValueConvertible {
-    public var databaseValue: DatabaseValue {
-        guard let data = try? JSONEncoder().encode(self),
+// MARK: - StringList wrapper for JSON array storage
+
+struct StringList: Codable, DatabaseValueConvertible, Equatable, ExpressibleByArrayLiteral {
+    var values: [String]
+
+    init(_ values: [String] = []) {
+        self.values = values
+    }
+
+    init(arrayLiteral elements: String...) {
+        self.values = elements
+    }
+
+    var databaseValue: DatabaseValue {
+        guard let data = try? JSONEncoder().encode(values),
               let json = String(data: data, encoding: .utf8) else {
             return "[]".databaseValue
         }
         return json.databaseValue
     }
 
-    public static func fromDatabaseValue(_ dbValue: DatabaseValue) -> [String]? {
+    static func fromDatabaseValue(_ dbValue: DatabaseValue) -> StringList? {
         guard let string = String.fromDatabaseValue(dbValue),
-              let data = string.data(using: .utf8) else { return [] }
-        return (try? JSONDecoder().decode([String].self, from: data)) ?? []
+              let data = string.data(using: .utf8),
+              let values = try? JSONDecoder().decode([String].self, from: data) else {
+            return nil
+        }
+        return StringList(values)
     }
 }

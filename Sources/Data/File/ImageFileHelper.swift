@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 
 enum ImageFileHelper {
     private static var imagesDir: URL {
@@ -24,11 +26,13 @@ enum ImageFileHelper {
         }
     }
 
+    #if canImport(UIKit)
     /// Copy picked UIImage to images directory. Returns stored path.
     static func save(image: UIImage) -> String? {
         guard let data = image.jpegData(compressionQuality: 0.9) else { return nil }
         return save(imageData: data)
     }
+    #endif
 
     /// Delete image at stored path.
     static func delete(path: String) {
