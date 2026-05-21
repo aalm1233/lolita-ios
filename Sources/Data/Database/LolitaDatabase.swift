@@ -144,33 +144,33 @@ final class LolitaDatabase {
         migrator.registerMigration("v2") { db in
             try db.create(table: "prices") { t in
                 t.autoIncrementedPrimaryKey("id")
-                t.column("item_id", .integer).notNull()
+                t.column("itemId", .integer).notNull()
                     .references("items", column: "id", onDelete: .cascade)
                 t.column("type", .text).notNull()
-                t.column("total_price", .double).notNull()
+                t.column("totalPrice", .double).notNull()
                 t.column("deposit", .double)
                 t.column("balance", .double)
-                t.column("created_at", .integer).notNull()
+                t.column("createdAt", .integer).notNull()
             }
-            try db.create(index: "index_prices_item_id", on: "prices", columns: ["item_id"])
+            try db.create(index: "index_prices_itemId", on: "prices", columns: ["itemId"])
             try db.create(index: "index_prices_type", on: "prices", columns: ["type"])
 
             try db.create(table: "payments") { t in
                 t.autoIncrementedPrimaryKey("id")
-                t.column("price_id", .integer).notNull()
+                t.column("priceId", .integer).notNull()
                     .references("prices", column: "id", onDelete: .cascade)
                 t.column("amount", .double).notNull()
-                t.column("due_date", .integer).notNull()
-                t.column("is_paid", .integer).notNull().defaults(to: 0)
-                t.column("paid_date", .integer)
-                t.column("calendar_event_id", .integer)
-                t.column("reminder_set", .integer).notNull().defaults(to: 0)
-                t.column("custom_reminder_days", .integer)
-                t.column("created_at", .integer).notNull()
+                t.column("dueDate", .integer).notNull()
+                t.column("isPaid", .integer).notNull().defaults(to: 0)
+                t.column("paidDate", .integer)
+                t.column("calendarEventId", .integer)
+                t.column("reminderSet", .integer).notNull().defaults(to: 0)
+                t.column("customReminderDays", .integer)
+                t.column("createdAt", .integer).notNull()
             }
-            try db.create(index: "index_payments_price_id", on: "payments", columns: ["price_id"])
-            try db.create(index: "index_payments_due_date", on: "payments", columns: ["due_date"])
-            try db.create(index: "index_payments_is_paid", on: "payments", columns: ["is_paid"])
+            try db.create(index: "index_payments_priceId", on: "payments", columns: ["priceId"])
+            try db.create(index: "index_payments_dueDate", on: "payments", columns: ["dueDate"])
+            try db.create(index: "index_payments_isPaid", on: "payments", columns: ["isPaid"])
         }
 
         return migrator
