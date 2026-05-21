@@ -6,11 +6,19 @@ struct LolitaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Text("Lolita iOS")
-                .environmentObject(skin)
-                .task {
-                    try? await AppModule.shared.initialize()
-                }
+            if #available(iOS 16.0, macOS 13.0, *) {
+                LolitaNavHost()
+                    .environmentObject(skin)
+                    .task {
+                        try? await AppModule.shared.initialize()
+                    }
+            } else {
+                Text("Lolita iOS")
+                    .environmentObject(skin)
+                    .task {
+                        try? await AppModule.shared.initialize()
+                    }
+            }
         }
     }
 }
