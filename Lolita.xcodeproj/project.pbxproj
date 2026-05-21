@@ -1,0 +1,1429 @@
+{
+  "archiveVersion": "1",
+  "objectVersion": "60",
+  "objects": {
+    "303EFD962BD8B1DF1EE221AA": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "AppModule.swift",
+      "sourceTree": "<group>"
+    },
+    "8DD831348ECE65F702108DCC": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Converters.swift",
+      "sourceTree": "<group>"
+    },
+    "4A87F071F990D19DBBC6B496": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Brand.swift",
+      "sourceTree": "<group>"
+    },
+    "3C8011061013BF9BA82966AD": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Category.swift",
+      "sourceTree": "<group>"
+    },
+    "3F4818185484E9EA04363EB6": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Coordinate.swift",
+      "sourceTree": "<group>"
+    },
+    "27D4E49C8D083EFA877A553B": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Item.swift",
+      "sourceTree": "<group>"
+    },
+    "620CE2859F174305641EF74A": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Location.swift",
+      "sourceTree": "<group>"
+    },
+    "0A234B8DEF470B78195DBE38": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "OutfitItemCrossRef.swift",
+      "sourceTree": "<group>"
+    },
+    "9DFB37D3F929E40BEA7A4D8B": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "OutfitLog.swift",
+      "sourceTree": "<group>"
+    },
+    "DA5202D2DBDFE7B3A17B6F54": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Payment.swift",
+      "sourceTree": "<group>"
+    },
+    "1A63F29913163AC0596A026D": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Price.swift",
+      "sourceTree": "<group>"
+    },
+    "290C64004266079B20AF55A1": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Season.swift",
+      "sourceTree": "<group>"
+    },
+    "A27C4187099F707475C0DCFC": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Source.swift",
+      "sourceTree": "<group>"
+    },
+    "1DB64F3D36BEFE04FAB79A3C": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Style.swift",
+      "sourceTree": "<group>"
+    },
+    "554B3EE035A29E2976FB2DB8": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "LolitaDatabase.swift",
+      "sourceTree": "<group>"
+    },
+    "6FBE557CDD5B74D0B450238C": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "ImageFileHelper.swift",
+      "sourceTree": "<group>"
+    },
+    "1DC5CDD055871F93F9FDCC21": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "AppPreferences.swift",
+      "sourceTree": "<group>"
+    },
+    "ABE30CC3DFA3C3D973997FAC": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "PresetData.swift",
+      "sourceTree": "<group>"
+    },
+    "7FDE7621820B2AECA0E5AF99": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "BrandRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "6DC27FFE7FFE4D8EE80BB535": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "CategoryRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "0757E19DA0E439F8F762A64B": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "CoordinateRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "E70EC7E22613EB832429AC3F": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "ItemRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "3B9911C1F8D9A2649AD39EF4": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "LocationRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "6554E2EB7B5CDB3E4E45A169": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "OutfitLogRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "F55F514DB3503283AD3C19A5": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "PaymentRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "4891170B0EBA90EA69400278": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "PriceRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "9A25570E99DDAA6F8191E38D": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "RecommendationRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "4C2E5A758AF99C0AF1558F00": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "SeasonRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "EF4FE9D57353AD89643245BA": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "SourceRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "01016BB2B3567C83468B397C": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "StyleRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "6553EA47148066D7F8183EEB": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "MatchingEngine.swift",
+      "sourceTree": "<group>"
+    },
+    "DA2A579A5C452F0F0DEA0163": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "LolitaApp.swift",
+      "sourceTree": "<group>"
+    },
+    "CB09C4F3B585ED2A45C33282": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "FullScreenImageViewer.swift",
+      "sourceTree": "<group>"
+    },
+    "D66AB57721527F31ABECF245": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "ImageGalleryPager.swift",
+      "sourceTree": "<group>"
+    },
+    "BEA23F815476CC0197DD10CA": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "LolitaCard.swift",
+      "sourceTree": "<group>"
+    },
+    "2FE18CCD6A9CABD61782AC5E": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "LolitaNavigationBar.swift",
+      "sourceTree": "<group>"
+    },
+    "7275C10FDA78E071C97E0555": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "LolitaSection.swift",
+      "sourceTree": "<group>"
+    },
+    "31B51EA97D5EF4AF32F03934": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "LolitaShimmerImage.swift",
+      "sourceTree": "<group>"
+    },
+    "90F9EA94438FDC62D33AF3D4": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "SkeletonShapes.swift",
+      "sourceTree": "<group>"
+    },
+    "6249C54578DC013068B27222": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "LolitaNavHost.swift",
+      "sourceTree": "<group>"
+    },
+    "B74F20A035A1880BEAF4B311": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "CoordinateDetailScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "D426BDDFCE67131A6846B183": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "CoordinateDetailViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "4291CE154A4ED22EEE911F5F": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "CoordinateEditScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "29CF60617BE8C1661F917754": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "CoordinateEditViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "61B7C619B778119069C524E4": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "CoordinateListScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "024FC625914A7555D586DD12": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "CoordinateListViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "DAE9C14E0416175DE6B0973B": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "ItemDetailScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "6C23EC5E39E0636060D67ABF": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "ItemDetailViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "5CCCE12F174C1D0C2AB5E540": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "ItemEditScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "41D9B427446D0F91F4D26E4B": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "ItemEditViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "BE63B826EE2297FCB0F23A1C": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "ItemListScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "627BD0C07E7FDE290C39BBC0": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "ItemListViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "B85AC696718272E9F786ACA8": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "LocationDetailScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "BA5EEF25307F5E0DD617D793": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "LocationDetailViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "46C3DE4B5107E88B4CAAC819": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "LocationEditScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "55771191029B2B3C4B45C9B0": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "LocationEditViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "C5BE86A82B7247E3F982BFF8": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "OutfitLogDetailScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "97D6EEA17748AFFC24A12811": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "OutfitLogDetailViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "E4D60873275FCE82E82B9EC4": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "OutfitLogEditScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "02CD95DFABF26F4C89E56A7E": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "OutfitLogEditViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "1335FEC8C630163D0D147CFB": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "OutfitLogListScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "34E3DC735B2C7F09B91ECEED": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "OutfitLogListViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "3EE0C373BDAC108AD66F2BD7": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "QuickOutfitLogScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "4E420803DB2D3DFA67422E80": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "QuickOutfitLogViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "922A5A670BF2E4C8602D12D0": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "PaymentCalendarScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "33AFFCCDFFB777C4E5D507D9": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "PaymentCalendarViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "F0C938DA6E52B1E3C9B83188": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "PaymentEditScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "CD3268C487D620A79C264592": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "PaymentEditViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "65A2D72664ECA764FAEC3654": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "PaymentManageScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "9D68CB2D99879624B796E451": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "PaymentManageViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "919551DAA7B586E709783BF6": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "PriceEditScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "4C0CE60CA308777E07C55222": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "PriceEditViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "8D19ABD27BEE1E466D17EF1D": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "PriceManageScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "411B3828450460EB05CA5B60": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "PriceManageViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "4739FB943AB89EFDCDACAADF": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "BrandManageScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "E28C640FAEDB08102A98EBF1": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "CategoryManageScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "94F125395AF70C66EF9C610C": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "SeasonManageScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "B51CC35F32C5172B41BCB3F4": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "SettingsScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "5A96BEAC574C4EBD2BAB7EE6": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "StyleManageScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "AF9E98EF7CBD8820AC181D55": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "ThemeSelectScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "8FEA0B78B326603E64A21D9B": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "StatsPageScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "302879547043E92A9A823E90": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "StatsPageViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "A554E5074F3E7CF2BB715E23": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "WishlistScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "25DF9A0282D987BC2455476F": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "WishlistViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "80B0B01ABAADAE204BEDAB65": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "DefaultSkin.swift",
+      "sourceTree": "<group>"
+    },
+    "12B4A1A4BB9591D9FF435475": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "SkinProtocol.swift",
+      "sourceTree": "<group>"
+    },
+    "F8BAD1EE662EAC646B7CC7E9": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "text.plist.xml",
+      "path": "Info.plist",
+      "sourceTree": "<group>"
+    },
+    "15375FA6009A3CC152EBF125": {
+      "isa": "PBXFileReference",
+      "explicitFileType": "wrapper.application",
+      "includeInIndex": "0",
+      "path": "Lolita.app",
+      "sourceTree": "BUILT_PRODUCTS_DIR"
+    },
+    "757135385B7878473E63308C": {
+      "isa": "PBXBuildFile",
+      "fileRef": "303EFD962BD8B1DF1EE221AA"
+    },
+    "B27FB3D2CDC7002AA9A4522A": {
+      "isa": "PBXBuildFile",
+      "fileRef": "8DD831348ECE65F702108DCC"
+    },
+    "76FE3C1BF0216A136D15FAF2": {
+      "isa": "PBXBuildFile",
+      "fileRef": "4A87F071F990D19DBBC6B496"
+    },
+    "FB0629AC0F37F18AF5A061B4": {
+      "isa": "PBXBuildFile",
+      "fileRef": "3C8011061013BF9BA82966AD"
+    },
+    "61C1C16995BAD047388896D8": {
+      "isa": "PBXBuildFile",
+      "fileRef": "3F4818185484E9EA04363EB6"
+    },
+    "5905E7C835AD8DDA5AFC21A5": {
+      "isa": "PBXBuildFile",
+      "fileRef": "27D4E49C8D083EFA877A553B"
+    },
+    "AE12750E6A1F9941713A51E7": {
+      "isa": "PBXBuildFile",
+      "fileRef": "620CE2859F174305641EF74A"
+    },
+    "B84942650B1E96F4BB336E8C": {
+      "isa": "PBXBuildFile",
+      "fileRef": "0A234B8DEF470B78195DBE38"
+    },
+    "A1E407CDB16D206B786B94C9": {
+      "isa": "PBXBuildFile",
+      "fileRef": "9DFB37D3F929E40BEA7A4D8B"
+    },
+    "BE6397E34610F0975C5A5810": {
+      "isa": "PBXBuildFile",
+      "fileRef": "DA5202D2DBDFE7B3A17B6F54"
+    },
+    "89B2CAD4E4596A57D2B7EE0D": {
+      "isa": "PBXBuildFile",
+      "fileRef": "1A63F29913163AC0596A026D"
+    },
+    "5283950D3A8822AE7F4DDB00": {
+      "isa": "PBXBuildFile",
+      "fileRef": "290C64004266079B20AF55A1"
+    },
+    "9B22C89AF3E9C40502FEDBC7": {
+      "isa": "PBXBuildFile",
+      "fileRef": "A27C4187099F707475C0DCFC"
+    },
+    "8D6A4BE881AEA3F872C17E69": {
+      "isa": "PBXBuildFile",
+      "fileRef": "1DB64F3D36BEFE04FAB79A3C"
+    },
+    "CEEAFE43B960036C464C35D9": {
+      "isa": "PBXBuildFile",
+      "fileRef": "554B3EE035A29E2976FB2DB8"
+    },
+    "2FE805328F73B1617C3F6D9B": {
+      "isa": "PBXBuildFile",
+      "fileRef": "6FBE557CDD5B74D0B450238C"
+    },
+    "F10FA72E6964E97D8BC982DF": {
+      "isa": "PBXBuildFile",
+      "fileRef": "1DC5CDD055871F93F9FDCC21"
+    },
+    "54C3D8B09566F7665E875769": {
+      "isa": "PBXBuildFile",
+      "fileRef": "ABE30CC3DFA3C3D973997FAC"
+    },
+    "E29F68CD2BFC67CB3521DBD9": {
+      "isa": "PBXBuildFile",
+      "fileRef": "7FDE7621820B2AECA0E5AF99"
+    },
+    "6100658B2086DC29E31FAED4": {
+      "isa": "PBXBuildFile",
+      "fileRef": "6DC27FFE7FFE4D8EE80BB535"
+    },
+    "8C0055C2279D3CE6AC5EFB13": {
+      "isa": "PBXBuildFile",
+      "fileRef": "0757E19DA0E439F8F762A64B"
+    },
+    "4C1E1C6154C223D0243A2DCF": {
+      "isa": "PBXBuildFile",
+      "fileRef": "E70EC7E22613EB832429AC3F"
+    },
+    "028C24C32F686519DE48686C": {
+      "isa": "PBXBuildFile",
+      "fileRef": "3B9911C1F8D9A2649AD39EF4"
+    },
+    "E56EE3794713E42320E02E38": {
+      "isa": "PBXBuildFile",
+      "fileRef": "6554E2EB7B5CDB3E4E45A169"
+    },
+    "927E374CDFF51A77B0F0FCC9": {
+      "isa": "PBXBuildFile",
+      "fileRef": "F55F514DB3503283AD3C19A5"
+    },
+    "6B4A8C8C46FD9BF7DD56C1CF": {
+      "isa": "PBXBuildFile",
+      "fileRef": "4891170B0EBA90EA69400278"
+    },
+    "87F44EB648887DF65ADC13B5": {
+      "isa": "PBXBuildFile",
+      "fileRef": "9A25570E99DDAA6F8191E38D"
+    },
+    "21545E68F0074CA19C52EE0C": {
+      "isa": "PBXBuildFile",
+      "fileRef": "4C2E5A758AF99C0AF1558F00"
+    },
+    "E524945B722002D01A1B972B": {
+      "isa": "PBXBuildFile",
+      "fileRef": "EF4FE9D57353AD89643245BA"
+    },
+    "131A0AAF7EAF74CFC2213FAB": {
+      "isa": "PBXBuildFile",
+      "fileRef": "01016BB2B3567C83468B397C"
+    },
+    "0DE806F770CB418F7916C136": {
+      "isa": "PBXBuildFile",
+      "fileRef": "6553EA47148066D7F8183EEB"
+    },
+    "25527283A2AC9D93B6A864E6": {
+      "isa": "PBXBuildFile",
+      "fileRef": "DA2A579A5C452F0F0DEA0163"
+    },
+    "2AABEC34C8A7E09EB752F159": {
+      "isa": "PBXBuildFile",
+      "fileRef": "CB09C4F3B585ED2A45C33282"
+    },
+    "3AB179B9BF334B34659E9D3E": {
+      "isa": "PBXBuildFile",
+      "fileRef": "D66AB57721527F31ABECF245"
+    },
+    "AAF17A9774E103A83D0F3B5A": {
+      "isa": "PBXBuildFile",
+      "fileRef": "BEA23F815476CC0197DD10CA"
+    },
+    "DD1A74AE61FCC430B5775881": {
+      "isa": "PBXBuildFile",
+      "fileRef": "2FE18CCD6A9CABD61782AC5E"
+    },
+    "E5D16E2AC0F09C285E659B03": {
+      "isa": "PBXBuildFile",
+      "fileRef": "7275C10FDA78E071C97E0555"
+    },
+    "A30200577A0983DEA3AD7FC5": {
+      "isa": "PBXBuildFile",
+      "fileRef": "31B51EA97D5EF4AF32F03934"
+    },
+    "56209C01D9D6994B9BDF0AAB": {
+      "isa": "PBXBuildFile",
+      "fileRef": "90F9EA94438FDC62D33AF3D4"
+    },
+    "B6BB3A07459A4AA92820C910": {
+      "isa": "PBXBuildFile",
+      "fileRef": "6249C54578DC013068B27222"
+    },
+    "3583CEE9961A903E6D118E79": {
+      "isa": "PBXBuildFile",
+      "fileRef": "B74F20A035A1880BEAF4B311"
+    },
+    "596207E616DC9F9F140BE362": {
+      "isa": "PBXBuildFile",
+      "fileRef": "D426BDDFCE67131A6846B183"
+    },
+    "17864A32B99345CF82C65444": {
+      "isa": "PBXBuildFile",
+      "fileRef": "4291CE154A4ED22EEE911F5F"
+    },
+    "7E20A9493B772F430F6AE654": {
+      "isa": "PBXBuildFile",
+      "fileRef": "29CF60617BE8C1661F917754"
+    },
+    "83CF2E91458FBB04332116A1": {
+      "isa": "PBXBuildFile",
+      "fileRef": "61B7C619B778119069C524E4"
+    },
+    "2C8CBE93E4CAA0E00634F62F": {
+      "isa": "PBXBuildFile",
+      "fileRef": "024FC625914A7555D586DD12"
+    },
+    "9DD34D6CFE764519FBE9029F": {
+      "isa": "PBXBuildFile",
+      "fileRef": "DAE9C14E0416175DE6B0973B"
+    },
+    "10E52C7453AE66CD2BFCFEE3": {
+      "isa": "PBXBuildFile",
+      "fileRef": "6C23EC5E39E0636060D67ABF"
+    },
+    "7E26645123BA95B05307D1C8": {
+      "isa": "PBXBuildFile",
+      "fileRef": "5CCCE12F174C1D0C2AB5E540"
+    },
+    "F82436C56D349F100C23D128": {
+      "isa": "PBXBuildFile",
+      "fileRef": "41D9B427446D0F91F4D26E4B"
+    },
+    "F6CB1C15C4245F3533E03396": {
+      "isa": "PBXBuildFile",
+      "fileRef": "BE63B826EE2297FCB0F23A1C"
+    },
+    "17C3EA4048CA4CEAAD717C31": {
+      "isa": "PBXBuildFile",
+      "fileRef": "627BD0C07E7FDE290C39BBC0"
+    },
+    "4A3C57CE234FB02B504890A0": {
+      "isa": "PBXBuildFile",
+      "fileRef": "B85AC696718272E9F786ACA8"
+    },
+    "D1DFEAFFA4CD44D7AA17EA60": {
+      "isa": "PBXBuildFile",
+      "fileRef": "BA5EEF25307F5E0DD617D793"
+    },
+    "7251777CBAE2C7356005D15E": {
+      "isa": "PBXBuildFile",
+      "fileRef": "46C3DE4B5107E88B4CAAC819"
+    },
+    "C675BEDA79A31B68B881DE50": {
+      "isa": "PBXBuildFile",
+      "fileRef": "55771191029B2B3C4B45C9B0"
+    },
+    "FAD06238861931057678FBDD": {
+      "isa": "PBXBuildFile",
+      "fileRef": "C5BE86A82B7247E3F982BFF8"
+    },
+    "7D9CE0B39C67051DE4761DD2": {
+      "isa": "PBXBuildFile",
+      "fileRef": "97D6EEA17748AFFC24A12811"
+    },
+    "825823B1405237307DD4243B": {
+      "isa": "PBXBuildFile",
+      "fileRef": "E4D60873275FCE82E82B9EC4"
+    },
+    "EBBDC42E39AD1CE645CF7769": {
+      "isa": "PBXBuildFile",
+      "fileRef": "02CD95DFABF26F4C89E56A7E"
+    },
+    "B7401DB8618D9EAE738F5561": {
+      "isa": "PBXBuildFile",
+      "fileRef": "1335FEC8C630163D0D147CFB"
+    },
+    "FF08631C8AA2AD42AF38B1FD": {
+      "isa": "PBXBuildFile",
+      "fileRef": "34E3DC735B2C7F09B91ECEED"
+    },
+    "ABD8A5790C7183E72C1640E9": {
+      "isa": "PBXBuildFile",
+      "fileRef": "3EE0C373BDAC108AD66F2BD7"
+    },
+    "DC74B62118A6244DE937A318": {
+      "isa": "PBXBuildFile",
+      "fileRef": "4E420803DB2D3DFA67422E80"
+    },
+    "A9E55736B4CE575855296240": {
+      "isa": "PBXBuildFile",
+      "fileRef": "922A5A670BF2E4C8602D12D0"
+    },
+    "2B75B1BFB19230D406879879": {
+      "isa": "PBXBuildFile",
+      "fileRef": "33AFFCCDFFB777C4E5D507D9"
+    },
+    "E30DEF6F4D251FA882B72829": {
+      "isa": "PBXBuildFile",
+      "fileRef": "F0C938DA6E52B1E3C9B83188"
+    },
+    "584E4E4E6BB48E68159CD0B6": {
+      "isa": "PBXBuildFile",
+      "fileRef": "CD3268C487D620A79C264592"
+    },
+    "F343B558EAA7F16603628CF9": {
+      "isa": "PBXBuildFile",
+      "fileRef": "65A2D72664ECA764FAEC3654"
+    },
+    "F440FFDB2512543E25AF7582": {
+      "isa": "PBXBuildFile",
+      "fileRef": "9D68CB2D99879624B796E451"
+    },
+    "3ED0C66C61485DF5B60A148B": {
+      "isa": "PBXBuildFile",
+      "fileRef": "919551DAA7B586E709783BF6"
+    },
+    "C8EE23AC79CB8765819123EF": {
+      "isa": "PBXBuildFile",
+      "fileRef": "4C0CE60CA308777E07C55222"
+    },
+    "B651F7712EB3EB2FFBAC1AC4": {
+      "isa": "PBXBuildFile",
+      "fileRef": "8D19ABD27BEE1E466D17EF1D"
+    },
+    "701E9CD800506CE3C907338C": {
+      "isa": "PBXBuildFile",
+      "fileRef": "411B3828450460EB05CA5B60"
+    },
+    "048D21AE7877E3B87CD4D925": {
+      "isa": "PBXBuildFile",
+      "fileRef": "4739FB943AB89EFDCDACAADF"
+    },
+    "40E031F7162AEDB943FF5CA0": {
+      "isa": "PBXBuildFile",
+      "fileRef": "E28C640FAEDB08102A98EBF1"
+    },
+    "8CF9CFB6D68D7439E4A88A8A": {
+      "isa": "PBXBuildFile",
+      "fileRef": "94F125395AF70C66EF9C610C"
+    },
+    "B8B28B9C7652A6382D2D7BC3": {
+      "isa": "PBXBuildFile",
+      "fileRef": "B51CC35F32C5172B41BCB3F4"
+    },
+    "B4DF1C67D59D39A02D76F81D": {
+      "isa": "PBXBuildFile",
+      "fileRef": "5A96BEAC574C4EBD2BAB7EE6"
+    },
+    "027770559BA395F5FBAA2006": {
+      "isa": "PBXBuildFile",
+      "fileRef": "AF9E98EF7CBD8820AC181D55"
+    },
+    "40DFF169725AA68B96B02DC2": {
+      "isa": "PBXBuildFile",
+      "fileRef": "8FEA0B78B326603E64A21D9B"
+    },
+    "ADDDA77A664D87AEA2DDE1D5": {
+      "isa": "PBXBuildFile",
+      "fileRef": "302879547043E92A9A823E90"
+    },
+    "1B3398F0A060049288495E68": {
+      "isa": "PBXBuildFile",
+      "fileRef": "A554E5074F3E7CF2BB715E23"
+    },
+    "50CE6189818079ED3102275F": {
+      "isa": "PBXBuildFile",
+      "fileRef": "25DF9A0282D987BC2455476F"
+    },
+    "7545E15FB76622A9178D3574": {
+      "isa": "PBXBuildFile",
+      "fileRef": "80B0B01ABAADAE204BEDAB65"
+    },
+    "FADEA5D6A458BD957E4FF827": {
+      "isa": "PBXBuildFile",
+      "fileRef": "12B4A1A4BB9591D9FF435475"
+    },
+    "CE8AC2526C429E11CFD51DAF": {
+      "isa": "PBXBuildFile",
+      "fileRef": "F8BAD1EE662EAC646B7CC7E9"
+    },
+    "FC9C8885ADFA67997B699041": {
+      "isa": "PBXGroup",
+      "children": [
+        "8DD831348ECE65F702108DCC",
+        "554B3EE035A29E2976FB2DB8"
+      ],
+      "name": "Database",
+      "path": "Data/Database",
+      "sourceTree": "<group>"
+    },
+    "A6903C98021B6FA700AC7BC9": {
+      "isa": "PBXGroup",
+      "children": [
+        "4A87F071F990D19DBBC6B496",
+        "3C8011061013BF9BA82966AD",
+        "3F4818185484E9EA04363EB6",
+        "27D4E49C8D083EFA877A553B",
+        "620CE2859F174305641EF74A",
+        "0A234B8DEF470B78195DBE38",
+        "9DFB37D3F929E40BEA7A4D8B",
+        "DA5202D2DBDFE7B3A17B6F54",
+        "1A63F29913163AC0596A026D",
+        "290C64004266079B20AF55A1",
+        "A27C4187099F707475C0DCFC",
+        "1DB64F3D36BEFE04FAB79A3C"
+      ],
+      "name": "Entity",
+      "path": "Data/Database/Entity",
+      "sourceTree": "<group>"
+    },
+    "C2478F07FBB9D14CFE7F9DF5": {
+      "isa": "PBXGroup",
+      "children": [
+        "6FBE557CDD5B74D0B450238C"
+      ],
+      "name": "File",
+      "path": "Data/File",
+      "sourceTree": "<group>"
+    },
+    "034DE4C2B569FAA190570BD8": {
+      "isa": "PBXGroup",
+      "children": [
+        "1DC5CDD055871F93F9FDCC21"
+      ],
+      "name": "Preferences",
+      "path": "Data/Preferences",
+      "sourceTree": "<group>"
+    },
+    "35E657BC13BF273AAE69CC0D": {
+      "isa": "PBXGroup",
+      "children": [
+        "ABE30CC3DFA3C3D973997FAC"
+      ],
+      "name": "Preset",
+      "path": "Data/Preset",
+      "sourceTree": "<group>"
+    },
+    "B1D501DD4F9A9AA4FC7971B6": {
+      "isa": "PBXGroup",
+      "children": [
+        "7FDE7621820B2AECA0E5AF99",
+        "6DC27FFE7FFE4D8EE80BB535",
+        "0757E19DA0E439F8F762A64B",
+        "E70EC7E22613EB832429AC3F",
+        "3B9911C1F8D9A2649AD39EF4",
+        "6554E2EB7B5CDB3E4E45A169",
+        "F55F514DB3503283AD3C19A5",
+        "4891170B0EBA90EA69400278",
+        "9A25570E99DDAA6F8191E38D",
+        "4C2E5A758AF99C0AF1558F00",
+        "EF4FE9D57353AD89643245BA",
+        "01016BB2B3567C83468B397C"
+      ],
+      "name": "Repository",
+      "path": "Data/Repository",
+      "sourceTree": "<group>"
+    },
+    "20101C4D87D4E7E5FCD560DE": {
+      "isa": "PBXGroup",
+      "children": [
+        "6553EA47148066D7F8183EEB"
+      ],
+      "name": "Domain",
+      "path": "Domain",
+      "sourceTree": "<group>"
+    },
+    "495D65CAE4ED423F08FE3054": {
+      "isa": "PBXGroup",
+      "children": [
+        "CB09C4F3B585ED2A45C33282",
+        "D66AB57721527F31ABECF245",
+        "BEA23F815476CC0197DD10CA",
+        "2FE18CCD6A9CABD61782AC5E",
+        "7275C10FDA78E071C97E0555",
+        "31B51EA97D5EF4AF32F03934",
+        "90F9EA94438FDC62D33AF3D4"
+      ],
+      "name": "Component",
+      "path": "UI/Component",
+      "sourceTree": "<group>"
+    },
+    "28D7CD785953619BE4FB47D1": {
+      "isa": "PBXGroup",
+      "children": [
+        "6249C54578DC013068B27222"
+      ],
+      "name": "Navigation",
+      "path": "UI/Navigation",
+      "sourceTree": "<group>"
+    },
+    "F1D6018B3033AB24133D70A2": {
+      "isa": "PBXGroup",
+      "children": [
+        "B74F20A035A1880BEAF4B311",
+        "D426BDDFCE67131A6846B183",
+        "4291CE154A4ED22EEE911F5F",
+        "29CF60617BE8C1661F917754",
+        "61B7C619B778119069C524E4",
+        "024FC625914A7555D586DD12"
+      ],
+      "name": "Coordinate",
+      "path": "UI/Screen/Coordinate",
+      "sourceTree": "<group>"
+    },
+    "0F00CAB01185DEE4EEB143AE": {
+      "isa": "PBXGroup",
+      "children": [
+        "DAE9C14E0416175DE6B0973B",
+        "6C23EC5E39E0636060D67ABF",
+        "5CCCE12F174C1D0C2AB5E540",
+        "41D9B427446D0F91F4D26E4B",
+        "BE63B826EE2297FCB0F23A1C",
+        "627BD0C07E7FDE290C39BBC0"
+      ],
+      "name": "Item",
+      "path": "UI/Screen/Item",
+      "sourceTree": "<group>"
+    },
+    "3C039344F3FE7DF2D15757F5": {
+      "isa": "PBXGroup",
+      "children": [
+        "B85AC696718272E9F786ACA8",
+        "BA5EEF25307F5E0DD617D793",
+        "46C3DE4B5107E88B4CAAC819",
+        "55771191029B2B3C4B45C9B0"
+      ],
+      "name": "Location",
+      "path": "UI/Screen/Location",
+      "sourceTree": "<group>"
+    },
+    "579E600E69D9DFCFB0FC3C9D": {
+      "isa": "PBXGroup",
+      "children": [
+        "C5BE86A82B7247E3F982BFF8",
+        "97D6EEA17748AFFC24A12811",
+        "E4D60873275FCE82E82B9EC4",
+        "02CD95DFABF26F4C89E56A7E",
+        "1335FEC8C630163D0D147CFB",
+        "34E3DC735B2C7F09B91ECEED",
+        "3EE0C373BDAC108AD66F2BD7",
+        "4E420803DB2D3DFA67422E80"
+      ],
+      "name": "Outfit",
+      "path": "UI/Screen/Outfit",
+      "sourceTree": "<group>"
+    },
+    "7528EB87E74B555E8816856B": {
+      "isa": "PBXGroup",
+      "children": [
+        "922A5A670BF2E4C8602D12D0",
+        "33AFFCCDFFB777C4E5D507D9",
+        "F0C938DA6E52B1E3C9B83188",
+        "CD3268C487D620A79C264592",
+        "65A2D72664ECA764FAEC3654",
+        "9D68CB2D99879624B796E451",
+        "919551DAA7B586E709783BF6",
+        "4C0CE60CA308777E07C55222",
+        "8D19ABD27BEE1E466D17EF1D",
+        "411B3828450460EB05CA5B60"
+      ],
+      "name": "Payment",
+      "path": "UI/Screen/Payment",
+      "sourceTree": "<group>"
+    },
+    "E5F5110ABB8FD495EC55626D": {
+      "isa": "PBXGroup",
+      "children": [
+        "4739FB943AB89EFDCDACAADF",
+        "E28C640FAEDB08102A98EBF1",
+        "94F125395AF70C66EF9C610C",
+        "B51CC35F32C5172B41BCB3F4",
+        "5A96BEAC574C4EBD2BAB7EE6",
+        "AF9E98EF7CBD8820AC181D55"
+      ],
+      "name": "Settings",
+      "path": "UI/Screen/Settings",
+      "sourceTree": "<group>"
+    },
+    "B3EDFFD27B6DFD447BD0B2A2": {
+      "isa": "PBXGroup",
+      "children": [
+        "8FEA0B78B326603E64A21D9B",
+        "302879547043E92A9A823E90"
+      ],
+      "name": "Stats",
+      "path": "UI/Screen/Stats",
+      "sourceTree": "<group>"
+    },
+    "7BD1D7B4A0B1A9E16FB58A09": {
+      "isa": "PBXGroup",
+      "children": [
+        "A554E5074F3E7CF2BB715E23",
+        "25DF9A0282D987BC2455476F"
+      ],
+      "name": "Wishlist",
+      "path": "UI/Screen/Wishlist",
+      "sourceTree": "<group>"
+    },
+    "A842A1235D206CF09C4E30B1": {
+      "isa": "PBXGroup",
+      "children": [
+        "80B0B01ABAADAE204BEDAB65",
+        "12B4A1A4BB9591D9FF435475"
+      ],
+      "name": "Theme",
+      "path": "UI/Theme",
+      "sourceTree": "<group>"
+    },
+    "FC45437DFAB697ADC5B91AFA": {
+      "isa": "PBXGroup",
+      "children": [
+        "FC9C8885ADFA67997B699041",
+        "A6903C98021B6FA700AC7BC9",
+        "C2478F07FBB9D14CFE7F9DF5",
+        "034DE4C2B569FAA190570BD8",
+        "35E657BC13BF273AAE69CC0D",
+        "B1D501DD4F9A9AA4FC7971B6",
+        "20101C4D87D4E7E5FCD560DE",
+        "495D65CAE4ED423F08FE3054",
+        "28D7CD785953619BE4FB47D1",
+        "F1D6018B3033AB24133D70A2",
+        "0F00CAB01185DEE4EEB143AE",
+        "3C039344F3FE7DF2D15757F5",
+        "579E600E69D9DFCFB0FC3C9D",
+        "7528EB87E74B555E8816856B",
+        "E5F5110ABB8FD495EC55626D",
+        "B3EDFFD27B6DFD447BD0B2A2",
+        "7BD1D7B4A0B1A9E16FB58A09",
+        "A842A1235D206CF09C4E30B1",
+        "303EFD962BD8B1DF1EE221AA",
+        "DA2A579A5C452F0F0DEA0163",
+        "F8BAD1EE662EAC646B7CC7E9"
+      ],
+      "name": "Sources",
+      "sourceTree": "<group>"
+    },
+    "4D4B3FF5FB7B8B7B1323F574": {
+      "isa": "PBXGroup",
+      "children": [
+        "15375FA6009A3CC152EBF125"
+      ],
+      "name": "Products",
+      "sourceTree": "<group>"
+    },
+    "B0657008DA700C05AAB49B2F": {
+      "isa": "PBXGroup",
+      "children": [
+        "FC45437DFAB697ADC5B91AFA",
+        "4D4B3FF5FB7B8B7B1323F574"
+      ],
+      "sourceTree": "<group>"
+    },
+    "24885D967B9E3E2DD7845E17": {
+      "isa": "PBXSourcesBuildPhase",
+      "buildActionMask": "2147483647",
+      "files": [
+        "757135385B7878473E63308C",
+        "B27FB3D2CDC7002AA9A4522A",
+        "76FE3C1BF0216A136D15FAF2",
+        "FB0629AC0F37F18AF5A061B4",
+        "61C1C16995BAD047388896D8",
+        "5905E7C835AD8DDA5AFC21A5",
+        "AE12750E6A1F9941713A51E7",
+        "B84942650B1E96F4BB336E8C",
+        "A1E407CDB16D206B786B94C9",
+        "BE6397E34610F0975C5A5810",
+        "89B2CAD4E4596A57D2B7EE0D",
+        "5283950D3A8822AE7F4DDB00",
+        "9B22C89AF3E9C40502FEDBC7",
+        "8D6A4BE881AEA3F872C17E69",
+        "CEEAFE43B960036C464C35D9",
+        "2FE805328F73B1617C3F6D9B",
+        "F10FA72E6964E97D8BC982DF",
+        "54C3D8B09566F7665E875769",
+        "E29F68CD2BFC67CB3521DBD9",
+        "6100658B2086DC29E31FAED4",
+        "8C0055C2279D3CE6AC5EFB13",
+        "4C1E1C6154C223D0243A2DCF",
+        "028C24C32F686519DE48686C",
+        "E56EE3794713E42320E02E38",
+        "927E374CDFF51A77B0F0FCC9",
+        "6B4A8C8C46FD9BF7DD56C1CF",
+        "87F44EB648887DF65ADC13B5",
+        "21545E68F0074CA19C52EE0C",
+        "E524945B722002D01A1B972B",
+        "131A0AAF7EAF74CFC2213FAB",
+        "0DE806F770CB418F7916C136",
+        "25527283A2AC9D93B6A864E6",
+        "2AABEC34C8A7E09EB752F159",
+        "3AB179B9BF334B34659E9D3E",
+        "AAF17A9774E103A83D0F3B5A",
+        "DD1A74AE61FCC430B5775881",
+        "E5D16E2AC0F09C285E659B03",
+        "A30200577A0983DEA3AD7FC5",
+        "56209C01D9D6994B9BDF0AAB",
+        "B6BB3A07459A4AA92820C910",
+        "3583CEE9961A903E6D118E79",
+        "596207E616DC9F9F140BE362",
+        "17864A32B99345CF82C65444",
+        "7E20A9493B772F430F6AE654",
+        "83CF2E91458FBB04332116A1",
+        "2C8CBE93E4CAA0E00634F62F",
+        "9DD34D6CFE764519FBE9029F",
+        "10E52C7453AE66CD2BFCFEE3",
+        "7E26645123BA95B05307D1C8",
+        "F82436C56D349F100C23D128",
+        "F6CB1C15C4245F3533E03396",
+        "17C3EA4048CA4CEAAD717C31",
+        "4A3C57CE234FB02B504890A0",
+        "D1DFEAFFA4CD44D7AA17EA60",
+        "7251777CBAE2C7356005D15E",
+        "C675BEDA79A31B68B881DE50",
+        "FAD06238861931057678FBDD",
+        "7D9CE0B39C67051DE4761DD2",
+        "825823B1405237307DD4243B",
+        "EBBDC42E39AD1CE645CF7769",
+        "B7401DB8618D9EAE738F5561",
+        "FF08631C8AA2AD42AF38B1FD",
+        "ABD8A5790C7183E72C1640E9",
+        "DC74B62118A6244DE937A318",
+        "A9E55736B4CE575855296240",
+        "2B75B1BFB19230D406879879",
+        "E30DEF6F4D251FA882B72829",
+        "584E4E4E6BB48E68159CD0B6",
+        "F343B558EAA7F16603628CF9",
+        "F440FFDB2512543E25AF7582",
+        "3ED0C66C61485DF5B60A148B",
+        "C8EE23AC79CB8765819123EF",
+        "B651F7712EB3EB2FFBAC1AC4",
+        "701E9CD800506CE3C907338C",
+        "048D21AE7877E3B87CD4D925",
+        "40E031F7162AEDB943FF5CA0",
+        "8CF9CFB6D68D7439E4A88A8A",
+        "B8B28B9C7652A6382D2D7BC3",
+        "B4DF1C67D59D39A02D76F81D",
+        "027770559BA395F5FBAA2006",
+        "40DFF169725AA68B96B02DC2",
+        "ADDDA77A664D87AEA2DDE1D5",
+        "1B3398F0A060049288495E68",
+        "50CE6189818079ED3102275F",
+        "7545E15FB76622A9178D3574",
+        "FADEA5D6A458BD957E4FF827"
+      ],
+      "runOnlyForDeploymentPostprocessing": "0"
+    },
+    "CC8BE6D93515D8600C7F166D": {
+      "isa": "PBXResourcesBuildPhase",
+      "buildActionMask": "2147483647",
+      "files": [
+        "CE8AC2526C429E11CFD51DAF"
+      ],
+      "runOnlyForDeploymentPostprocessing": "0"
+    },
+    "66C8F78D9D37526F949E6FB6": {
+      "isa": "PBXFrameworksBuildPhase",
+      "buildActionMask": "2147483647",
+      "files": [],
+      "runOnlyForDeploymentPostprocessing": "0"
+    },
+    "A5D2B79E2D9B3E55A9FD4CB8": {
+      "isa": "XCSwiftPackageProductDependency",
+      "productName": "GRDB"
+    },
+    "F30E2C34E857B76335BF10B6": {
+      "isa": "XCSwiftPackageProductDependency",
+      "productName": "Kingfisher"
+    },
+    "D461922B063E89FEDB8A1C56": {
+      "isa": "XCRemoteSwiftPackageReference",
+      "repositoryURL": "https://github.com/groue/GRDB.swift.git",
+      "requirement": {
+        "kind": "upToNextMajorVersion",
+        "minimumVersion": "6.29.0"
+      }
+    },
+    "B57D27ECE0E1C13DAAFD1EC6": {
+      "isa": "XCRemoteSwiftPackageReference",
+      "repositoryURL": "https://github.com/onevcat/Kingfisher.git",
+      "requirement": {
+        "kind": "upToNextMajorVersion",
+        "minimumVersion": "8.0.0"
+      }
+    },
+    "5F4E3E63DC2DA8193134BD5F": {
+      "isa": "XCBuildConfiguration",
+      "buildSettings": {
+        "ARCHS": "$(ARCHS_STANDARD)",
+        "CLANG_ENABLE_MODULES": "YES",
+        "DEBUG_INFORMATION_FORMAT": "dwarf",
+        "ENABLE_USER_SCRIPT_SANDBOXING": "NO",
+        "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
+        "MACOSX_DEPLOYMENT_TARGET": "12.0",
+        "ONLY_ACTIVE_ARCH": "YES",
+        "SDKROOT": "auto",
+        "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
+        "SWIFT_ACTIVE_COMPILATION_CONDITIONS": "DEBUG",
+        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+        "SWIFT_VERSION": "6.0"
+      },
+      "name": "Debug"
+    },
+    "58C8AE66AB537C56309C7375": {
+      "isa": "XCBuildConfiguration",
+      "buildSettings": {
+        "ARCHS": "$(ARCHS_STANDARD)",
+        "CLANG_ENABLE_MODULES": "YES",
+        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+        "ENABLE_USER_SCRIPT_SANDBOXING": "NO",
+        "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
+        "MACOSX_DEPLOYMENT_TARGET": "12.0",
+        "SDKROOT": "auto",
+        "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
+        "SWIFT_VERSION": "6.0"
+      },
+      "name": "Release"
+    },
+    "9B602886652960BADC5492BE": {
+      "isa": "XCBuildConfiguration",
+      "buildSettings": {
+        "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+        "CODE_SIGN_STYLE": "Automatic",
+        "CURRENT_PROJECT_VERSION": "1",
+        "DEVELOPMENT_TEAM": "",
+        "ENABLE_PREVIEWS": "YES",
+        "GENERATE_INFOPLIST_FILE": "NO",
+        "INFOPLIST_FILE": "Sources/Info.plist",
+        "INFOPLIST_KEY_CFBundleDisplayName": "Lolita",
+        "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents": "YES",
+        "INFOPLIST_KEY_UISupportedInterfaceOrientations": "UIInterfaceOrientationPortrait",
+        "INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad": "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight",
+        "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks",
+        "MARKETING_VERSION": "1.0",
+        "PRODUCT_BUNDLE_IDENTIFIER": "com.lolita.ios",
+        "PRODUCT_NAME": "Lolita",
+        "SWIFT_EMIT_LOC_STRINGS": "YES",
+        "TARGETED_DEVICE_FAMILY": "1,2"
+      },
+      "name": "Debug"
+    },
+    "47E377D83157BF53B8C6E9ED": {
+      "isa": "XCBuildConfiguration",
+      "buildSettings": {
+        "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+        "CODE_SIGN_STYLE": "Automatic",
+        "CURRENT_PROJECT_VERSION": "1",
+        "DEVELOPMENT_TEAM": "",
+        "ENABLE_PREVIEWS": "YES",
+        "GENERATE_INFOPLIST_FILE": "NO",
+        "INFOPLIST_FILE": "Sources/Info.plist",
+        "INFOPLIST_KEY_CFBundleDisplayName": "Lolita",
+        "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents": "YES",
+        "INFOPLIST_KEY_UISupportedInterfaceOrientations": "UIInterfaceOrientationPortrait",
+        "INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad": "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight",
+        "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks",
+        "MARKETING_VERSION": "1.0",
+        "PRODUCT_BUNDLE_IDENTIFIER": "com.lolita.ios",
+        "PRODUCT_NAME": "Lolita",
+        "SWIFT_EMIT_LOC_STRINGS": "YES",
+        "TARGETED_DEVICE_FAMILY": "1,2"
+      },
+      "name": "Release"
+    },
+    "05337C20AF33539AA832EC0D": {
+      "isa": "XCConfigurationList",
+      "buildConfigurations": [
+        "5F4E3E63DC2DA8193134BD5F",
+        "58C8AE66AB537C56309C7375"
+      ],
+      "defaultConfigurationIsVisible": "0",
+      "defaultConfigurationName": "Release"
+    },
+    "51C6707AC359272D739D2E72": {
+      "isa": "XCConfigurationList",
+      "buildConfigurations": [
+        "9B602886652960BADC5492BE",
+        "47E377D83157BF53B8C6E9ED"
+      ],
+      "defaultConfigurationIsVisible": "0",
+      "defaultConfigurationName": "Release"
+    },
+    "ED6B6CE87833515E9D50F3BF": {
+      "isa": "PBXNativeTarget",
+      "buildConfigurationList": "51C6707AC359272D739D2E72",
+      "buildPhases": [
+        "24885D967B9E3E2DD7845E17",
+        "CC8BE6D93515D8600C7F166D",
+        "66C8F78D9D37526F949E6FB6"
+      ],
+      "buildRules": [],
+      "dependencies": [
+        "A5D2B79E2D9B3E55A9FD4CB8",
+        "F30E2C34E857B76335BF10B6"
+      ],
+      "name": "Lolita",
+      "productName": "Lolita",
+      "productReference": "15375FA6009A3CC152EBF125",
+      "productType": "com.apple.product-type.application"
+    },
+    "BCEE8C98C83CE0BFF181DCA9": {
+      "isa": "PBXProject",
+      "attributes": {
+        "BuildIndependentTargetsInParallel": "1",
+        "LastSwiftUpdateCheck": "2600",
+        "LastUpgradeCheck": "2600"
+      },
+      "buildConfigurationList": "05337C20AF33539AA832EC0D",
+      "compatibilityVersion": "Xcode 16.0",
+      "developmentRegion": "zh-Hans",
+      "hasScannedForEncodings": "0",
+      "knownRegions": [
+        "en",
+        "zh-Hans"
+      ],
+      "mainGroup": "B0657008DA700C05AAB49B2F",
+      "packageReferences": [
+        "D461922B063E89FEDB8A1C56",
+        "B57D27ECE0E1C13DAAFD1EC6"
+      ],
+      "productRefGroup": "4D4B3FF5FB7B8B7B1323F574",
+      "projectDirPath": "",
+      "projectRoot": "",
+      "targets": [
+        "ED6B6CE87833515E9D50F3BF"
+      ]
+    }
+  },
+  "rootObject": "BCEE8C98C83CE0BFF181DCA9"
+}
