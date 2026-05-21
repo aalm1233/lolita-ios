@@ -20,6 +20,11 @@ enum CategoryGroup: String, CaseIterable, Codable, DatabaseValueConvertible {
     case accessory = "ACCESSORY"
 }
 
+enum PriceType: String, CaseIterable, Codable, DatabaseValueConvertible {
+    case full = "FULL"
+    case depositBalance = "DEPOSIT_BALANCE"
+}
+
 // MARK: - List<String> JSON converter
 
 // MARK: - StringList wrapper for JSON array storage
@@ -51,9 +56,4 @@ struct StringList: Codable, DatabaseValueConvertible, Equatable, ExpressibleByAr
         }
         return StringList(values)
     }
-}
-
-enum PriceType: String, CaseIterable, Codable, DatabaseValueConvertible {
-    case full = "FULL"
-    case depositBalance = "DEPOSIT_BALANCE"
 }
