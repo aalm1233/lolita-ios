@@ -24,7 +24,7 @@ struct LolitaNavHost: View {
             .tag(Tab.items)
 
             NavigationStack {
-                PlaceholderScreen(title: Tab.wishlist.rawValue)
+                WishlistScreen()
             }
             .tabItem {
                 Image(systemName: selectedTab == .wishlist ? "heart.fill" : "heart")
