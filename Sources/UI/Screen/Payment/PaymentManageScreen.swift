@@ -59,7 +59,7 @@ struct PaymentManageScreen: View {
             summaryItem("待付", viewModel.remainingAmount, .orange)
         }
         .padding()
-        .background(Color(.systemGroupedBackground))
+        .background(skin.backgroundColor.opacity(0.5))
     }
 
     private func summaryItem(_ label: String, _ amount: Double, _ color: Color) -> some View {
