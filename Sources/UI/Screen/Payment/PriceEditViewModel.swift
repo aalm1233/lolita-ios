@@ -10,7 +10,7 @@ final class PriceEditViewModel: ObservableObject {
 
     nonisolated(unsafe) private let repo = AppModule.shared.priceRepository
     let itemId: Int64
-    private var priceId: Int64?
+    private(set) var priceId: Int64?
 
     init(itemId: Int64, priceId: Int64? = nil) {
         self.itemId = itemId
