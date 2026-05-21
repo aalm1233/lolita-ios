@@ -52,3 +52,8 @@ struct StringList: Codable, DatabaseValueConvertible, Equatable, ExpressibleByAr
         return StringList(values)
     }
 }
+
+enum PriceType: String, CaseIterable, Codable, DatabaseValueConvertible {
+    case full = "FULL"
+    case depositBalance = "DEPOSIT_BALANCE"
+}
