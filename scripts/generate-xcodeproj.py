@@ -31,7 +31,7 @@ for f in swift_files:
         "sourceTree": "<group>"
     }
 
-# Info.plist
+# Info.plist (referenced only via INFOPLIST_FILE build setting, not as resource)
 if has_plist:
     objects[uid("file_Sources/Info.plist")] = {
         "isa": "PBXFileReference",
@@ -55,11 +55,7 @@ for f in swift_files:
         "isa": "PBXBuildFile",
         "fileRef": uid("file_" + f)
     }
-if has_plist:
-    objects[uid("build_Info.plist")] = {
-        "isa": "PBXBuildFile",
-        "fileRef": uid("file_Sources/Info.plist")
-    }
+# Info.plist is handled via INFOPLIST_FILE build setting, NOT as a resource
 
 # --- Groups ---
 # Subgroups for directories
@@ -88,6 +84,7 @@ objects[uid("group_Sources")] = {
     "isa": "PBXGroup",
     "children": sources_children,
     "name": "Sources",
+    "path": "Sources",
     "sourceTree": "<group>"
 }
 
@@ -116,11 +113,10 @@ objects[sources_bp] = {
 }
 
 resources_bp = uid("resources_bp")
-res_files = [uid("build_Info.plist")] if has_plist else []
 objects[resources_bp] = {
     "isa": "PBXResourcesBuildPhase",
     "buildActionMask": "2147483647",
-    "files": res_files,
+    "files": [],
     "runOnlyForDeploymentPostprocessing": "0"
 }
 
@@ -132,18 +128,7 @@ objects[frameworks_bp] = {
     "runOnlyForDeploymentPostprocessing": "0"
 }
 
-# --- SPM packages ---
-gr_pkg = uid("spm_grdb_pkg")
-objects[gr_pkg] = {
-    "isa": "XCSwiftPackageProductDependency",
-    "productName": "GRDB"
-}
-kf_pkg = uid("spm_kf_pkg")
-objects[kf_pkg] = {
-    "isa": "XCSwiftPackageProductDependency",
-    "productName": "Kingfisher"
-}
-
+# --- SPM remote package references ---
 gr_ref = uid("spm_grdb_ref")
 objects[gr_ref] = {
     "isa": "XCRemoteSwiftPackageReference",
@@ -161,6 +146,20 @@ objects[kf_ref] = {
         "kind": "upToNextMajorVersion",
         "minimumVersion": "8.0.0"
     }
+}
+
+# SPM package product dependencies (must reference remote refs above)
+gr_pkg = uid("spm_grdb_pkg")
+objects[gr_pkg] = {
+    "isa": "XCSwiftPackageProductDependency",
+    "package": gr_ref,
+    "productName": "GRDB"
+}
+kf_pkg = uid("spm_kf_pkg")
+objects[kf_pkg] = {
+    "isa": "XCSwiftPackageProductDependency",
+    "package": kf_ref,
+    "productName": "Kingfisher"
 }
 
 # --- Build configs ---
@@ -208,14 +207,10 @@ objects[t_debug_cfg] = {
         "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
         "CODE_SIGN_STYLE": "Automatic",
         "CURRENT_PROJECT_VERSION": "1",
-        "DEVELOPMENT_TEAM": "",
+        "DEVELOPMENT_TEAM": "M5MJ2R5MT7",
         "ENABLE_PREVIEWS": "YES",
         "GENERATE_INFOPLIST_FILE": "NO",
         "INFOPLIST_FILE": "Sources/Info.plist",
-        "INFOPLIST_KEY_CFBundleDisplayName": "Lolita",
-        "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents": "YES",
-        "INFOPLIST_KEY_UISupportedInterfaceOrientations": "UIInterfaceOrientationPortrait",
-        "INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad": "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight",
         "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks",
         "MARKETING_VERSION": "1.0",
         "PRODUCT_BUNDLE_IDENTIFIER": "com.lolita.ios",
@@ -233,14 +228,10 @@ objects[t_release_cfg] = {
         "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
         "CODE_SIGN_STYLE": "Automatic",
         "CURRENT_PROJECT_VERSION": "1",
-        "DEVELOPMENT_TEAM": "",
+        "DEVELOPMENT_TEAM": "M5MJ2R5MT7",
         "ENABLE_PREVIEWS": "YES",
         "GENERATE_INFOPLIST_FILE": "NO",
         "INFOPLIST_FILE": "Sources/Info.plist",
-        "INFOPLIST_KEY_CFBundleDisplayName": "Lolita",
-        "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents": "YES",
-        "INFOPLIST_KEY_UISupportedInterfaceOrientations": "UIInterfaceOrientationPortrait",
-        "INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad": "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight",
         "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks",
         "MARKETING_VERSION": "1.0",
         "PRODUCT_BUNDLE_IDENTIFIER": "com.lolita.ios",
@@ -268,6 +259,18 @@ objects[cfg_list_target] = {
     "defaultConfigurationName": "Release"
 }
 
+# SPM target dependencies (must be PBXTargetDependency wrapping the package)
+gr_tdep = uid("tgt_dep_grdb")
+objects[gr_tdep] = {
+    "isa": "PBXTargetDependency",
+    "productRef": gr_pkg
+}
+kf_tdep = uid("tgt_dep_kf")
+objects[kf_tdep] = {
+    "isa": "PBXTargetDependency",
+    "productRef": kf_pkg
+}
+
 # --- Native target ---
 target_id = uid("target")
 objects[target_id] = {
@@ -275,7 +278,8 @@ objects[target_id] = {
     "buildConfigurationList": cfg_list_target,
     "buildPhases": [sources_bp, resources_bp, frameworks_bp],
     "buildRules": [],
-    "dependencies": [gr_pkg, kf_pkg],
+    "dependencies": [gr_tdep, kf_tdep],
+    "packageProductDependencies": [gr_pkg, kf_pkg],
     "name": "Lolita",
     "productName": "Lolita",
     "productReference": uid("product"),
