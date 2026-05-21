@@ -60,6 +60,14 @@ final class AppModule: @unchecked Sendable {
         RecommendationRepository(db: db.dbQueue)
     }()
 
+    lazy var priceRepository: PriceRepository = {
+        PriceRepository(db: db.dbQueue)
+    }()
+
+    lazy var paymentRepository: PaymentRepository = {
+        PaymentRepository(db: db.dbQueue)
+    }()
+
     // MARK: - Preset seeding
 
     private func seedPresetData() async throws {
