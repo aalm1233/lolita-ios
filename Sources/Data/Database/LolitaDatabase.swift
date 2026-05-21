@@ -140,6 +140,39 @@ final class LolitaDatabase {
             try db.create(index: "index_items_coordinateId", on: "items", columns: ["coordinateId"])
             try db.create(index: "index_items_locationId", on: "items", columns: ["locationId"])
         }
+
+        migrator.registerMigration("v2") { db in
+            try db.create(table: "prices") { t in
+                t.autoIncrementedPrimaryKey("id")
+                t.column("item_id", .integer).notNull()
+                    .references("items", column: "id", onDelete: .cascade)
+                t.column("type", .text).notNull()
+                t.column("total_price", .double).notNull()
+                t.column("deposit", .double)
+                t.column("balance", .double)
+                t.column("created_at", .integer).notNull()
+            }
+            try db.create(index: "index_prices_item_id", on: "prices", columns: ["item_id"])
+            try db.create(index: "index_prices_type", on: "prices", columns: ["type"])
+
+            try db.create(table: "payments") { t in
+                t.autoIncrementedPrimaryKey("id")
+                t.column("price_id", .integer).notNull()
+                    .references("prices", column: "id", onDelete: .cascade)
+                t.column("amount", .double).notNull()
+                t.column("due_date", .integer).notNull()
+                t.column("is_paid", .integer).notNull().defaults(to: 0)
+                t.column("paid_date", .integer)
+                t.column("calendar_event_id", .integer)
+                t.column("reminder_set", .integer).notNull().defaults(to: 0)
+                t.column("custom_reminder_days", .integer)
+                t.column("created_at", .integer).notNull()
+            }
+            try db.create(index: "index_payments_price_id", on: "payments", columns: ["price_id"])
+            try db.create(index: "index_payments_due_date", on: "payments", columns: ["due_date"])
+            try db.create(index: "index_payments_is_paid", on: "payments", columns: ["is_paid"])
+        }
+
         return migrator
     }
 }
