@@ -7,11 +7,13 @@ final class AppModule: @unchecked Sendable {
     let preferences = AppPreferences()
     private(set) var db: LolitaDatabase!
 
-    func initialize() async throws {
+    func setupDatabase() throws {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let dbPath = docs.appendingPathComponent("lolita.sqlite").path
         db = try LolitaDatabase(path: dbPath)
+    }
 
+    func seedIfNeeded() async throws {
         if preferences.isFirstLaunch {
             try await seedPresetData()
             preferences.isFirstLaunch = false
