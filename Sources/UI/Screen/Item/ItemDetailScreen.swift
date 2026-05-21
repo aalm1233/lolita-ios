@@ -73,8 +73,13 @@ struct ItemDetailScreen: View {
         #if os(iOS)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                NavigationLink("编辑") {
-                    ItemEditScreen(itemId: viewModel.itemId)
+                HStack(spacing: 16) {
+                    NavigationLink(destination: PriceManageScreen(itemId: viewModel.itemId)) {
+                        Image(systemName: "yensign.circle")
+                    }
+                    NavigationLink("编辑") {
+                        ItemEditScreen(itemId: viewModel.itemId)
+                    }
                 }
             }
         }
