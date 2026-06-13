@@ -23,5 +23,13 @@
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
+    <key>UIAppFonts</key>
+    <array>
+        <string>cinzel_regular.ttf</string>
+        <string>noto_serif_sc_regular.ttf</string>
+        <string>playfair_display_regular.ttf</string>
+        <string>pacifico_regular.ttf</string>
+        <string>cormorant_garamond.ttf</string>
+    </array>
 </dict>
 </plist>
