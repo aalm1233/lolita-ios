@@ -5,14 +5,14 @@ import UIKit
 
 struct LolitaNavigationBar: View {
     @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
 
     let title: String
     var showBack: Bool = false
     var onBack: (() -> Void)? = nil
 
     private var isDark: Bool { colorScheme == .dark }
-    private var gradient: [Color] { isDark ? skin.gradientColorsDark : skin.gradientColors }
+    private var gradient: [Color] { isDark ? skinManager.current.gradientColorsDark : skinManager.current.gradientColors }
 
     var body: some View {
         ZStack {
@@ -28,9 +28,9 @@ struct LolitaNavigationBar: View {
                     }
                 }
 
-                Text(skin.topBarDecoration)
+                Text(skinManager.current.topBarDecoration)
                     .font(.system(size: 16))
-                    .opacity(skin.topBarDecorationAlpha)
+                    .opacity(skinManager.current.topBarDecorationAlpha)
                     .foregroundColor(.white)
 
                 Text(title)
@@ -39,7 +39,7 @@ struct LolitaNavigationBar: View {
 
                 Spacer()
             }
-            .padding(.horizontal, skin.spacingL)
+            .padding(.horizontal, skinManager.current.spacingL)
             .padding(.vertical, 12)
         }
         .frame(height: 44 + safeAreaTop)
