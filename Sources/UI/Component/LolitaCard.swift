@@ -9,7 +9,7 @@ enum CardVariant {
 
 struct LolitaCard<Content: View>: View {
     @Environment(\.colorScheme) var colorScheme
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
 
     let variant: CardVariant
     @ViewBuilder let content: () -> Content
@@ -21,36 +21,51 @@ struct LolitaCard<Content: View>: View {
 
     private var isDark: Bool { colorScheme == .dark }
 
+    private var currentBorder: (color: Color, width: CGFloat)? {
+        if isDark, let dark = skinManager.current.cardBorderStrokeDark {
+            return dark
+        }
+        return skinManager.current.cardBorderStroke
+    }
+
     private var elevation: CGFloat {
         switch variant {
-        case .default: return skin.cardElevation
-        case .gallery: return skin.galleryCardElevation
-        case .featured: return skin.featuredCardElevation
-        case .compact: return skin.compactCardElevation
+        case .default: return skinManager.current.cardElevation
+        case .gallery: return skinManager.current.galleryCardElevation
+        case .featured: return skinManager.current.featuredCardElevation
+        case .compact: return skinManager.current.compactCardElevation
         }
     }
 
     private var padding: CGFloat {
         switch variant {
-        case .default: return skin.cardInnerPadding
-        case .gallery: return skin.galleryCardInnerPadding
-        case .featured: return skin.featuredCardInnerPadding
-        case .compact: return skin.compactCardInnerPadding
+        case .default: return skinManager.current.cardInnerPadding
+        case .gallery: return skinManager.current.galleryCardInnerPadding
+        case .featured: return skinManager.current.featuredCardInnerPadding
+        case .compact: return skinManager.current.compactCardInnerPadding
         }
     }
 
     private var cardBackground: Color {
-        isDark ? skin.cardColorDark : skin.cardColor
+        isDark ? skinManager.current.cardColorDark : skinManager.current.cardColor
     }
 
     var body: some View {
         content()
             .padding(padding)
             .background(
-                RoundedRectangle(cornerRadius: skin.cornerRadiusM)
+                RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusM)
                     .fill(cardBackground)
             )
-            .clipShape(RoundedRectangle(cornerRadius: skin.cornerRadiusM))
+            .overlay(
+                Group {
+                    if let border = currentBorder {
+                        RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusM)
+                            .stroke(border.color, lineWidth: border.width)
+                    }
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusM))
             .shadow(
                 color: .black.opacity(0.08),
                 radius: elevation,
