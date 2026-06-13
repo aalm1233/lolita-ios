@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct LolitaApp: App {
-    @StateObject private var skin = DefaultSkin()
+    @StateObject private var skinManager = SkinManager()
 
     init() {
         try? AppModule.shared.setupDatabase()
@@ -10,19 +10,11 @@ struct LolitaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if #available(iOS 16.0, macOS 13.0, *) {
-                LolitaNavHost()
-                    .environmentObject(skin)
-                    .task {
-                        try? await AppModule.shared.seedIfNeeded()
-                    }
-            } else {
-                Text("Lolita iOS")
-                    .environmentObject(skin)
-                    .task {
-                        try? await AppModule.shared.seedIfNeeded()
-                    }
-            }
+            LolitaNavHost()
+                .environmentObject(skinManager)
+                .task {
+                    try? await AppModule.shared.seedIfNeeded()
+                }
         }
     }
 }
