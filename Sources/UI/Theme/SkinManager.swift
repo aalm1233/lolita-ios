@@ -23,7 +23,12 @@ final class SkinManager: ObservableObject {
 
     var customFont: Font? {
         guard let name = current.fontName else { return nil }
-        return Font.custom(name, size: UIFont.preferredFont(forTextStyle: .body).pointSize)
+        #if canImport(UIKit)
+        let size = UIFont.preferredFont(forTextStyle: .body).pointSize
+        #else
+        let size: CGFloat = 17
+        #endif
+        return Font.custom(name, size: size)
     }
 
     static func create(_ type: SkinType) -> any SkinProtocol {
