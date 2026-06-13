@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct OutfitLogDetailScreen: View {
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
     @StateObject private var viewModel = OutfitLogDetailViewModel()
 
     let logId: Int64
 
     var body: some View {
         ScrollView {
-            VStack(spacing: skin.cardGap) {
+            VStack(spacing: skinManager.current.cardGap) {
                 ImageGalleryPager(urls: viewModel.imageUrls)
 
                 if let log = viewModel.log {

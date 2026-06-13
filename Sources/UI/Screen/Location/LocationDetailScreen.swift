@@ -3,7 +3,7 @@ import SwiftUI
 struct LocationDetailScreen: View {
     @StateObject private var viewModel: LocationDetailViewModel
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
 
     init(locationId: Int64) {
         _viewModel = StateObject(wrappedValue: LocationDetailViewModel(locationId: locationId))
@@ -16,7 +16,7 @@ struct LocationDetailScreen: View {
                 if let imageUrl = viewModel.location?.imageUrl {
                     LolitaShimmerImage(url: ImageFileHelper.fileURL(for: imageUrl))
                         .frame(height: 200)
-                        .clipShape(RoundedRectangle(cornerRadius: skin.cornerRadiusM))
+                        .clipShape(RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusM))
                 }
 
                 // Name and description card

@@ -5,7 +5,7 @@ import PhotosUI
 
 struct CoordinateEditScreen: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
     @StateObject private var viewModel = CoordinateEditViewModel()
 
     let coordinateId: Int64
@@ -32,7 +32,7 @@ struct CoordinateEditScreen: View {
                                 ZStack(alignment: .topTrailing) {
                                     LolitaShimmerImage(url: ImageFileHelper.fileURL(for: path))
                                         .frame(width: 80, height: 80)
-                                        .clipShape(RoundedRectangle(cornerRadius: skin.cornerRadiusS))
+                                        .clipShape(RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusS))
 
                                     Button(action: { viewModel.removeImage(at: index) }) {
                                         Image(systemName: "xmark.circle.fill")

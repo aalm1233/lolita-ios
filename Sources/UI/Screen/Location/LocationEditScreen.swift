@@ -6,7 +6,7 @@ import PhotosUI
 struct LocationEditScreen: View {
     @StateObject private var viewModel: LocationEditViewModel
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
     @State private var showCancelAlert = false
 
     #if os(iOS)
@@ -32,14 +32,14 @@ struct LocationEditScreen: View {
                     if let imageUrl = viewModel.imageUrl {
                         LolitaShimmerImage(url: ImageFileHelper.fileURL(for: imageUrl))
                             .frame(height: 200)
-                            .clipShape(RoundedRectangle(cornerRadius: skin.cornerRadiusM))
+                            .clipShape(RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusM))
 
                         Button("移除图片", role: .destructive) {
                             viewModel.removeImage()
                         }
                         .font(.subheadline)
                     } else {
-                        RoundedRectangle(cornerRadius: skin.cornerRadiusM)
+                        RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusM)
                             .fill(Color.gray.opacity(0.1))
                             .frame(height: 200)
                             .overlay {

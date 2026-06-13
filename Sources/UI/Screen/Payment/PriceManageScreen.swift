@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PriceManageScreen: View {
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
     @StateObject private var viewModel: PriceManageViewModel
 
     init(itemId: Int64) {

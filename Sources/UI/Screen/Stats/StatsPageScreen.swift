@@ -2,7 +2,7 @@ import SwiftUI
 
 struct StatsPageScreen: View {
     @StateObject private var viewModel = StatsPageViewModel()
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
 
     var body: some View {
         ScrollView {
@@ -36,7 +36,7 @@ struct StatsPageScreen: View {
                                 .foregroundStyle(.secondary)
                             Text(String(format: "¥%.2f", viewModel.totalSpending))
                                 .font(.title2.weight(.bold))
-                                .foregroundStyle(skin.primaryColor)
+                                .foregroundStyle(skinManager.current.primaryColor)
                         }
                         Spacer()
                     }
@@ -53,7 +53,7 @@ struct StatsPageScreen: View {
                                     .font(.subheadline.weight(.medium))
                                 Text(String(format: "¥%.2f", exp.totalSpending))
                                     .font(.title3.weight(.bold))
-                                    .foregroundStyle(skin.primaryColor)
+                                    .foregroundStyle(skinManager.current.primaryColor)
                             }
                             Spacer()
                         }
@@ -150,7 +150,7 @@ struct StatsPageScreen: View {
                     LolitaCard(variant: .compact) {
                         HStack {
                             Image(systemName: "calendar")
-                                .foregroundStyle(skin.primaryColor)
+                                .foregroundStyle(skinManager.current.primaryColor)
                             Text("付款日历")
                                 .foregroundColor(.primary)
                             Spacer()

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct WishlistScreen: View {
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
     @StateObject private var viewModel = WishlistViewModel()
 
     var body: some View {
@@ -50,7 +50,7 @@ struct WishlistScreen: View {
 }
 
 private struct WishlistRow: View {
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
     let item: Item
 
     var body: some View {
@@ -58,9 +58,9 @@ private struct WishlistRow: View {
             if let firstImage = item.imageUrls.values.first, !firstImage.isEmpty {
                 LolitaShimmerImage(url: ImageFileHelper.fileURL(for: firstImage))
                     .frame(width: 56, height: 56)
-                    .clipShape(RoundedRectangle(cornerRadius: skin.cornerRadiusS))
+                    .clipShape(RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusS))
             } else {
-                RoundedRectangle(cornerRadius: skin.cornerRadiusS)
+                RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusS)
                     .fill(Color.gray.opacity(0.1))
                     .frame(width: 56, height: 56)
                     .overlay {

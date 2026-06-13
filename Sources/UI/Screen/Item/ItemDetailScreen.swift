@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ItemDetailScreen: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
     @StateObject private var viewModel: ItemDetailViewModel
 
     init(itemId: Int64) {
@@ -11,7 +11,7 @@ struct ItemDetailScreen: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: skin.cardGap) {
+            VStack(spacing: skinManager.current.cardGap) {
                 ImageGalleryPager(urls: viewModel.imageUrls)
 
                 LolitaCard {

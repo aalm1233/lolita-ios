@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PaymentManageScreen: View {
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
     @StateObject private var viewModel: PaymentManageViewModel
 
     init(priceId: Int64) {
@@ -59,7 +59,7 @@ struct PaymentManageScreen: View {
             summaryItem("待付", viewModel.remainingAmount, .orange)
         }
         .padding()
-        .background(skin.backgroundColor.opacity(0.5))
+        .background(skinManager.current.backgroundColor.opacity(0.5))
     }
 
     private func summaryItem(_ label: String, _ amount: Double, _ color: Color) -> some View {

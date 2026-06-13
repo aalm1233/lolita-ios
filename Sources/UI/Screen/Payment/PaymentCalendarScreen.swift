@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PaymentCalendarScreen: View {
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
     @StateObject private var viewModel = PaymentCalendarViewModel()
 
     var body: some View {
@@ -52,7 +52,7 @@ struct PaymentCalendarScreen: View {
             }
         }
         .padding()
-        .background(skin.backgroundColor.opacity(0.5))
+        .background(skinManager.current.backgroundColor.opacity(0.5))
     }
 
     private var calendarGrid: some View {
@@ -79,7 +79,7 @@ struct PaymentCalendarScreen: View {
                         Text("\(day)")
                             .font(.caption)
                         Circle()
-                            .fill(viewModel.hasPayments(on: date) ? skin.primaryColor : .clear)
+                            .fill(viewModel.hasPayments(on: date) ? skinManager.current.primaryColor : .clear)
                             .frame(width: 6, height: 6)
                     }
                     .frame(maxWidth: .infinity)

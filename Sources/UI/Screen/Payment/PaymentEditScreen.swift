@@ -2,7 +2,7 @@ import SwiftUI
 
 struct PaymentEditScreen: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
     @StateObject private var viewModel: PaymentEditViewModel
 
     init(priceId: Int64, paymentId: Int64? = nil) {

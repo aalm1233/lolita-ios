@@ -2,7 +2,7 @@ import SwiftUI
 
 struct PriceEditScreen: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
     @StateObject private var viewModel: PriceEditViewModel
 
     init(itemId: Int64, priceId: Int64? = nil) {

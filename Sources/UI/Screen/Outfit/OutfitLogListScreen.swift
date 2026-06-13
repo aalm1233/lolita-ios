@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct OutfitLogListScreen: View {
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
     @StateObject private var viewModel = OutfitLogListViewModel()
 
     var body: some View {
@@ -41,7 +41,7 @@ struct OutfitLogListScreen: View {
 
     private var listContent: some View {
         ScrollView {
-            LazyVStack(spacing: skin.cardGap) {
+            LazyVStack(spacing: skinManager.current.cardGap) {
                 ForEach(viewModel.groupedLogs, id: \.date) { date, logs in
                     sectionHeader(date)
                     ForEach(logs, id: \.id) { log in
@@ -75,7 +75,7 @@ struct OutfitLogListScreen: View {
 }
 
 private struct OutfitLogRow: View {
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
     let log: OutfitLog
 
     var body: some View {
@@ -85,9 +85,9 @@ private struct OutfitLogRow: View {
                    !firstImage.isEmpty {
                     LolitaShimmerImage(url: ImageFileHelper.fileURL(for: firstImage))
                         .frame(width: 64, height: 64)
-                        .clipShape(RoundedRectangle(cornerRadius: skin.cornerRadiusS))
+                        .clipShape(RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusS))
                 } else {
-                    RoundedRectangle(cornerRadius: skin.cornerRadiusS)
+                    RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusS)
                         .fill(Color.gray.opacity(0.1))
                         .frame(width: 64, height: 64)
                         .overlay {

@@ -6,7 +6,7 @@ import UIKit
 
 struct QuickOutfitLogScreen: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject var skin: DefaultSkin
+    @EnvironmentObject var skinManager: SkinManager
     @StateObject private var viewModel = QuickOutfitLogViewModel()
 
     #if os(iOS)
@@ -68,7 +68,7 @@ struct QuickOutfitLogScreen: View {
                                 Spacer()
                                 if viewModel.selectedItemIds.contains(item.id) {
                                     Image(systemName: "checkmark")
-                                        .foregroundColor(skin.accentColor)
+                                        .foregroundColor(skinManager.current.accentColor)
                                 }
                             }
                         }
