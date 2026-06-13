@@ -15,7 +15,7 @@ final class SkinManager: ObservableObject {
         self.current = SkinManager.create(storedType)
     }
 
-    func switch(to type: SkinType) {
+    func `switch`(to type: SkinType) {
         current = SkinManager.create(type)
         currentSkinType = type
         preferences.skinType = type.rawValue
