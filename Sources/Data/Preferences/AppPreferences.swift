@@ -8,8 +8,8 @@ final class AppPreferences {
         set { defaults.set(newValue, forKey: "isFirstLaunch") }
     }
 
-    var currentSkinType: String {
-        get { defaults.string(forKey: "currentSkinType") ?? "DEFAULT" }
-        set { defaults.set(newValue, forKey: "currentSkinType") }
+    var skinType: String {
+        get { defaults.string(forKey: "skin_type") ?? "DEFAULT" }
+        set { defaults.set(newValue, forKey: "skin_type") }
     }
 }
