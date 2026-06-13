@@ -1,5 +1,27 @@
 import SwiftUI
 
+enum SkinType: String, CaseIterable {
+    case `default` = "DEFAULT"
+    case gothic = "GOTHIC"
+    case chinese = "CHINESE"
+    case classic = "CLASSIC"
+    case navy = "NAVY"
+    case country = "COUNTRY"
+    case victorian = "VICTORIAN"
+
+    var displayName: String {
+        switch self {
+        case .default: return "甜美粉"
+        case .gothic: return "哥特暗黑"
+        case .chinese: return "中华风韵"
+        case .classic: return "经典优雅"
+        case .navy: return "清风水手"
+        case .country: return "田园牧歌"
+        case .victorian: return "维多利亚"
+        }
+    }
+}
+
 protocol SkinProtocol: AnyObject, ObservableObject {
     // Core colors
     var primaryColor: Color { get }
@@ -57,4 +79,52 @@ protocol SkinProtocol: AnyObject, ObservableObject {
     // Compact variant card
     var compactCardElevation: CGFloat { get }
     var compactCardInnerPadding: CGFloat { get }
+
+    // Font
+    var fontName: String? { get }
+    var fontDisplayName: String { get }
+
+    // Image frame
+    var imageFrameElevation: CGFloat { get }
+    var imageFrameBorderStroke: (color: Color, width: CGFloat)? { get }
+    var imageFrameBorderStrokeDark: (color: Color, width: CGFloat)? { get }
+    var imageFramePadding: CGFloat { get }
+
+    // Dark mode borders
+    var cardBorderStrokeDark: (color: Color, width: CGFloat)? { get }
+    var sectionDividerColorDark: Color { get }
+    var sectionAccentColorDark: Color { get }
+
+    // Shapes
+    var buttonCornerRadius: CGFloat { get }
+
+    // Blur
+    var navBarBlurEnabled: Bool { get }
+    var dialogBlurEnabled: Bool { get }
+
+    // Tab bar
+    var tabBarBackgroundColor: Color { get }
+    var tabBarBackgroundColorDark: Color { get }
+}
+
+extension SkinProtocol {
+    var fontName: String? { nil }
+    var fontDisplayName: String { "系统默认" }
+
+    var imageFrameElevation: CGFloat { 2 }
+    var imageFrameBorderStroke: (color: Color, width: CGFloat)? { nil }
+    var imageFrameBorderStrokeDark: (color: Color, width: CGFloat)? { nil }
+    var imageFramePadding: CGFloat { 0 }
+
+    var cardBorderStrokeDark: (color: Color, width: CGFloat)? { nil }
+    var sectionDividerColorDark: Color { sectionDividerColor }
+    var sectionAccentColorDark: Color { sectionAccentColor }
+
+    var buttonCornerRadius: CGFloat { cornerRadiusM }
+
+    var navBarBlurEnabled: Bool { false }
+    var dialogBlurEnabled: Bool { false }
+
+    var tabBarBackgroundColor: Color { cardColor }
+    var tabBarBackgroundColorDark: Color { cardColorDark }
 }
