@@ -1,6 +1,6 @@
 import SwiftUI
 
-final class DefaultSkin: SkinProtocol {
+final class SweetSkin: SkinProtocol {
     // Core colors
     let primaryColor = Color(red: 1.0, green: 0.41, blue: 0.71)       // #FF69B4
     let secondaryColor = Color(red: 0.90, green: 0.90, blue: 0.98)     // #E6E6FA
@@ -25,10 +25,11 @@ final class DefaultSkin: SkinProtocol {
         Color(red: 0.30, green: 0.10, blue: 0.20)
     ]
 
-    // Corner radii (matching Android DEFAULT: 8/16/24dp → pt)
+    // Corner radii (matching Android DEFAULT: 8/16/24)
     let cornerRadiusS: CGFloat = 8
     let cornerRadiusM: CGFloat = 16
     let cornerRadiusL: CGFloat = 24
+    let buttonCornerRadius: CGFloat = 16
 
     // Spacing (8pt grid)
     let spacingS: CGFloat = 4
@@ -63,4 +64,8 @@ final class DefaultSkin: SkinProtocol {
     // Compact card
     let compactCardElevation: CGFloat = 0.5
     let compactCardInnerPadding: CGFloat = 8
+
+    // Font
+    let fontName: String? = nil
+    let fontDisplayName = "系统默认"
 }
