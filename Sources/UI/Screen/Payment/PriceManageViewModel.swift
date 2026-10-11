@@ -5,7 +5,7 @@ final class PriceManageViewModel: ObservableObject {
     @Published private(set) var prices: [Price] = []
     let itemId: Int64
 
-    nonisolated(unsafe) private let priceRepo = AppModule.shared.priceRepository
+    private let priceRepo = AppModule.shared.priceRepository
 
     init(itemId: Int64) { self.itemId = itemId }
 

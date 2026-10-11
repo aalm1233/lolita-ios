@@ -1,7 +1,7 @@
 @preconcurrency import GRDB
 import Foundation
 
-final class OutfitLogRepository {
+final class OutfitLogRepository: Sendable {
     private let db: DatabaseQueue
     init(db: DatabaseQueue) { self.db = db }
 
@@ -50,6 +50,7 @@ final class OutfitLogRepository {
                 .deleteAll(db)
             try outfitLog.delete(db)
         }
+        try? ImageFileHelper.deleteUnreferenced(paths: outfitLog.imageUrls.values, db: db)
     }
 
     func getItemIds(for outfitLogId: Int64) async throws -> [Int64] {
@@ -87,6 +88,21 @@ final class OutfitLogRepository {
                 .map { $0.itemId }
 
             return Set(itemIds).subtracting([itemId])
+        }
+    }
+}
+
+extension OutfitLogRepository {
+    func save(_ log: OutfitLog, itemIds: [Int64]) async throws -> OutfitLog {
+        try await db.write { db in
+            var value = log
+            value.updatedAt = Int64(Date().timeIntervalSince1970 * 1000)
+            if value.id == 0 { try value.insert(db) } else { try value.update(db) }
+            try OutfitItemCrossRef.filter(OutfitItemCrossRef.Columns.outfitLogId == value.id).deleteAll(db)
+            for itemId in Set(itemIds) {
+                try OutfitItemCrossRef(outfitLogId: value.id, itemId: itemId).insert(db)
+            }
+            return value
         }
     }
 }

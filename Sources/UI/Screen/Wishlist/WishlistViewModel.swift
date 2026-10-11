@@ -5,14 +5,23 @@ final class WishlistViewModel: ObservableObject {
     @Published private(set) var items: [Item] = []
     @Published var searchText: String = ""
 
-    nonisolated(unsafe) private let itemRepo = AppModule.shared.itemRepository
+    private let itemRepo = AppModule.shared.itemRepository
+
+    private var observationTasks: [Task<Void, Never>] = []
+
+    func stopObserving() {
+        observationTasks.forEach { $0.cancel() }
+        observationTasks.removeAll()
+    }
 
     func load() {
-        Task {
+        guard observationTasks.isEmpty else { return }
+        observationTasks.append(Task { [weak self, itemRepo] in
             for await items in itemRepo.observeAll() {
-                self.items = items.filter { $0.status == .wished }
+                guard !Task.isCancelled else { return }
+                self?.items = items.filter { $0.status == .wished }
             }
-        }
+        })
     }
 
     func prioritizedItems() -> [Item] {
@@ -30,7 +39,6 @@ final class WishlistViewModel: ObservableObject {
     }
 
     func delete(_ item: Item) async throws {
-        ImageFileHelper.delete(paths: item.imageUrls.values)
         try await itemRepo.delete(item)
     }
 }

@@ -1,25 +1,48 @@
 import SwiftUI
+@preconcurrency import GRDB
 
 @MainActor
 final class OutfitLogEditViewModel: ObservableObject {
     @Published var date: Date = Date()
     @Published var note: String = ""
     @Published var imageUrls: [String] = []
+    @Published var allItems: [Item] = []
+    @Published var selectedItemIds: Set<Int64> = []
     @Published var isSaving = false
 
-    nonisolated(unsafe) private let repo = AppModule.shared.outfitLogRepository
+    private let db: DatabaseQueue
+    private let repo: OutfitLogRepository
+    private let itemRepo: ItemRepository
     private var logId: Int64?
     private var originalImageUrls: [String] = []
+    private var originalState: [String]?
+    private var formState: [String] { [String(date.timeIntervalSince1970), note, imageUrls.joined(separator: "|"), selectedItemIds.sorted().map(String.init).joined(separator: "|")] }
+    var hasChanges: Bool { originalState.map { $0 != formState } ?? false }
 
-    func load(logId: Int64) {
-        self.logId = logId
-        Task {
-            guard let log = try? await repo.getById(logId) else { return }
-            self.date = Date(timeIntervalSince1970: TimeInterval(log.date) / 1000)
-            self.note = log.note
-            self.imageUrls = log.imageUrls.values
-            self.originalImageUrls = log.imageUrls.values
-        }
+    init(db: DatabaseQueue = AppModule.shared.db.dbQueue) {
+        self.db = db
+        repo = OutfitLogRepository(db: db)
+        itemRepo = ItemRepository(db: db)
+    }
+
+    func load(logId: Int64) async {
+        let requestedId: Int64? = logId > 0 ? logId : nil
+        guard originalState == nil || self.logId != requestedId else { return }
+        guard !Task.isCancelled else { return }
+        originalState = nil
+        self.logId = requestedId
+        let items = (try? await itemRepo.getAll()) ?? []
+        guard !Task.isCancelled else { return }
+        let itemIds = Set((try? await repo.getItemIds(for: logId)) ?? [])
+        guard !Task.isCancelled else { return }
+        guard let log = try? await repo.getById(logId), !Task.isCancelled else { return }
+        allItems = items
+        selectedItemIds = itemIds
+        date = Date(timeIntervalSince1970: TimeInterval(log.date) / 1000)
+        note = log.note
+        imageUrls = log.imageUrls.values
+        originalImageUrls = log.imageUrls.values
+        originalState = formState
     }
 
     var imageFileUrls: [URL] {
@@ -29,6 +52,7 @@ final class OutfitLogEditViewModel: ObservableObject {
     }
 
     func addImageData(_ data: Data) {
+        guard !isSaving else { return }
         #if canImport(UIKit)
         guard let uiImage = UIImage(data: data),
               let path = ImageFileHelper.save(image: uiImage) else { return }
@@ -39,7 +63,7 @@ final class OutfitLogEditViewModel: ObservableObject {
     }
 
     func removeImage(at index: Int) {
-        guard index < imageUrls.count else { return }
+        guard !isSaving, imageUrls.indices.contains(index) else { return }
         let path = imageUrls[index]
         if !originalImageUrls.contains(path) {
             ImageFileHelper.delete(path: path)
@@ -48,19 +72,39 @@ final class OutfitLogEditViewModel: ObservableObject {
     }
 
     func save() async throws {
-        guard let logId else { return }
+        guard !isSaving else { throw ValidationError.invalid("正在保存，请稍候") }
+        guard let logId else { throw ValidationError.invalid("穿搭记录尚未加载") }
         isSaving = true
         defer { isSaving = false }
 
-        guard var log = try await repo.getById(logId) else { return }
-        log.date = Int64(date.timeIntervalSince1970 * 1000)
-        log.note = note
-        log.imageUrls = StringList(imageUrls)
-        try await repo.update(log)
+        let committedState = formState
+        let previousImages = originalImageUrls
+        let committedDate = Int64(date.timeIntervalSince1970 * 1000)
+        let committedNote = note
+        let committedImages = imageUrls
+        let committedItemIds = Array(selectedItemIds)
+        guard var log = try await repo.getById(logId) else { throw ValidationError.invalid("穿搭记录已被删除") }
+        log.date = committedDate
+        log.note = committedNote
+        log.imageUrls = StringList(committedImages)
+        let saved = try await repo.save(log, itemIds: committedItemIds)
 
-        let removed = Set(originalImageUrls).subtracting(Set(imageUrls))
+        let removed = Set(previousImages).subtracting(Set(saved.imageUrls.values))
         if !removed.isEmpty {
-            ImageFileHelper.delete(paths: Array(removed))
+            try? ImageFileHelper.deleteUnreferenced(paths: Array(removed), db: db)
         }
+        originalImageUrls = saved.imageUrls.values
+        originalState = committedState
+    }
+
+    func discardImages() {
+        guard !isSaving else { return }
+        ImageFileHelper.delete(paths: Array(Set(imageUrls).subtracting(originalImageUrls)))
+    }
+
+    func toggleItem(_ id: Int64) {
+        guard !isSaving else { return }
+        if selectedItemIds.contains(id) { selectedItemIds.remove(id) }
+        else { selectedItemIds.insert(id) }
     }
 }

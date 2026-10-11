@@ -3,7 +3,7 @@ import Foundation
 
 // MatchScore and MatchingEngine defined in Domain/MatchingEngine.swift
 
-final class RecommendationRepository {
+final class RecommendationRepository: Sendable {
     private let db: DatabaseQueue
     init(db: DatabaseQueue) { self.db = db }
 

@@ -1,7 +1,7 @@
 @preconcurrency import GRDB
 import Foundation
 
-final class StyleRepository: @unchecked Sendable {
+final class StyleRepository: Sendable {
     private let db: DatabaseQueue
     init(db: DatabaseQueue) { self.db = db }
 
@@ -33,12 +33,20 @@ final class StyleRepository: @unchecked Sendable {
 
     func update(_ style: Style) async throws {
         try await db.write { db in
+            let old = try Style.fetchOne(db, key: style.id)
             var s = style
+            s.name = try InputValidation.name(s.name)
             try s.update(db)
+            if let old, old.name != s.name {
+                try db.execute(sql: "UPDATE items SET style = ?, updatedAt = ? WHERE style = ?", arguments: [s.name, Int64(Date().timeIntervalSince1970 * 1000), old.name])
+            }
         }
     }
 
     func delete(_ style: Style) async throws {
-        try await db.write { db in try style.delete(db) }
+        try await db.write { db in
+            try db.execute(sql: "UPDATE items SET style = NULL, updatedAt = ? WHERE style = ?", arguments: [Int64(Date().timeIntervalSince1970 * 1000), style.name])
+            try style.delete(db)
+        }
     }
 }

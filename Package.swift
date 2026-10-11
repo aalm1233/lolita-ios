@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "lolita",
-    platforms: [.iOS(.v17), .macOS(.v12)],
+    platforms: [.iOS(.v17), .macOS(.v14)],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "6.29.0"),
         .package(url: "https://github.com/onevcat/Kingfisher.git", from: "8.0.0"),
@@ -15,7 +15,10 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "Kingfisher", package: "Kingfisher"),
             ],
-            path: "Sources"
+            path: "Sources",
+            exclude: ["Info.plist"],
+            resources: [.process("Resources")]
         ),
+        .testTarget(name: "LolitaTests", dependencies: ["lolita"], path: "Tests")
     ]
 )

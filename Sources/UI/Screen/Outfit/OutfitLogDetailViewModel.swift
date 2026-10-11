@@ -5,8 +5,8 @@ final class OutfitLogDetailViewModel: ObservableObject {
     @Published private(set) var log: OutfitLog?
     @Published private(set) var items: [Item] = []
 
-    nonisolated(unsafe) private let repo = AppModule.shared.outfitLogRepository
-    nonisolated(unsafe) private let itemRepo = AppModule.shared.itemRepository
+    private let repo = AppModule.shared.outfitLogRepository
+    private let itemRepo = AppModule.shared.itemRepository
 
     func load(logId: Int64) {
         Task {
@@ -27,7 +27,6 @@ final class OutfitLogDetailViewModel: ObservableObject {
 
     func delete() async throws {
         guard let log else { return }
-        ImageFileHelper.delete(paths: log.imageUrls.values)
         try await repo.delete(log)
     }
 }

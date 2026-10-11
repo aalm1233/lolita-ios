@@ -37,7 +37,7 @@ struct OutfitLogDetailScreen: View {
             }
             .padding()
         }
-        .lolitaNavBar(title: viewModel.log.map { formattedDate($0.date) } ?? "穿搭记录", showBack: true)
+        .lolitaNavBar(title: "穿搭详情", showBack: true)
 #if os(iOS)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {

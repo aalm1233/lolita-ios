@@ -1,7 +1,7 @@
 @preconcurrency import GRDB
 import Foundation
 
-struct Item: Codable, FetchableRecord, PersistableRecord {
+struct Item: Codable, Sendable, FetchableRecord, MutablePersistableRecord {
     var id: Int64 = 0
     var name: String
     var brandId: Int64
@@ -29,6 +29,29 @@ struct Item: Codable, FetchableRecord, PersistableRecord {
         case colors, season, style, size, sizeChartImageUrl, imageUrls
         case coordinateId, coordinateOrder, locationId, source
         case createdAt, updatedAt
+    }
+
+    // Room treats 0 as an unset ID; SQLite/GRDB needs NULL to generate one.
+    func encode(to container: inout PersistenceContainer) throws {
+        container["id"] = id == 0 ? nil : id
+        container["name"] = name
+        container["brandId"] = brandId
+        container["categoryId"] = categoryId
+        container["status"] = status
+        container["priority"] = priority
+        container["description"] = description
+        container["colors"] = colors
+        container["season"] = season
+        container["style"] = style
+        container["size"] = size
+        container["sizeChartImageUrl"] = sizeChartImageUrl
+        container["imageUrls"] = imageUrls
+        container["coordinateId"] = coordinateId
+        container["coordinateOrder"] = coordinateOrder
+        container["locationId"] = locationId
+        container["source"] = source
+        container["createdAt"] = createdAt
+        container["updatedAt"] = updatedAt
     }
 
     mutating func didInsert(_ inserted: InsertionSuccess) {

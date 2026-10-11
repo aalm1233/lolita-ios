@@ -8,7 +8,7 @@ final class PaymentEditViewModel: ObservableObject {
     @Published var paidDate: Date = Date()
     @Published var isSaving: Bool = false
 
-    nonisolated(unsafe) private let repo = AppModule.shared.paymentRepository
+    private let repo = AppModule.shared.paymentRepository
     let priceId: Int64
     private(set) var paymentId: Int64?
 
@@ -28,10 +28,11 @@ final class PaymentEditViewModel: ObservableObject {
     }
 
     func save() async throws {
+        guard !isSaving else { throw ValidationError.invalid("正在保存，请稍候") }
         isSaving = true
         defer { isSaving = false }
 
-        let amount = Double(amountText) ?? 0
+        let amount = try InputValidation.amount(amountText, label: "付款金额")
         let dueMs = Int64(dueDate.timeIntervalSince1970 * 1000)
         let paidMs = isPaid ? Int64(paidDate.timeIntervalSince1970 * 1000) : nil
 

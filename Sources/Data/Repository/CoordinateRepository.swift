@@ -1,7 +1,7 @@
 @preconcurrency import GRDB
 import Foundation
 
-final class CoordinateRepository {
+final class CoordinateRepository: Sendable {
     private let db: DatabaseQueue
     init(db: DatabaseQueue) { self.db = db }
 
@@ -51,6 +51,30 @@ final class CoordinateRepository {
     }
 
     func delete(_ coordinate: Coordinate) async throws {
-        try await db.write { db in try coordinate.delete(db) }
+        try await db.write { db in
+            try db.execute(sql: "UPDATE items SET coordinateId = NULL, coordinateOrder = 0 WHERE coordinateId = ?", arguments: [coordinate.id])
+            try coordinate.delete(db)
+        }
+        try? ImageFileHelper.deleteUnreferenced(paths: coordinate.imageUrls.values, db: db)
+    }
+}
+
+extension CoordinateRepository {
+    func save(_ coordinate: Coordinate, itemIds: [Int64]) async throws -> Coordinate {
+        try await db.write { db in
+            var value = coordinate
+            value.name = try InputValidation.name(value.name)
+            value.updatedAt = Int64(Date().timeIntervalSince1970 * 1000)
+            if value.id == 0 { try value.insert(db) } else { try value.update(db) }
+            var seen = Set<Int64>()
+            let ids = itemIds.filter { seen.insert($0).inserted }
+            try db.execute(sql: "UPDATE items SET coordinateId = NULL, coordinateOrder = 0, updatedAt = ? WHERE coordinateId = ?", arguments: [value.updatedAt, value.id])
+            for (order, id) in ids.enumerated() {
+                guard let item = try Item.fetchOne(db, key: id) else { throw ValidationError.invalid("选中的服饰已被删除") }
+                guard item.coordinateId == nil || item.coordinateId == value.id else { throw ValidationError.invalid("\(item.name)已属于其他套装，请先解除关联") }
+                try db.execute(sql: "UPDATE items SET coordinateId = ?, coordinateOrder = ?, updatedAt = ? WHERE id = ?", arguments: [value.id, order, value.updatedAt, id])
+            }
+            return value
+        }
     }
 }

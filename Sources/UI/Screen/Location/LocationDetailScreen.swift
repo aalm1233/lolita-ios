@@ -14,7 +14,11 @@ struct LocationDetailScreen: View {
             VStack(spacing: 16) {
                 // Location image
                 if let imageUrl = viewModel.location?.imageUrl {
-                    LolitaShimmerImage(url: ImageFileHelper.fileURL(for: imageUrl))
+                    ZStack {
+                        Color.clear
+                        LolitaShimmerImage(url: ImageFileHelper.fileURL(for: imageUrl))
+                    }
+                        .frame(maxWidth: .infinity)
                         .frame(height: 200)
                         .clipShape(RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusM))
                 }
@@ -35,15 +39,22 @@ struct LocationDetailScreen: View {
 
                 // Stored items section
                 if !viewModel.items.isEmpty {
-                    LolitaSection(title: "存放物品") {
+                    LolitaSection(title: "存放服饰 · \(viewModel.items.count) 件") {
                         ForEach(viewModel.items, id: \.id) { item in
                             NavigationLink {
-                                Text(item.name)
+                                ItemDetailScreen(itemId: item.id)
                             } label: {
                                 ItemRow(item: item)
                             }
                             .buttonStyle(.plain)
                         }
+                    }
+                } else {
+                    LolitaCard {
+                        Label("这里还没有存放服饰", systemImage: "archivebox")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }
@@ -66,6 +77,6 @@ struct LocationDetailScreen: View {
             }
         }
         #endif
-        .task { await viewModel.load() }
+        .onAppear { Task { await viewModel.load() } }
     }
 }

@@ -1,7 +1,7 @@
 @preconcurrency import GRDB
 import Foundation
 
-final class PaymentRepository {
+final class PaymentRepository: Sendable {
     private let db: DatabaseQueue
     init(db: DatabaseQueue) { self.db = db }
 
@@ -30,18 +30,39 @@ final class PaymentRepository {
 
     func insert(_ payment: Payment) async throws -> Payment {
         try await db.write { db in
-            let p = payment
+            guard payment.amount.isFinite, payment.amount >= 0 else {
+                throw ValidationError.invalid("付款金额无效")
+            }
+            var p = payment
             try p.insert(db)
+            if let price = try Price.fetchOne(db, key: p.priceId) {
+                try ItemRepository.refreshPaymentStatus(db, itemId: price.itemId)
+            }
             return p
         }
     }
 
     func update(_ payment: Payment) async throws {
-        try await db.write { db in try payment.update(db) }
+        try await db.write { db in
+            guard payment.amount.isFinite, payment.amount >= 0 else {
+                throw ValidationError.invalid("付款金额无效")
+            }
+            let old = try Payment.fetchOne(db, key: payment.id)
+            try payment.update(db)
+            for priceId in Set([payment.priceId, old?.priceId].compactMap { $0 }) {
+                if let price = try Price.fetchOne(db, key: priceId) {
+                    try ItemRepository.refreshPaymentStatus(db, itemId: price.itemId)
+                }
+            }
+        }
     }
 
     func delete(_ payment: Payment) async throws {
-        try await db.write { db in try payment.delete(db) }
+        try await db.write { db in
+            let price = try Price.fetchOne(db, key: payment.priceId)
+            try payment.delete(db)
+            if let price { try ItemRepository.refreshPaymentStatus(db, itemId: price.itemId) }
+        }
     }
 
     // MARK: - Calendar queries
@@ -57,7 +78,7 @@ final class PaymentRepository {
                     FROM payments pay
                     INNER JOIN prices pr ON pay.priceId = pr.id
                     INNER JOIN items i ON pr.itemId = i.id
-                    WHERE pay.dueDate BETWEEN ? AND ?
+                    WHERE pay.dueDate >= ? AND pay.dueDate < ?
                       AND i.status IN ('OWNED', 'PENDING_BALANCE')
                     ORDER BY pay.dueDate ASC
                 """, arguments: [start, end]).fetchAll(db)

@@ -10,11 +10,14 @@ final class AppModule: @unchecked Sendable {
     func setupDatabase() throws {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let dbPath = docs.appendingPathComponent("lolita.sqlite").path
-        db = try LolitaDatabase(path: dbPath)
+        let database = try LolitaDatabase(path: dbPath)
+        try ImageFileHelper.migrateStoredPaths(db: database.dbQueue)
+        db = database
     }
 
     func seedIfNeeded() async throws {
-        if preferences.isFirstLaunch {
+        let hasBrands = try await !brandRepository.getAll().isEmpty
+        if preferences.isFirstLaunch || !hasBrands {
             try await seedPresetData()
             preferences.isFirstLaunch = false
         }
@@ -74,22 +77,7 @@ final class AppModule: @unchecked Sendable {
 
     private func seedPresetData() async throws {
         try await db.dbQueue.write { db in
-            for brand in PresetData.brands {
-                let b = Brand(name: brand, isPreset: true)
-                try b.insert(db)
-            }
-            for cat in PresetData.categories {
-                let c = Category(name: cat.name, group: cat.group, isPreset: true)
-                try c.insert(db)
-            }
-            for style in PresetData.styles {
-                let s = Style(name: style, isPreset: true)
-                try s.insert(db)
-            }
-            for season in PresetData.seasons {
-                let s = Season(name: season, isPreset: true)
-                try s.insert(db)
-            }
+            try PresetData.seed(db)
         }
     }
 }

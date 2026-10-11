@@ -53,6 +53,7 @@ struct LolitaCard<Content: View>: View {
     var body: some View {
         content()
             .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusM)
                     .fill(cardBackground)

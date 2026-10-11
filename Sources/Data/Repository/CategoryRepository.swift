@@ -1,7 +1,7 @@
 @preconcurrency import GRDB
 import Foundation
 
-final class CategoryRepository: @unchecked Sendable {
+final class CategoryRepository: Sendable {
     private let db: DatabaseQueue
     init(db: DatabaseQueue) { self.db = db }
 

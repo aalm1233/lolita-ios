@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct PaymentEditScreen: View {
+    @State private var saveError: String?
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var skinManager: SkinManager
     @StateObject private var viewModel: PaymentEditViewModel
@@ -28,14 +29,19 @@ struct PaymentEditScreen: View {
                 Text("付款信息")
             }
         }
+        .alert("保存失败", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
+            Button("确定", role: .cancel) { saveError = nil }
+        } message: { Text(saveError ?? "") }
         .lolitaNavBar(title: viewModel.paymentId == nil ? "添加付款" : "编辑付款", showBack: true)
 #if os(iOS)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("保存") {
                     Task {
-                        try? await viewModel.save()
-                        dismiss()
+                        do {
+                            try await viewModel.save()
+                            dismiss()
+                        } catch { saveError = userFacingError(error) }
                     }
                 }
                 .disabled(viewModel.isSaving)

@@ -3,7 +3,7 @@ import Kingfisher
 
 struct LolitaShimmerImage: View {
     let url: URL?
-    var aspectRatio: CGFloat = 1.0
+    var contentMode: SwiftUI.ContentMode = .fill
 
     var body: some View {
         KFImage(url)
@@ -17,8 +17,8 @@ struct LolitaShimmerImage: View {
             }
             .fade(duration: 0.3)
             .resizable()
-            .scaledToFill()
-            .aspectRatio(aspectRatio, contentMode: .fit)
+            .aspectRatio(contentMode: contentMode)
+            .clipped()
             .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }

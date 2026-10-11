@@ -4,18 +4,25 @@ import PhotosUI
 #endif
 
 struct LocationEditScreen: View {
+    @State private var saveError: String?
     @StateObject private var viewModel: LocationEditViewModel
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var skinManager: SkinManager
     @State private var showCancelAlert = false
+    @State private var isSubmitting = false
+    @State private var isImportingImage = false
 
     #if os(iOS)
     @State private var selectedItem: PhotosPickerItem? = nil
+    @State private var imageImportTask: Task<Void, Never>?
+    @State private var imageImportId: UUID?
     #endif
+
+    private var isBusy: Bool { isSubmitting || viewModel.isSaving }
 
     let onSave: (() async -> Void)?
 
-    init(locationId: Int64, onSave: (() async -> Void)? = nil) {
+    init(locationId: Int64 = 0, onSave: (() async -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: LocationEditViewModel(locationId: locationId))
         self.onSave = onSave
     }
@@ -30,7 +37,11 @@ struct LocationEditScreen: View {
                         .foregroundStyle(.secondary)
 
                     if let imageUrl = viewModel.imageUrl {
-                        LolitaShimmerImage(url: ImageFileHelper.fileURL(for: imageUrl))
+                        ZStack {
+                            Color.clear
+                            LolitaShimmerImage(url: ImageFileHelper.fileURL(for: imageUrl))
+                        }
+                            .frame(maxWidth: .infinity)
                             .frame(height: 200)
                             .clipShape(RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusM))
 
@@ -38,6 +49,7 @@ struct LocationEditScreen: View {
                             viewModel.removeImage()
                         }
                         .font(.subheadline)
+                        .disabled(isImportingImage)
                     } else {
                         RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusM)
                             .fill(Color.gray.opacity(0.1))
@@ -50,10 +62,15 @@ struct LocationEditScreen: View {
                     }
 
                     #if os(iOS)
+                    let showsImportProgress = isImportingImage
                     PhotosPicker(selection: $selectedItem, matching: .images) {
-                        Label("选择图片", systemImage: "photo.on.rectangle")
-                            .font(.subheadline)
+                        HStack {
+                            Label("选择图片", systemImage: "photo.on.rectangle")
+                                .font(.subheadline)
+                            if showsImportProgress { ProgressView() }
+                        }
                     }
+                    .disabled(isImportingImage)
                     #endif
                 }
 
@@ -75,7 +92,8 @@ struct LocationEditScreen: View {
                         Text("描述")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.secondary)
-                        TextField("描述", text: $viewModel.description)
+                        TextField("补充位置或收纳说明", text: $viewModel.description, axis: .vertical)
+                            .lineLimit(3...6)
                             .textFieldStyle(.plain)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -83,36 +101,98 @@ struct LocationEditScreen: View {
             }
             .padding()
         }
-        .lolitaNavBar(title: "编辑位置", showBack: true, onBack: { showCancelAlert = true })
+        .disabled(isBusy)
+        .interactiveDismissDisabled(isBusy || isImportingImage || viewModel.hasChanges)
+        .onDisappear {
+            #if os(iOS)
+            imageImportTask?.cancel()
+            imageImportTask = nil
+            imageImportId = nil
+            selectedItem = nil
+            #endif
+            isImportingImage = false
+        }
+        .alert("保存失败", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
+            Button("确定", role: .cancel) { saveError = nil }
+        } message: { Text(saveError ?? "") }
+        .lolitaNavBar(title: viewModel.locationId == 0 ? "新增位置" : "编辑位置", showBack: true, onBack: {
+            guard !isBusy else { return }
+            if viewModel.hasChanges { showCancelAlert = true }
+            else { discardAndDismiss() }
+        })
         #if os(iOS)
+        .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("保存") {
+                    guard !isBusy, !isImportingImage else { return }
+                    isSubmitting = true
                     Task {
-                        try? await viewModel.save()
-                        await onSave?()
-                        dismiss()
+                        defer { isSubmitting = false }
+                        do {
+                            try await viewModel.save()
+                            await onSave?()
+                            dismiss()
+                        } catch { saveError = userFacingError(error) }
                     }
                 }
                 .fontWeight(.semibold)
+                .disabled(isBusy || isImportingImage || viewModel.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
         #endif
         .alert("放弃更改？", isPresented: $showCancelAlert) {
-            Button("放弃", role: .destructive) { dismiss() }
+            Button("放弃", role: .destructive) {
+                guard !isBusy else { return }
+                discardAndDismiss()
+            }
+            .disabled(isBusy)
             Button("继续编辑", role: .cancel) {}
         } message: {
             Text("未保存的更改将丢失。")
         }
         #if os(iOS)
         .onChange(of: selectedItem) { _, newItem in
-            Task {
-                guard let item = newItem,
-                      let data = try? await item.loadTransferable(type: Data.self) else { return }
-                viewModel.setImage(data: data)
+            imageImportTask?.cancel()
+            imageImportTask = nil
+            imageImportId = nil
+            guard !isBusy, let item = newItem else { isImportingImage = false; return }
+            let importId = UUID()
+            imageImportId = importId
+            isImportingImage = true
+            imageImportTask = Task { @MainActor in
+                defer {
+                    if imageImportId == importId {
+                        isImportingImage = false
+                        imageImportTask = nil
+                        imageImportId = nil
+                        selectedItem = nil
+                    }
+                }
+                do {
+                    let data = try await item.loadTransferable(type: Data.self)
+                    guard !Task.isCancelled, imageImportId == importId, !isBusy else { return }
+                    guard let data else { saveError = "无法读取图片，请重新选择。"; return }
+                    viewModel.setImage(data: data)
+                } catch {
+                    guard !Task.isCancelled, imageImportId == importId else { return }
+                    saveError = "图片读取失败，请重新选择。"
+                }
             }
         }
         #endif
         .task { await viewModel.load() }
+    }
+
+    private func discardAndDismiss() {
+        #if os(iOS)
+        imageImportTask?.cancel()
+        imageImportTask = nil
+        imageImportId = nil
+        selectedItem = nil
+        #endif
+        isImportingImage = false
+        viewModel.discardImages()
+        dismiss()
     }
 }

@@ -20,33 +20,36 @@ struct LolitaSection<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Rectangle()
-                    .fill(accentColorResolved)
-                    .frame(width: skinManager.current.sectionAccentWidth)
-                    .cornerRadius(skinManager.current.sectionAccentWidth / 2)
+        LolitaCard(variant: .gallery) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Rectangle()
+                        .fill(accentColorResolved)
+                        .frame(width: skinManager.current.sectionAccentWidth, height: 18)
+                        .cornerRadius(skinManager.current.sectionAccentWidth / 2)
 
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.secondary)
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.primary)
 
-                Spacer()
+                    Spacer()
 
-                if let label = actionLabel {
-                    Button(label) { onAction?() }
-                        .font(.subheadline)
-                        .foregroundColor(skinManager.current.accentColor)
+                    if let label = actionLabel {
+                        Button(label) { onAction?() }
+                            .font(.subheadline)
+                            .foregroundColor(accentColorResolved)
+                    }
                 }
-            }
-            .padding(.horizontal, skinManager.current.spacingL)
-            .padding(.vertical, skinManager.current.spacingM)
-
-            Divider()
-                .overlay(dividerColor)
-
-            VStack(spacing: 0) { content() }
                 .padding(.horizontal, skinManager.current.spacingL)
+                .padding(.vertical, skinManager.current.spacingM)
+
+                Divider()
+                    .overlay(dividerColor)
+
+                VStack(alignment: .leading, spacing: skinManager.current.spacingM) { content() }
+                    .padding(.horizontal, skinManager.current.spacingL)
+                    .padding(.vertical, skinManager.current.spacingM)
+            }
         }
     }
 }

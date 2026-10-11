@@ -173,6 +173,40 @@ final class LolitaDatabase {
             try db.create(index: "index_payments_isPaid", on: "payments", columns: ["isPaid"])
         }
 
+        migrator.registerMigration("v3-payment-status") { db in
+            // Repair records successfully saved by the original iOS release with ID 0.
+            // Copy first, move foreign keys, then remove the old row under normal FK checks.
+            let repairs: [(String, [(String, String)])] = [
+                ("brands", [("items", "brandId")]), ("categories", [("items", "categoryId")]),
+                ("locations", [("items", "locationId")]), ("coordinates", [("items", "coordinateId")]),
+                ("items", [("prices", "itemId"), ("outfitItemCrossRef", "itemId")]),
+                ("prices", [("payments", "priceId")]), ("outfitLogs", [("outfitItemCrossRef", "outfitLogId")]),
+                ("styles", []), ("seasons", []), ("sources", [])
+            ]
+            for (table, references) in repairs {
+                guard try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM \(table) WHERE id = 0)") == true else { continue }
+                let uniqueName = ["brands", "categories", "locations", "styles", "seasons", "sources"].contains(table)
+                if uniqueName { try db.execute(sql: "DROP INDEX index_\(table)_name") }
+                let columns = try Row.fetchAll(db, sql: "PRAGMA table_info(\(table))")
+                    .compactMap { $0["name"] as String? }.filter { $0 != "id" }
+                    .map { "\"" + $0 + "\"" }.joined(separator: ", ")
+                try db.execute(sql: "INSERT INTO \(table)(\(columns)) SELECT \(columns) FROM \(table) WHERE id = 0")
+                let id = db.lastInsertedRowID
+                for (child, column) in references {
+                    try db.execute(sql: "UPDATE \(child) SET \(column) = ? WHERE \(column) = 0", arguments: [id])
+                }
+                try db.execute(sql: "DELETE FROM \(table) WHERE id = 0")
+                if uniqueName { try db.create(index: "index_\(table)_name", on: table, columns: ["name"], unique: true) }
+            }
+            try db.execute(sql: """
+                UPDATE items SET status = CASE WHEN EXISTS (
+                    SELECT 1 FROM payments pay JOIN prices pr ON pay.priceId = pr.id
+                    WHERE pr.itemId = items.id AND pr.type = 'DEPOSIT_BALANCE' AND pay.isPaid = 0
+                ) THEN 'PENDING_BALANCE' ELSE 'OWNED' END
+                WHERE status IN ('OWNED', 'PENDING_BALANCE')
+                """)
+        }
+
         return migrator
     }
 }

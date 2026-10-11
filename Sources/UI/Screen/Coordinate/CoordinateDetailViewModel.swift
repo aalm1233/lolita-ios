@@ -4,10 +4,11 @@ import SwiftUI
 final class CoordinateDetailViewModel: ObservableObject {
     @Published private(set) var coordinate: Coordinate?
     @Published private(set) var items: [Item] = []
+    @Published private(set) var totalPrice: Double = 0
     @Published var showEdit = false
 
-    nonisolated(unsafe) private let coordinateRepo = AppModule.shared.coordinateRepository
-    nonisolated(unsafe) private let itemRepo = AppModule.shared.itemRepository
+    private let coordinateRepo = AppModule.shared.coordinateRepository
+    private let itemRepo = AppModule.shared.itemRepository
 
     func load(coordinateId: Int64) {
         Task {
@@ -15,6 +16,7 @@ final class CoordinateDetailViewModel: ObservableObject {
         }
         Task {
             self.items = (try? await itemRepo.getByCoordinate(coordinateId)) ?? []
+            self.totalPrice = (try? await AppModule.shared.priceRepository.getTotalByCoordinate(coordinateId)) ?? 0
         }
     }
 
@@ -26,7 +28,6 @@ final class CoordinateDetailViewModel: ObservableObject {
 
     func delete() async throws {
         guard let coordinate else { return }
-        ImageFileHelper.delete(paths: coordinate.imageUrls.values)
         try await coordinateRepo.delete(coordinate)
     }
 }

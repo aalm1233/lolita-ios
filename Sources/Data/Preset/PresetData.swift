@@ -1,4 +1,5 @@
 import Foundation
+import GRDB
 
 enum PresetData {
     static let styles = [
@@ -126,4 +127,29 @@ enum PresetData {
         "Xiang Jiao",
         "Xi Gua",
     ]
+}
+
+extension PresetData {
+    static func seed(_ db: Database) throws {
+            for brand in PresetData.brands {
+                var b = Brand(name: brand, isPreset: true)
+                try b.insert(db, onConflict: .ignore)
+            }
+            for cat in PresetData.categories {
+                var c = Category(name: cat.name, group: cat.group, isPreset: true)
+                try c.insert(db, onConflict: .ignore)
+            }
+            for style in PresetData.styles {
+                var s = Style(name: style, isPreset: true)
+                try s.insert(db, onConflict: .ignore)
+            }
+            for name in ["淘宝", "闲鱼", "线下", "其他"] {
+                var source = Source(name: name, isPreset: true)
+                try source.insert(db, onConflict: .ignore)
+            }
+            for season in PresetData.seasons {
+                var s = Season(name: season, isPreset: true)
+                try s.insert(db, onConflict: .ignore)
+            }
+    }
 }

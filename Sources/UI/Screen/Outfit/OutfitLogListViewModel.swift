@@ -3,12 +3,20 @@ import SwiftUI
 @MainActor
 final class OutfitLogListViewModel: ObservableObject {
     @Published private(set) var logs: [OutfitLog] = []
-    nonisolated(unsafe) private let repo = AppModule.shared.outfitLogRepository
+    private let repo = AppModule.shared.outfitLogRepository
+
+    private var observationTasks: [Task<Void, Never>] = []
+
+    func stopObserving() {
+        observationTasks.forEach { $0.cancel() }
+        observationTasks.removeAll()
+    }
 
     func load() {
-        Task {
-            for await logs in repo.observeAll() { self.logs = logs }
-        }
+        guard observationTasks.isEmpty else { return }
+        observationTasks.append(Task { [weak self, repo] in
+            for await logs in repo.observeAll() { guard !Task.isCancelled else { return }; self?.logs = logs }
+        })
     }
 
     func delete(_ log: OutfitLog) async throws {

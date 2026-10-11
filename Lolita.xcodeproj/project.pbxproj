@@ -908,7 +908,8 @@
     "F1B41F8B148A08F875106920": {
       "isa": "PBXGroup",
       "children": [
-        "59E32CA251EA0EC0498FD422"
+        "59E32CA251EA0EC0498FD422",
+        "A4C7A06650A64E84103C65F5"
       ],
       "name": "File",
       "path": "Data/File",
@@ -971,7 +972,8 @@
         "9670B2D59FFE352F780B2F1B",
         "6352103A99B013318517E84C",
         "417543181255C0B569E2BADE",
-        "3661F8506FA349D396287238"
+        "3661F8506FA349D396287238",
+        "DDA9E07C3116F8F3B7A87D58"
       ],
       "name": "Component",
       "path": "UI/Component",
@@ -1068,7 +1070,8 @@
         "B83529463521E91D3373A8FE",
         "1339CE0BE63B2A54443EC8C7",
         "20291727DA6ACB95CFD75E48",
-        "55EB308C16C8EAB107588102"
+        "55EB308C16C8EAB107588102",
+        "E4CC88069E95D05149FD7033"
       ],
       "name": "Settings",
       "path": "UI/Screen/Settings",
@@ -1253,7 +1256,10 @@
         "53B3309D0A45477BA2A03036",
         "64670E0F7BE34EF58C74BDA5",
         "E4B208418B9449DF85B517B6",
-        "4366FB08D1C34576AEE227C8"
+        "4366FB08D1C34576AEE227C8",
+        "A6411EACD5D8FE4A226A6DAC",
+        "284507DC557B99CBAF1C9FA4",
+        "EC2AF1C96CA19897F9BC0A0C"
       ],
       "runOnlyForDeploymentPostprocessing": "0"
     },
@@ -1520,6 +1526,36 @@
     "4366FB08D1C34576AEE227C8": {
       "isa": "PBXBuildFile",
       "fileRef": "3661F8506FA349D396287238"
+    },
+    "A4C7A06650A64E84103C65F5": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "BackupManager.swift",
+      "sourceTree": "<group>"
+    },
+    "A6411EACD5D8FE4A226A6DAC": {
+      "isa": "PBXBuildFile",
+      "fileRef": "A4C7A06650A64E84103C65F5"
+    },
+    "E4CC88069E95D05149FD7033": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "BackupRestoreScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "284507DC557B99CBAF1C9FA4": {
+      "isa": "PBXBuildFile",
+      "fileRef": "E4CC88069E95D05149FD7033"
+    },
+    "DDA9E07C3116F8F3B7A87D58": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "LolitaCollectionComponents.swift",
+      "sourceTree": "<group>"
+    },
+    "EC2AF1C96CA19897F9BC0A0C": {
+      "isa": "PBXBuildFile",
+      "fileRef": "DDA9E07C3116F8F3B7A87D58"
     }
   },
   "rootObject": "366F8106F2E6FA5C5333C87D"

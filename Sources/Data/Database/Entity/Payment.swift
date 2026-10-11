@@ -1,7 +1,7 @@
 @preconcurrency import GRDB
 import Foundation
 
-struct Payment: Codable, FetchableRecord, PersistableRecord {
+struct Payment: Codable, Sendable, FetchableRecord, MutablePersistableRecord {
     var id: Int64 = 0
     var priceId: Int64
     var amount: Double
@@ -18,6 +18,20 @@ struct Payment: Codable, FetchableRecord, PersistableRecord {
     enum Columns: String, ColumnExpression {
         case id, priceId, amount, dueDate, isPaid, paidDate
         case calendarEventId, reminderSet, customReminderDays, createdAt
+    }
+
+    // Room treats 0 as an unset ID; SQLite/GRDB needs NULL to generate one.
+    func encode(to container: inout PersistenceContainer) throws {
+        container["id"] = id == 0 ? nil : id
+        container["priceId"] = priceId
+        container["amount"] = amount
+        container["dueDate"] = dueDate
+        container["isPaid"] = isPaid
+        container["paidDate"] = paidDate
+        container["calendarEventId"] = calendarEventId
+        container["reminderSet"] = reminderSet
+        container["customReminderDays"] = customReminderDays
+        container["createdAt"] = createdAt
     }
 
     mutating func didInsert(_ inserted: InsertionSuccess) {

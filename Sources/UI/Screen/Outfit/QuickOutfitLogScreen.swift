@@ -5,6 +5,7 @@ import UIKit
 #endif
 
 struct QuickOutfitLogScreen: View {
+    @State private var saveError: String?
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var skinManager: SkinManager
     @StateObject private var viewModel = QuickOutfitLogViewModel()
@@ -14,6 +15,9 @@ struct QuickOutfitLogScreen: View {
     #endif
 
     var body: some View {
+        #if os(iOS)
+        let hasNewImage = viewModel.newImage != nil
+        #endif
         Form {
             Section {
                 TextField("备注", text: $viewModel.note)
@@ -27,7 +31,7 @@ struct QuickOutfitLogScreen: View {
                 PhotosPicker(selection: $photoPickerItems,
                              maxSelectionCount: 1,
                              matching: .images) {
-                    if viewModel.newImage != nil {
+                    if hasNewImage {
                         Label("已选择图片", systemImage: "photo.fill")
                             .foregroundStyle(.secondary)
                     } else {
@@ -79,14 +83,20 @@ struct QuickOutfitLogScreen: View {
                 Text("关联服饰")
             }
         }
+        .onDisappear { viewModel.discardImages() }
+        .alert("保存失败", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
+            Button("确定", role: .cancel) { saveError = nil }
+        } message: { Text(saveError ?? "") }
         .lolitaNavBar(title: "快速记录", showBack: true)
 #if os(iOS)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("保存") {
                     Task {
-                        try? await viewModel.save()
-                        dismiss()
+                        do {
+                            try await viewModel.save()
+                            dismiss()
+                        } catch { saveError = userFacingError(error) }
                     }
                 }
             }

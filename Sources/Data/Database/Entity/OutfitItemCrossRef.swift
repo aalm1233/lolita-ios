@@ -1,7 +1,7 @@
 import GRDB
 import Foundation
 
-struct OutfitItemCrossRef: Codable, FetchableRecord, PersistableRecord {
+struct OutfitItemCrossRef: Codable, Sendable, FetchableRecord, PersistableRecord {
     var outfitLogId: Int64
     var itemId: Int64
 

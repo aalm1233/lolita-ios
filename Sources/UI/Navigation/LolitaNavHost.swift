@@ -10,6 +10,8 @@ enum Tab: String, CaseIterable {
 
 @available(iOS 16.0, macOS 13.0, *)
 struct LolitaNavHost: View {
+    @EnvironmentObject private var skinManager: SkinManager
+    @Environment(\.colorScheme) private var colorScheme
     @State private var selectedTab: Tab = .items
 
     var body: some View {
@@ -33,10 +35,10 @@ struct LolitaNavHost: View {
             .tag(Tab.wishlist)
 
             NavigationStack {
-                CoordinateListScreen()
+                OutfitLogListScreen()
             }
             .tabItem {
-                Image(systemName: selectedTab == .outfits ? "figure.2.arms.open" : "figure.2")
+                Image(systemName: "figure.stand")
                 Text(Tab.outfits.rawValue)
             }
             .tag(Tab.outfits)
@@ -59,20 +61,6 @@ struct LolitaNavHost: View {
             }
             .tag(Tab.settings)
         }
-    }
-}
-
-/// Placeholder for unimplemented tabs (Phase 2)
-struct PlaceholderScreen: View {
-    let title: String
-    var body: some View {
-        VStack {
-            Text(title)
-                .font(.title)
-                .foregroundStyle(.secondary)
-            Text("即将推出")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
+        .tint(colorScheme == .dark ? skinManager.current.primaryColorDark : skinManager.current.primaryColor)
     }
 }

@@ -6,44 +6,58 @@ final class PaymentCalendarViewModel: ObservableObject {
     @Published private(set) var totalUnpaid: Double = 0
     @Published private(set) var overdueAmount: Double = 0
     @Published var currentMonth: Date = Date()
-    @Published private(set) var selectedDayPayments: [PaymentWithItemInfo]? = nil
+    @Published private(set) var selectedDayPayments: [PaymentWithItemInfo]?
+    private var selectedDay: Date?
+    private var monthTask: Task<Void, Never>?
+    private var summaryTasks: [Task<Void, Never>] = []
+    private let paymentRepo: PaymentRepository
 
-    nonisolated(unsafe) private let paymentRepo = AppModule.shared.paymentRepository
+    init(repository: PaymentRepository = AppModule.shared.paymentRepository) { paymentRepo = repository }
 
     func load() {
         loadCalendar()
-        Task {
-            for await val in paymentRepo.getTotalUnpaidAmount() { totalUnpaid = val }
-        }
-        Task {
-            for await val in paymentRepo.getOverdueAmount() { overdueAmount = val }
-        }
+        guard summaryTasks.isEmpty else { return }
+        summaryTasks = [
+            Task { [weak self, paymentRepo] in
+                for await value in paymentRepo.getTotalUnpaidAmount() { guard !Task.isCancelled else { return }; self?.totalUnpaid = value }
+            },
+            Task { [weak self, paymentRepo] in
+                for await value in paymentRepo.getOverdueAmount() { guard !Task.isCancelled else { return }; self?.overdueAmount = value }
+            }
+        ]
+    }
+
+    func stopObserving() {
+        monthTask?.cancel()
+        monthTask = nil
+        summaryTasks.forEach { $0.cancel() }
+        summaryTasks.removeAll()
     }
 
     func loadCalendar() {
+        monthTask?.cancel()
+        paymentsByDate = []
+        selectedDay = nil
+        selectedDayPayments = nil
+        let month = currentMonth
         let cal = Calendar.current
-        let start = cal.date(from: cal.dateComponents([.year, .month], from: currentMonth))!
-        let end = cal.date(byAdding: DateComponents(month: 1, day: -1), to: start)!
-        let startMs = Int64(start.timeIntervalSince1970 * 1000)
-        let endMs = Int64(end.timeIntervalSince1970 * 1000)
-
-        Task {
-            for await payments in paymentRepo.getByDateRange(start: startMs, end: endMs) {
-                let grouped = Dictionary(grouping: payments) { p in
-                    let d = Date(timeIntervalSince1970: TimeInterval(p.dueDate) / 1000)
-                    return cal.startOfDay(for: d)
+        let range = PaymentMonthRange(month: month, calendar: cal)
+        monthTask = Task { [weak self, paymentRepo] in
+            for await payments in paymentRepo.getByDateRange(start: range.start, end: range.end) {
+                guard !Task.isCancelled, let self, self.currentMonth == month else { return }
+                let grouped = Dictionary(grouping: payments) {
+                    cal.startOfDay(for: Date(timeIntervalSince1970: TimeInterval($0.dueDate) / 1000))
                 }
-                paymentsByDate = grouped
-                    .map { (date: $0.key, payments: $0.value) }
-                    .sorted { $0.date < $1.date }
+                self.paymentsByDate = grouped.map { (date: $0.key, payments: $0.value) }.sorted { $0.date < $1.date }
+                if let selectedDay = self.selectedDay { self.selectDay(selectedDay) }
             }
         }
     }
 
     func selectDay(_ date: Date) {
-        let cal = Calendar.current
-        let day = cal.startOfDay(for: date)
-        selectedDayPayments = paymentsByDate.first(where: { cal.startOfDay(for: $0.date) == day })?.payments
+        let day = Calendar.current.startOfDay(for: date)
+        selectedDay = day
+        selectedDayPayments = paymentsByDate.first(where: { $0.date == day })?.payments
     }
 
     func goToNextMonth() {
@@ -56,13 +70,9 @@ final class PaymentCalendarViewModel: ObservableObject {
         loadCalendar()
     }
 
-    var monthYearText: String {
-        currentMonth.formatted(Date.FormatStyle().month(.wide).year())
-    }
+    var monthYearText: String { currentMonth.formatted(Date.FormatStyle().month(.wide).year()) }
 
     func hasPayments(on day: Date) -> Bool {
-        let cal = Calendar.current
-        let d = cal.startOfDay(for: day)
-        return paymentsByDate.contains(where: { cal.startOfDay(for: $0.date) == d })
+        paymentsByDate.contains { $0.date == Calendar.current.startOfDay(for: day) }
     }
 }

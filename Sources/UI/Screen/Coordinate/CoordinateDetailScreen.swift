@@ -25,17 +25,19 @@ struct CoordinateDetailScreen: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
+                LolitaSection(title: "套装价格") { Text(String(format: "¥%.2f", viewModel.totalPrice)) }
+
                 if !viewModel.items.isEmpty {
                     LolitaSection(title: "包含服饰") {
                         ForEach(viewModel.items, id: \.id) { item in
-                            ItemRow(item: item)
+                            NavigationLink(destination: ItemDetailScreen(itemId: item.id)) { ItemRow(item: item) }
                         }
                     }
                 }
             }
             .padding()
         }
-        .lolitaNavBar(title: viewModel.coordinate?.name ?? "套装", showBack: true)
+        .lolitaNavBar(title: "套装详情", showBack: true)
         #if os(iOS)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {

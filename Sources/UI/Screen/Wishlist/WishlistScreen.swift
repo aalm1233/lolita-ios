@@ -1,122 +1,61 @@
 import SwiftUI
 
 struct WishlistScreen: View {
-    @EnvironmentObject var skinManager: SkinManager
+    @EnvironmentObject private var skinManager: SkinManager
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var deleteError: String?
     @StateObject private var viewModel = WishlistViewModel()
 
     var body: some View {
         Group {
-            if viewModel.items.isEmpty {
-                emptyState
+            if viewModel.prioritizedItems().isEmpty {
+                VStack(spacing: 16) {
+                    LolitaEmptyState(title: viewModel.searchText.isEmpty ? "心愿清单还是空的" : "没有找到匹配结果",
+                                     message: viewModel.searchText.isEmpty ? "记下喜欢的服饰，慢慢实现每一个心愿。" : "试试其他名称或关键词。",
+                                     systemImage: viewModel.searchText.isEmpty ? "heart" : "magnifyingglass",
+                                     fillsAvailableSpace: false)
+                    if viewModel.searchText.isEmpty {
+                        NavigationLink(destination: ItemEditScreen(defaultStatus: .wished)) { Label("添加心愿", systemImage: "plus") }
+                            .buttonStyle(.borderedProminent)
+                    } else {
+                        Button("清除搜索") { viewModel.searchText = "" }.buttonStyle(.bordered)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.bottom, 24)
             } else {
-                listContent
+                List {
+                    Section {
+                        ForEach(viewModel.prioritizedItems(), id: \.id) { item in
+                            NavigationLink(destination: ItemDetailScreen(itemId: item.id)) { ItemRow(item: item) }
+                                .lolitaCollectionRowInsets()
+                                .listRowBackground(colorScheme == .dark ? skinManager.current.cardColorDark : skinManager.current.cardColor)
+                                .swipeActions {
+                                    Button(role: .destructive) {
+                                        Task {
+                                            do { try await viewModel.delete(item) }
+                                            catch { deleteError = userFacingError(error) }
+                                        }
+                                    } label: { Label("删除", systemImage: "trash") }
+                                }
+                        }
+                    } header: { LolitaCollectionHeader(title: "按优先级排列", count: viewModel.prioritizedItems().count) }
+                }
+                .lolitaCollectionListStyle()
             }
         }
+        .searchable(text: $viewModel.searchText, prompt: "搜索心愿服饰")
         .lolitaNavBar(title: "愿望单")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                NavigationLink(destination: ItemEditScreen(defaultStatus: .wished)) { Image(systemName: "plus") }
+                    .accessibilityLabel("添加心愿")
+            }
+        }
+        .alert("删除失败", isPresented: Binding(get: { deleteError != nil }, set: { if !$0 { deleteError = nil } })) {
+            Button("确定") { deleteError = nil }
+        } message: { Text(deleteError ?? "") }
         .onAppear { viewModel.load() }
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "heart")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
-            Text("愿望单为空")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-            Text("在服饰详情中将状态设为\"愿望单\"")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-        }
-    }
-
-    private var listContent: some View {
-        List {
-            ForEach(viewModel.prioritizedItems(), id: \.id) { item in
-                NavigationLink(destination: ItemDetailScreen(itemId: item.id)) {
-                    WishlistRow(item: item)
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button(role: .destructive) {
-                        Task { try? await viewModel.delete(item) }
-                    } label: {
-                        Label("删除", systemImage: "trash")
-                    }
-                }
-            }
-        }
-        .searchable(text: $viewModel.searchText, prompt: "搜索愿望单")
-    }
-}
-
-private struct WishlistRow: View {
-    @EnvironmentObject var skinManager: SkinManager
-    let item: Item
-
-    var body: some View {
-        HStack(spacing: 12) {
-            if let firstImage = item.imageUrls.values.first, !firstImage.isEmpty {
-                LolitaShimmerImage(url: ImageFileHelper.fileURL(for: firstImage))
-                    .frame(width: 56, height: 56)
-                    .clipShape(RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusS))
-            } else {
-                RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusS)
-                    .fill(Color.gray.opacity(0.1))
-                    .frame(width: 56, height: 56)
-                    .overlay {
-                        Image(systemName: "photo")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.name)
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-
-                HStack(spacing: 6) {
-                    priorityBadge(item.priority)
-                    Text("愿望单")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-        }
-        .padding(.vertical, 4)
-    }
-
-    @ViewBuilder
-    private func priorityBadge(_ priority: ItemPriority) -> some View {
-        Text(priorityLabel(priority))
-            .font(.caption2.weight(.semibold))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(priorityColor(priority).opacity(0.12))
-            .foregroundStyle(priorityColor(priority))
-            .clipShape(Capsule())
-    }
-
-    private func priorityLabel(_ p: ItemPriority) -> String {
-        switch p {
-        case .high: return "高优先"
-        case .medium: return "中优先"
-        case .low: return "低优先"
-        }
-    }
-
-    private func priorityColor(_ p: ItemPriority) -> Color {
-        switch p {
-        case .high: return .red
-        case .medium: return .orange
-        case .low: return .green
-        }
+        .onDisappear { viewModel.stopObserving() }
     }
 }

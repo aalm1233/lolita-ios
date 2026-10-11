@@ -6,8 +6,8 @@ final class PaymentManageViewModel: ObservableObject {
     @Published private(set) var price: Price?
     let priceId: Int64
 
-    nonisolated(unsafe) private let paymentRepo = AppModule.shared.paymentRepository
-    nonisolated(unsafe) private let priceRepo = AppModule.shared.priceRepository
+    private let paymentRepo = AppModule.shared.paymentRepository
+    private let priceRepo = AppModule.shared.priceRepository
 
     init(priceId: Int64) { self.priceId = priceId }
 
@@ -15,10 +15,16 @@ final class PaymentManageViewModel: ObservableObject {
         price = try? await priceRepo.getById(priceId)
     }
 
+    private var observationTask: Task<Void, Never>?
+
+    func stopObserving() { observationTask?.cancel(); observationTask = nil }
+
     func observe() {
-        Task {
+        guard observationTask == nil else { return }
+        observationTask = Task { [weak self, paymentRepo, priceId] in
             for await ps in paymentRepo.getByPrice(priceId) {
-                payments = ps
+                guard !Task.isCancelled else { return }
+                self?.payments = ps
             }
         }
     }

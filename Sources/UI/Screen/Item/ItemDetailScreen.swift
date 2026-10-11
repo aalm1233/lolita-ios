@@ -19,6 +19,13 @@ struct ItemDetailScreen: View {
                         Text(viewModel.item?.name ?? "")
                             .font(.title2.weight(.bold))
 
+                        if let item = viewModel.item {
+                            HStack(spacing: 8) {
+                                LolitaBadge(text: item.status == .wished ? "想要" : item.status == .pendingBalance ? "待尾款" : "已拥有",
+                                            color: item.status == .wished ? .pink : item.status == .pendingBalance ? .orange : .green)
+                            }
+                        }
+
                         if let desc = viewModel.item?.description, !desc.isEmpty {
                             Text(desc)
                                 .font(.body)
@@ -44,7 +51,15 @@ struct ItemDetailScreen: View {
                         if !viewModel.locationName.isEmpty {
                             DetailRow(label: "位置", value: viewModel.locationName)
                         }
-                        DetailRow(label: "优先级", value: priorityName(viewModel.item?.priority))
+                        if let item = viewModel.item, !item.colors.values.isEmpty {
+                            DetailRow(label: "颜色", value: item.colors.values.joined(separator: "、"))
+                        }
+                        if let source = viewModel.item?.source, !source.isEmpty {
+                            DetailRow(label: "渠道", value: source)
+                        }
+                        if viewModel.item?.status == .wished {
+                            DetailRow(label: "优先级", value: priorityName(viewModel.item?.priority))
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -52,12 +67,14 @@ struct ItemDetailScreen: View {
                 if !viewModel.recommendations.isEmpty {
                     LolitaSection(title: "推荐搭配") {
                         ForEach(viewModel.recommendations, id: \.item.id) { match in
-                            HStack {
-                                ItemRow(item: match.item)
-                                Spacer()
-                                Text("\(Int(match.score * 100))%")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.secondary)
+                            NavigationLink(destination: ItemDetailScreen(itemId: match.item.id)) {
+                                HStack {
+                                    ItemRow(item: match.item)
+                                    Spacer()
+                                    Text("\(Int(match.score * 100))%")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
@@ -66,7 +83,7 @@ struct ItemDetailScreen: View {
             .padding()
         }
         .lolitaNavBar(
-            title: viewModel.item?.name ?? "服饰详情",
+            title: "服饰详情",
             showBack: true,
             onBack: { dismiss() }
         )
@@ -84,7 +101,7 @@ struct ItemDetailScreen: View {
             }
         }
         #endif
-        .task { await viewModel.load() }
+        .onAppear { Task { await viewModel.load() } }
     }
 
     private func priorityName(_ priority: ItemPriority?) -> String {
@@ -97,18 +114,22 @@ struct ItemDetailScreen: View {
     }
 }
 
-private struct DetailRow: View {
+struct DetailRow: View {
     let label: String
     let value: String
 
     var body: some View {
-        HStack {
+        HStack(alignment: .top, spacing: 16) {
             Text(label)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Spacer()
+                .fixedSize(horizontal: true, vertical: false)
             Text(value)
                 .font(.subheadline)
+                .multilineTextAlignment(.trailing)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
+        .padding(.vertical, 3)
     }
 }

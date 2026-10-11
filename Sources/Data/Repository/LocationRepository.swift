@@ -1,7 +1,7 @@
 @preconcurrency import GRDB
 import Foundation
 
-final class LocationRepository {
+final class LocationRepository: Sendable {
     private let db: DatabaseQueue
     init(db: DatabaseQueue) { self.db = db }
 
@@ -45,5 +45,10 @@ final class LocationRepository {
 
     func delete(_ location: Location) async throws {
         try await db.write { db in try location.delete(db) }
+        try? ImageFileHelper.deleteUnreferenced(paths: [location.imageUrl].compactMap { $0 }, db: db)
     }
+}
+
+extension LocationRepository {
+    func cleanupImages(_ paths: [String]) throws { try ImageFileHelper.deleteUnreferenced(paths: paths, db: db) }
 }

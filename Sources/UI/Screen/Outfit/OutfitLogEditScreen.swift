@@ -1,91 +1,120 @@
 import SwiftUI
-#if os(iOS)
-import PhotosUI
-#endif
 
 struct OutfitLogEditScreen: View {
+    @State private var showDiscard = false
+    @State private var showItemPicker = false
+    @State private var saveError: String?
+    @State private var isImportingPhotos = false
+    @State private var isLeaving = false
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject var skinManager: SkinManager
     @StateObject private var viewModel = OutfitLogEditViewModel()
 
     let logId: Int64
 
-    #if os(iOS)
-    @State private var selectedItems: [PhotosPickerItem] = []
-    #endif
+    private var cardBackground: Color {
+        colorScheme == .dark ? skinManager.current.cardColorDark : skinManager.current.cardColor
+    }
 
     var body: some View {
         Form {
             Section {
                 DatePicker("日期", selection: $viewModel.date, displayedComponents: .date)
-                TextField("备注", text: $viewModel.note)
-                    .lineLimit(6)
+                TextField("场合、心情、穿着感受（选填）", text: $viewModel.note, axis: .vertical)
+                    .lineLimit(2...5)
             } header: {
-                Text("基本信息")
+                Text("穿搭记录")
             }
+            .lolitaCollectionRowInsets()
+            .listRowBackground(cardBackground)
+
+            EditPhotosSection(
+                title: "穿搭照片",
+                imageUrls: viewModel.imageUrls,
+                onAddData: { data in
+                    guard !isLeaving else { return }
+                    viewModel.addImageData(data)
+                },
+                onRemove: viewModel.removeImage,
+                onImportingChanged: { isImportingPhotos = $0 }
+            )
 
             Section {
-                if !viewModel.imageUrls.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(Array(viewModel.imageUrls.enumerated()), id: \.offset) { index, path in
-                                ZStack(alignment: .topTrailing) {
-                                    LolitaShimmerImage(url: ImageFileHelper.fileURL(for: path))
-                                        .frame(width: 80, height: 80)
-                                        .clipShape(RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusS))
-
-                                    Button(action: { viewModel.removeImage(at: index) }) {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .font(.system(size: 20))
-                                            .foregroundStyle(.white, Color.red.opacity(0.8))
-                                            .background(Circle().fill(.white).frame(width: 18, height: 18))
-                                    }
-                                    .offset(x: 6, y: -6)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 4)
+                if viewModel.selectedItemIds.isEmpty {
+                    Text("记录今天穿了哪些服饰")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(viewModel.allItems.filter { viewModel.selectedItemIds.contains($0.id) }, id: \.id) { item in
+                        EditSelectedItemRow(item: item) { viewModel.toggleItem(item.id) }
                     }
                 }
-
-                #if os(iOS)
-                PhotosPicker(selection: $selectedItems,
-                             maxSelectionCount: 10,
-                             matching: .images) {
-                    Label("添加图片", systemImage: "photo.badge.plus")
+                Button { showItemPicker = true } label: {
+                    Label("选择服饰", systemImage: "plus.circle")
                 }
-                .onChange(of: selectedItems) { _, newItems in
-                    Task {
-                        for item in newItems {
-                            if let data = try? await item.loadTransferable(type: Data.self) {
-                                viewModel.addImageData(data)
-                            }
-                        }
-                        selectedItems = []
-                    }
-                }
-                #else
-                Label("macOS 暂不支持添加图片", systemImage: "photo.badge.plus")
-                    .foregroundStyle(.secondary)
-                #endif
             } header: {
-                Text("图片")
+                Text("关联服饰 · \(viewModel.selectedItemIds.count) 件")
             }
+            .lolitaCollectionRowInsets()
+            .listRowBackground(cardBackground)
         }
-        .lolitaNavBar(title: "编辑穿搭记录", showBack: true)
+        #if os(iOS)
+        .contentMargins(.horizontal, 12, for: .scrollContent)
+        #endif
+        .disabled(viewModel.isSaving)
+        .scrollDismissesKeyboard(.interactively)
+        .interactiveDismissDisabled(viewModel.isSaving || viewModel.hasChanges || isImportingPhotos)
+        .sheet(isPresented: $showItemPicker) {
+            EditItemSelectionSheet(
+                title: "选择穿搭服饰",
+                items: viewModel.allItems,
+                selectedIds: viewModel.selectedItemIds,
+                onToggle: viewModel.toggleItem
+            )
+            .disabled(viewModel.isSaving)
+            .interactiveDismissDisabled(viewModel.isSaving)
+        }
+        .confirmationDialog("放弃未保存的更改？", isPresented: $showDiscard, titleVisibility: .visible) {
+            Button("放弃更改", role: .destructive) {
+                guard !viewModel.isSaving else { return }
+                discardAndDismiss()
+            }
+            .disabled(viewModel.isSaving)
+            Button("继续编辑", role: .cancel) {}
+        }
+        .alert("保存失败", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
+            Button("确定", role: .cancel) { saveError = nil }
+        } message: { Text(saveError ?? "") }
+        .lolitaNavBar(title: "编辑穿搭记录", showBack: true, onBack: {
+            guard !viewModel.isSaving else { return }
+            if viewModel.hasChanges || isImportingPhotos { showDiscard = true }
+            else { discardAndDismiss() }
+        })
 #if os(iOS)
+        .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("保存") {
+                    guard !viewModel.isSaving, !isImportingPhotos else { return }
                     Task {
-                        try? await viewModel.save()
-                        dismiss()
+                        do {
+                            try await viewModel.save()
+                            dismiss()
+                        } catch { saveError = userFacingError(error) }
                     }
                 }
-                .disabled(viewModel.isSaving)
+                .disabled(viewModel.isSaving || isImportingPhotos)
             }
         }
 #endif
-        .onAppear { viewModel.load(logId: logId) }
+        .task { await viewModel.load(logId: logId) }
+    }
+
+    private func discardAndDismiss() {
+        guard !viewModel.isSaving else { return }
+        isLeaving = true
+        viewModel.discardImages()
+        dismiss()
     }
 }

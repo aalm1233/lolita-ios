@@ -1,7 +1,7 @@
 @preconcurrency import GRDB
 import Foundation
 
-final class SeasonRepository: @unchecked Sendable {
+final class SeasonRepository: Sendable {
     private let db: DatabaseQueue
     init(db: DatabaseQueue) { self.db = db }
 
@@ -33,12 +33,20 @@ final class SeasonRepository: @unchecked Sendable {
 
     func update(_ season: Season) async throws {
         try await db.write { db in
+            let old = try Season.fetchOne(db, key: season.id)
             var s = season
+            s.name = try InputValidation.name(s.name)
             try s.update(db)
+            if let old, old.name != s.name {
+                try db.execute(sql: "UPDATE items SET season = ?, updatedAt = ? WHERE season = ?", arguments: [s.name, Int64(Date().timeIntervalSince1970 * 1000), old.name])
+            }
         }
     }
 
     func delete(_ season: Season) async throws {
-        try await db.write { db in try season.delete(db) }
+        try await db.write { db in
+            try db.execute(sql: "UPDATE items SET season = NULL, updatedAt = ? WHERE season = ?", arguments: [Int64(Date().timeIntervalSince1970 * 1000), season.name])
+            try season.delete(db)
+        }
     }
 }

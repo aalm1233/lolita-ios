@@ -8,10 +8,16 @@
     <string>用于选择服饰照片</string>
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
+    <key>UILaunchScreen</key>
+    <dict/>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
     <string>com.lolita.ios</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$(MARKETING_VERSION)</string>
+    <key>CFBundleVersion</key>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>CFBundleDevelopmentRegion</key>
     <string>zh-CN</string>
     <key>CFBundleDisplayName</key>

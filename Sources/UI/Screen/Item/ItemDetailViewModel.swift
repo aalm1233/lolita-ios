@@ -11,15 +11,16 @@ final class ItemDetailViewModel: ObservableObject {
     let itemId: Int64
     private let brandRepo = AppModule.shared.brandRepository
     private let categoryRepo = AppModule.shared.categoryRepository
-    nonisolated(unsafe) private let itemRepo = AppModule.shared.itemRepository
-    nonisolated(unsafe) private let locationRepo = AppModule.shared.locationRepository
-    nonisolated(unsafe) private let recRepo = AppModule.shared.recommendationRepository
+    private let itemRepo = AppModule.shared.itemRepository
+    private let locationRepo = AppModule.shared.locationRepository
+    private let recRepo = AppModule.shared.recommendationRepository
 
     init(itemId: Int64) { self.itemId = itemId }
 
     func load() async {
         guard let item = try? await itemRepo.getById(itemId) else { return }
         self.item = item
+        brandName = ""; categoryName = ""; locationName = ""; recommendations = []
         if let brand = try? await brandRepo.getAll().first(where: { $0.id == item.brandId }) {
             brandName = brand.name
         }
@@ -43,7 +44,6 @@ final class ItemDetailViewModel: ObservableObject {
 
     func deleteItem() async throws {
         guard let item else { return }
-        ImageFileHelper.delete(paths: item.imageUrls.values)
         try await itemRepo.delete(item)
     }
 }
