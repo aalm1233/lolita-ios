@@ -207,6 +207,10 @@ final class LolitaDatabase {
                 """)
         }
 
+        migrator.registerMigration("v4-import-order-keys") { db in
+            try db.alter(table: "items") { t in t.add(column: "importOrderKeys", .text) }
+        }
+
         return migrator
     }
 }

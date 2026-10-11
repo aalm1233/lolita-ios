@@ -1,4 +1,51 @@
 import SwiftUI
+import Kingfisher
+
+struct LolitaBrandLogo: View {
+    @EnvironmentObject private var skinManager: SkinManager
+    @Environment(\.colorScheme) private var colorScheme
+    var path: String?
+    var name: String?
+    var size: CGFloat = 18
+    @State private var loadFailed = false
+
+    private var accent: Color { colorScheme == .dark ? skinManager.current.accentColorDark : skinManager.current.accentColor }
+    private var placeholder: some View {
+        Text(name?.first.map(String.init) ?? "?")
+            .font(.system(size: max(9, size * 0.55), weight: .medium))
+            .foregroundStyle(accent)
+            .frame(width: size, height: size)
+            .background(accent.opacity(0.14), in: Circle())
+    }
+
+    var body: some View {
+        Group {
+            if let path, !path.isEmpty, !loadFailed {
+                KFImage(ImageFileHelper.fileURL(for: path))
+                    .placeholder { placeholder }
+                    .onFailure { _ in loadFailed = true }
+                    .resizable().scaledToFill()
+            } else { placeholder }
+        }
+        .frame(width: size, height: size)
+        .clipShape(Circle())
+        .accessibilityHidden(true)
+        .onChange(of: path) { _, _ in loadFailed = false }
+    }
+}
+
+struct LolitaBrandLabel: View {
+    var name: String
+    var logoPath: String?
+    var font: Font = .caption2
+    var color: Color = .secondary
+    var body: some View {
+        HStack(spacing: 4) {
+            LolitaBrandLogo(path: logoPath, name: name, size: 16)
+            Text(name).font(font).lineLimit(1)
+        }.foregroundStyle(color)
+    }
+}
 
 struct LolitaThumbnail: View {
     @EnvironmentObject private var skinManager: SkinManager
@@ -193,32 +240,43 @@ struct LolitaPageTabs<Selection: Hashable>: View {
     let options: [Selection]
     @Binding var selection: Selection
     let label: (Selection) -> String
+    var compact = false
+    @ScaledMetric(relativeTo: .subheadline) private var tabHeight: CGFloat = 52
 
     private var accent: Color { colorScheme == .dark ? skinManager.current.accentColorDark : skinManager.current.accentColor }
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 24) {
-                ForEach(options, id: \.self) { option in
-                    Button { selection = option } label: {
-                        VStack(spacing: 9) {
-                            Text(label(option))
-                                .font(.subheadline.weight(selection == option ? .semibold : .regular))
-                                .foregroundStyle(selection == option ? accent : .secondary)
-                                .padding(.horizontal, 2)
-                            Capsule().fill(selection == option ? accent : .clear).frame(height: 3)
-                        }
-                        .padding(.top, 12)
-                        .frame(minWidth: 48, minHeight: 44)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(selection == option ? .isSelected : [])
-                }
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: compact ? 0 : 16) {
+                ForEach(options, id: \.self) { option in tab(option).frame(maxWidth: .infinity) }
+            }.padding(.horizontal, compact ? 0 : 12)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: compact ? 4 : 24) { ForEach(options, id: \.self) { tab($0) } }
+                    .padding(.horizontal, compact ? 0 : 16)
+                    .fixedSize(horizontal: true, vertical: false)
             }
-            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity)
         }
-        .overlay(alignment: .bottom) { Rectangle().fill(accent.opacity(0.1)).frame(height: 0.5) }
+        .frame(height: compact ? max(44, tabHeight * 44 / 52) : max(52, tabHeight))
+        .overlay(alignment: .bottom) { Rectangle().fill(accent.opacity(compact ? 0 : 0.1)).frame(height: 0.5) }
+    }
+
+    private func tab(_ option: Selection) -> some View {
+        Button { selection = option } label: {
+            VStack(spacing: compact ? 6 : 9) {
+                Text(label(option))
+                    .font((compact ? Font.caption : Font.subheadline).weight(selection == option ? .semibold : .regular))
+                    .foregroundStyle(selection == option ? accent : .secondary)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .padding(.horizontal, 2)
+                Capsule().fill(selection == option ? accent : .clear).frame(height: 3)
+            }
+            .padding(.top, compact ? 5 : 12)
+            .frame(minWidth: compact ? 32 : 48, minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selection == option ? .isSelected : [])
     }
 }
 
@@ -231,6 +289,95 @@ enum LolitaCollectionViewMode: String, CaseIterable {
         switch self { case .list: return "rectangle.grid.1x2"; case .grid: return "square.grid.2x2"; case .compactGrid: return "square.grid.3x3"; case .gallery: return "photo.on.rectangle.angled" }
     }
     var columns: Int { self == .list ? 1 : self == .compactGrid ? 3 : 2 }
+}
+
+/// Share the compact home row's layout and search styling with source previews.
+struct LolitaHomeToolbar<Tabs: View, Actions: View, SearchField: View>: View {
+    @EnvironmentObject private var skinManager: SkinManager
+    @Environment(\.colorScheme) private var colorScheme
+    let isSearching: Bool
+    let onSearch: () -> Void
+    let onCancel: () -> Void
+    let tabs: Tabs
+    let actions: Actions
+    let searchField: SearchField
+    let clearSearch: (() -> Void)?
+
+    init(isSearching: Bool, onSearch: @escaping () -> Void, onCancel: @escaping () -> Void,
+         clearSearch: (() -> Void)? = nil,
+         @ViewBuilder tabs: () -> Tabs,
+         @ViewBuilder actions: () -> Actions,
+         @ViewBuilder searchField: () -> SearchField) {
+        self.isSearching = isSearching
+        self.onSearch = onSearch
+        self.onCancel = onCancel
+        self.tabs = tabs()
+        self.actions = actions()
+        self.searchField = searchField()
+        self.clearSearch = clearSearch
+    }
+
+    private var accent: Color {
+        colorScheme == .dark ? skinManager.current.accentColorDark : skinManager.current.accentColor
+    }
+
+    var body: some View {
+        Group {
+            if isSearching {
+                HStack(spacing: 8) {
+                    searchInput
+                    Button("取消", action: onCancel)
+                        .font(.subheadline)
+                        .frame(minHeight: 44)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .accessibilityLabel("取消搜索")
+                }
+                .transition(.opacity)
+            } else {
+                HStack(spacing: 2) {
+                    Button(action: onSearch) {
+                        Image(systemName: "magnifyingglass")
+                            .frame(width: 40, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel("搜索")
+                    tabs.frame(maxWidth: .infinity)
+                    HStack(spacing: 0) { actions }
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+                .transition(.opacity)
+            }
+        }
+        .font(.body.weight(.medium))
+        .foregroundStyle(accent)
+        .buttonStyle(.plain)
+        .frame(minHeight: 44)
+    }
+
+    private var searchInput: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            searchField
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if let clearSearch {
+                Button(action: clearSearch) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 28, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("清除搜索")
+            }
+        }
+        .font(.subheadline)
+        .padding(.leading, 10)
+        .padding(.trailing, clearSearch == nil ? 10 : 2)
+        .frame(minHeight: 44)
+        .background(accent.opacity(colorScheme == .dark ? 0.12 : 0.07), in: Capsule())
+    }
 }
 
 struct LolitaCollectionControls: View {
@@ -275,6 +422,7 @@ func lolitaPriceLabel(_ amount: Double) -> String {
 struct LolitaCollectionGrid<Content: View>: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     var mode: LolitaCollectionViewMode
+    var bottomPadding: CGFloat = 20
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -284,7 +432,7 @@ struct LolitaCollectionGrid<Content: View>: View {
             }
             .padding(.horizontal, 12)
             .padding(.top, 4)
-            .padding(.bottom, 20)
+            .padding(.bottom, bottomPadding)
         }
     }
 }
@@ -358,6 +506,7 @@ struct LolitaItemStatus: View {
 struct ItemCollectionCard: View {
     var item: Item
     var brandName: String? = nil
+    var brandLogoPath: String? = nil
     var categoryName: String? = nil
     var price: Double? = nil
     var mode: LolitaCollectionViewMode = .grid
@@ -369,7 +518,7 @@ struct ItemCollectionCard: View {
     var body: some View {
         LolitaCard(variant: .gallery) {
             if mode == .list {
-                ItemRow(item: item, brandName: brandName, categoryName: categoryName, price: price, showsDescription: true)
+                ItemRow(item: item, brandName: brandName, brandLogoPath: brandLogoPath, categoryName: categoryName, price: price, showsDescription: true)
                     .padding(12)
             } else {
                 VStack(alignment: .leading, spacing: 0) {
@@ -381,7 +530,7 @@ struct ItemCollectionCard: View {
                             if mode == .gallery {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(item.name).font(.subheadline.weight(.semibold)).lineLimit(2)
-                                    if let brandName { Text(brandName).font(.caption2).opacity(0.85).lineLimit(1) }
+                                    if let brandName { LolitaBrandLabel(name: brandName, logoPath: brandLogoPath, color: .white.opacity(0.85)) }
                                     if !details.isEmpty { Text(details).font(.caption2).opacity(0.8).lineLimit(1) }
                                 }
                                 .foregroundStyle(.white).padding(9).frame(maxWidth: .infinity, alignment: .leading)
@@ -392,7 +541,7 @@ struct ItemCollectionCard: View {
                     if mode != .gallery {
                         VStack(alignment: .leading, spacing: 5) {
                             Text(item.name).font(.subheadline.weight(.semibold)).foregroundStyle(.primary).lineLimit(2)
-                            if let brandName { Text(brandName).font(.caption2).foregroundStyle(.secondary).lineLimit(1) }
+                            if let brandName { LolitaBrandLabel(name: brandName, logoPath: brandLogoPath) }
                             if !details.isEmpty { Text(details).font(.caption2).foregroundStyle(.secondary).lineLimit(1) }
                             LolitaItemStatus(item: item)
                         }
@@ -503,5 +652,119 @@ extension View {
     func lolitaCardRow() -> some View {
         listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
             .listRowSeparator(.hidden).listRowBackground(Color.clear)
+    }
+}
+
+struct LolitaCollectionSkeletons: View {
+    @EnvironmentObject private var skinManager: SkinManager
+    @Environment(\.colorScheme) private var colorScheme
+    var mode: LolitaCollectionViewMode
+    private var tint: Color { colorScheme == .dark ? skinManager.current.accentColorDark : skinManager.current.accentColor }
+    var body: some View {
+        LolitaCollectionGrid(mode: mode) {
+            ForEach(0..<6, id: \.self) { _ in
+                LolitaCard(variant: .gallery) {
+                    if mode == .list {
+                        HStack(spacing: 12) {
+                            RoundedRectangle(cornerRadius: 8).fill(tint.opacity(0.1)).frame(width: 80, height: 96)
+                            VStack(alignment: .leading, spacing: 10) {
+                                RoundedRectangle(cornerRadius: 4).fill(tint.opacity(0.12)).frame(height: 14)
+                                RoundedRectangle(cornerRadius: 4).fill(tint.opacity(0.08)).frame(height: 10).padding(.trailing, 35)
+                                RoundedRectangle(cornerRadius: 4).fill(tint.opacity(0.08)).frame(width: 65, height: 18)
+                            }
+                        }.padding(12)
+                    } else {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Rectangle().fill(tint.opacity(0.1)).aspectRatio(0.8, contentMode: .fit)
+                            RoundedRectangle(cornerRadius: 4).fill(tint.opacity(0.12)).frame(height: 14).padding(.horizontal, 9)
+                            RoundedRectangle(cornerRadius: 4).fill(tint.opacity(0.08)).frame(height: 10).padding(.horizontal, 9).padding(.trailing, 30)
+                        }.padding(.bottom, 12)
+                    }
+                }.shimmer().accessibilityHidden(true)
+            }
+        }.accessibilityLabel("正在加载收藏")
+    }
+}
+
+struct CollectionSortKey {
+    var id: Int64
+    var name: String
+    var updatedAt: Int64
+    var price: Double = 0
+}
+
+enum CollectionSortOption: String, CaseIterable {
+    case updatedNewest, updatedOldest, priceHighest, priceLowest, nameAscending, nameDescending
+    var title: String {
+        switch self {
+        case .updatedNewest: return "更新时间：新到旧"
+        case .updatedOldest: return "更新时间：旧到新"
+        case .priceHighest: return "价格：高到低"
+        case .priceLowest: return "价格：低到高"
+        case .nameAscending: return "名称 A–Z"
+        case .nameDescending: return "名称 Z–A"
+        }
+    }
+    var usesPrice: Bool { self == .priceHighest || self == .priceLowest }
+    func sorted<Value>(_ values: [Value], key: (Value) -> CollectionSortKey) -> [Value] {
+        values.sorted {
+            let a = key($0), b = key($1)
+            switch self {
+            case .updatedNewest: if a.updatedAt != b.updatedAt { return a.updatedAt > b.updatedAt }
+            case .updatedOldest: if a.updatedAt != b.updatedAt { return a.updatedAt < b.updatedAt }
+            case .priceHighest: if a.price != b.price { return a.price > b.price }
+            case .priceLowest: if a.price != b.price { return a.price < b.price }
+            case .nameAscending, .nameDescending:
+                let comparison = a.name.localizedCompare(b.name)
+                if comparison != .orderedSame { return self == .nameAscending ? comparison == .orderedAscending : comparison == .orderedDescending }
+            }
+            return a.id < b.id
+        }
+    }
+}
+
+struct LolitaCollectionSortMenu: View {
+    @Binding var selection: CollectionSortOption
+    var includesPrice = true
+    var buttonSize: CGFloat? = nil
+    var body: some View {
+        Menu {
+            Picker("排序", selection: $selection) {
+                ForEach(CollectionSortOption.allCases.filter { includesPrice || !$0.usesPrice }, id: \.self) {
+                    Text($0.title).tag($0)
+                }
+            }
+        } label: {
+            Image(systemName: "arrow.up.arrow.down")
+                .frame(width: buttonSize, height: buttonSize)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel("排序：\(selection.title)")
+    }
+}
+
+struct LolitaDeleteRequest {
+    var name: String
+    var action: () -> Void
+}
+
+private struct LolitaDeleteConfirmation: ViewModifier {
+    @Binding var request: LolitaDeleteRequest?
+    func body(content: Content) -> some View {
+        content.alert("确认删除", isPresented: Binding(get: { request != nil }, set: { if !$0 { request = nil } }), presenting: request) { pending in
+            Button("取消", role: .cancel) { request = nil }
+            Button("删除", role: .destructive) {
+                request = nil
+                pending.action()
+            }
+        } message: { pending in
+            Text("确定要删除「\(pending.name)」吗？此操作无法撤销。")
+        }
+    }
+}
+
+extension View {
+    func lolitaDeleteConfirmation(_ request: Binding<LolitaDeleteRequest?>) -> some View {
+        modifier(LolitaDeleteConfirmation(request: request))
     }
 }

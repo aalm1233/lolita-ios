@@ -1,11 +1,10 @@
 import SwiftUI
 
 enum Tab: String, CaseIterable {
-    case items = "服饰"
-    case wishlist = "愿望单"
+    case items = "首页"
     case outfits = "穿搭"
     case stats = "统计"
-    case settings = "设置"
+    case settings = "个人"
 }
 
 @available(iOS 16.0, macOS 13.0, *)
@@ -13,6 +12,7 @@ struct LolitaNavHost: View {
     @EnvironmentObject private var skinManager: SkinManager
     @Environment(\.colorScheme) private var colorScheme
     @State private var selectedTab: Tab = .items
+    @ObservedObject private var routeState = AppRouteState.shared
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -24,15 +24,6 @@ struct LolitaNavHost: View {
                 Text(Tab.items.rawValue)
             }
             .tag(Tab.items)
-
-            NavigationStack {
-                WishlistScreen()
-            }
-            .tabItem {
-                Image(systemName: selectedTab == .wishlist ? "heart.fill" : "heart")
-                Text(Tab.wishlist.rawValue)
-            }
-            .tag(Tab.wishlist)
 
             NavigationStack {
                 OutfitLogListScreen()
@@ -62,5 +53,19 @@ struct LolitaNavHost: View {
             .tag(Tab.settings)
         }
         .tint(colorScheme == .dark ? skinManager.current.primaryColorDark : skinManager.current.primaryColor)
+        .font(skinManager.customFont ?? .body)
+        .sheet(item: $routeState.route) { route in
+            NavigationStack {
+                switch route {
+                case .todayOutfit: QuickOutfitLogScreen()
+                case .payment(let id): PaymentNotificationDestination(paymentId: id)
+                }
+            }
+            .environmentObject(skinManager)
+        }
+        #if os(iOS)
+        .toolbarBackground(colorScheme == .dark ? skinManager.current.tabBarBackgroundColorDark : skinManager.current.tabBarBackgroundColor, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
+        #endif
     }
 }

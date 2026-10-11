@@ -71,6 +71,9 @@ enum ImageFileHelper {
             for log in try OutfitLog.fetchAll(db) { paths.formUnion(log.imageUrls.values) }
             for location in try Location.fetchAll(db) { if let image = location.imageUrl { paths.insert(image) } }
             for brand in try Brand.fetchAll(db) { if let logo = brand.logoUrl { paths.insert(logo) } }
+            for key in ["profileAvatarPath", "paymentCalendarBackgroundPath"] {
+                if let path = UserDefaults.standard.string(forKey: key), !path.isEmpty { paths.insert(path) }
+            }
             return Set(paths.compactMap { ownedFileURL(for: $0, imagesDirectory: directory)?.path })
         }
         let candidates = Set(paths.compactMap { ownedFileURL(for: $0, imagesDirectory: directory)?.path })
@@ -101,7 +104,7 @@ enum ImageFileHelper {
     @discardableResult
     static func migrateStoredPaths(db queue: DatabaseQueue, imagesDirectory: URL? = nil) throws -> Int {
         let directory = imagesDirectory ?? imagesDir
-        return try queue.write { db in
+        let updated = try queue.write { db in
             func image(_ path: String?) -> String? {
                 guard let path else { return nil }
                 return ownedFileURL(for: path, imagesDirectory: directory)?.path ?? path
@@ -154,6 +157,13 @@ enum ImageFileHelper {
             }
             return updated
         }
+        for key in ["profileAvatarPath", "paymentCalendarBackgroundPath"] {
+            if let old = UserDefaults.standard.string(forKey: key),
+               let path = ownedFileURL(for: old, imagesDirectory: directory)?.path, old != path {
+                UserDefaults.standard.set(path, forKey: key)
+            }
+        }
+        return updated
     }
 
     private static func safeDirectory(_ directory: URL) -> URL? {

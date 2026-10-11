@@ -42,7 +42,7 @@ struct OutfitLogEditScreen: View {
 
             Section {
                 if viewModel.selectedItemIds.isEmpty {
-                    Text("记录今天穿了哪些服饰")
+                    Text("选择这一天穿的服饰")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 } else {
@@ -68,7 +68,7 @@ struct OutfitLogEditScreen: View {
         .sheet(isPresented: $showItemPicker) {
             EditItemSelectionSheet(
                 title: "选择穿搭服饰",
-                items: viewModel.allItems,
+                items: viewModel.allItems.filter { $0.status == .owned || viewModel.selectedItemIds.contains($0.id) },
                 selectedIds: viewModel.selectedItemIds,
                 onToggle: viewModel.toggleItem
             )
@@ -86,7 +86,7 @@ struct OutfitLogEditScreen: View {
         .alert("保存失败", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
             Button("确定", role: .cancel) { saveError = nil }
         } message: { Text(saveError ?? "") }
-        .lolitaNavBar(title: "编辑穿搭记录", showBack: true, onBack: {
+        .lolitaNavBar(title: logId > 0 ? "编辑穿搭记录" : "新增穿搭记录", showBack: true, onBack: {
             guard !viewModel.isSaving else { return }
             if viewModel.hasChanges || isImportingPhotos { showDiscard = true }
             else { discardAndDismiss() }
@@ -108,7 +108,10 @@ struct OutfitLogEditScreen: View {
             }
         }
 #endif
-        .task { await viewModel.load(logId: logId) }
+        .task {
+            await viewModel.load(logId: logId)
+            if let message = viewModel.errorMessage { saveError = message }
+        }
     }
 
     private func discardAndDismiss() {

@@ -19,23 +19,27 @@ struct ItemCollectionFilter {
     var color: String?
     var search = ""
 
-    func apply(to items: [Item], categories: [Category], collection: ItemStatus, newestFirst: Bool) -> [Item] {
+    static func seasons(in value: String?) -> [String] {
+        (value ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+    }
+
+    func apply(to items: [Item], categories: [Category], collection: ItemStatus, newestFirst: Bool,
+               sort: CollectionSortOption? = nil, prices: [Int64: Double] = [:]) -> [Item] {
         let categoryGroups = Dictionary(uniqueKeysWithValues: categories.map { ($0.id, $0.group) })
         let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
-        return items.filter { item in
+        let filtered = items.filter { item in
             let inCollection = collection == .owned ? item.status != .wished : item.status == collection
             return inCollection && (brandId == nil || item.brandId == brandId)
                 && (categoryId == nil || item.categoryId == categoryId)
                 && (status == nil || item.status == status)
                 && (group == nil || categoryGroups[item.categoryId] == group)
-                && (season == nil || item.season == season)
+                && (season.map { Self.seasons(in: item.season).contains($0) } ?? true)
                 && (style == nil || item.style == style)
-                && (color == nil || item.colors.values.contains(color!))
+                && (color.map { item.colors.values.contains($0) } ?? true)
                 && (query.isEmpty || item.name.localizedCaseInsensitiveContains(query))
-        }.sorted {
-            if newestFirst { return $0.updatedAt == $1.updatedAt ? $0.id > $1.id : $0.updatedAt > $1.updatedAt }
-            let comparison = $0.name.localizedCompare($1.name)
-            return comparison == .orderedSame ? $0.id < $1.id : comparison == .orderedAscending
+        }
+        return (sort ?? (newestFirst ? .updatedNewest : .nameAscending)).sorted(filtered) {
+            CollectionSortKey(id: $0.id, name: $0.name, updatedAt: $0.updatedAt, price: prices[$0.id] ?? 0)
         }
     }
 }
@@ -65,7 +69,7 @@ final class ItemListViewModel: ObservableObject {
     @Published var styleFilter: String?
     @Published var colorFilter: String?
     @Published var searchText = ""
-    @Published var newestFirst = true
+    @Published var sortOption: CollectionSortOption = .updatedNewest
     @Published var selectedSubTab: ItemSubTab = .items
 
     private let db: DatabaseQueue
@@ -135,7 +139,7 @@ final class ItemListViewModel: ObservableObject {
          seasonFilter != nil, styleFilter != nil, colorFilter != nil].filter { $0 }.count
     }
 
-    var availableSeasons: [String] { Array(Set(items.compactMap(\.season).filter { !$0.isEmpty })).sorted() }
+    var availableSeasons: [String] { Array(Set(items.flatMap { ItemCollectionFilter.seasons(in: $0.season) })).sorted() }
     var availableStyles: [String] { Array(Set(items.compactMap(\.style).filter { !$0.isEmpty })).sorted() }
     var availableColors: [String] { Array(Set(items.flatMap { $0.colors.values })).sorted() }
 
@@ -147,7 +151,7 @@ final class ItemListViewModel: ObservableObject {
     func itemsByStatus(_ status: ItemStatus) -> [Item] {
         ItemCollectionFilter(brandId: brandFilter, categoryId: categoryFilter, status: statusFilter,
                              group: groupFilter, season: seasonFilter, style: styleFilter, color: colorFilter, search: searchText)
-            .apply(to: items, categories: categories, collection: status, newestFirst: newestFirst)
+            .apply(to: items, categories: categories, collection: status, newestFirst: true, sort: sortOption, prices: pricesByItem)
     }
 
     func wishlistByPriority() -> [Item] {

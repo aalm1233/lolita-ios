@@ -6,6 +6,12 @@
     <string>用于拍摄服饰照片</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>用于选择服饰照片</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>用于把已开启提醒的未付付款写入系统日历，并在付款变化时同步更新或删除</string>
+    <key>NSCalendarsUsageDescription</key>
+    <string>用于把已开启提醒的未付付款写入系统日历，并在付款变化时同步更新或删除</string>
+    <key>CFBundleURLTypes</key>
+    <array><dict><key>CFBundleURLName</key><string>com.lolita.ios</string><key>CFBundleURLSchemes</key><array><string>lolita</string></array></dict></array>
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
     <key>UILaunchScreen</key>

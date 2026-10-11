@@ -1137,7 +1137,8 @@
         "86D2CD7267AC62998ACC7143",
         "9D74FE2AB7ABD1A994133448",
         "40BDABA39C7B3299BE668570",
-        "F8194BD00D146484537ED04F"
+        "F8194BD00D146484537ED04F",
+        "13FF836390A81A6235C9EDE2"
       ],
       "name": "Sources",
       "path": "Sources",
@@ -1146,7 +1147,8 @@
     "7C7A71D1AA87D0AFC3FED78B": {
       "isa": "PBXGroup",
       "children": [
-        "1C1E900B1688C0CF62E1EF28"
+        "1C1E900B1688C0CF62E1EF28",
+        "1DB99955E9C260D14FCAF587"
       ],
       "name": "Products",
       "sourceTree": "<group>"
@@ -1155,7 +1157,8 @@
       "isa": "PBXGroup",
       "children": [
         "D82CF0993E2E6D908A7630B1",
-        "7C7A71D1AA87D0AFC3FED78B"
+        "7C7A71D1AA87D0AFC3FED78B",
+        "217EBCF00E890B8889F940C6"
       ],
       "sourceTree": "<group>"
     },
@@ -1259,7 +1262,18 @@
         "4366FB08D1C34576AEE227C8",
         "A6411EACD5D8FE4A226A6DAC",
         "284507DC557B99CBAF1C9FA4",
-        "EC2AF1C96CA19897F9BC0A0C"
+        "EC2AF1C96CA19897F9BC0A0C",
+        "9353E20E54E18E0E37BB19F6",
+        "CB4855BF8BC0BD2F6C130EB8",
+        "9441F7EFC7631196E0F75E3C",
+        "07893DC926CE699CE925FA21",
+        "F746AA4D6A04D0BBCEF41328",
+        "D0A490CD5FA69E0913E1166E",
+        "2D1FC5A877AC8338784C6AE9",
+        "2604FDC444A35D8D7380F557",
+        "0FAD9C217735FB4B80C5DF9E",
+        "B68DFFE0E7922215D27B14AE",
+        "65B5C86567B327E3AF1FE49A"
       ],
       "runOnlyForDeploymentPostprocessing": "0"
     },
@@ -1349,7 +1363,8 @@
         "PRODUCT_BUNDLE_IDENTIFIER": "com.lolita.ios",
         "PRODUCT_NAME": "Lolita",
         "SWIFT_EMIT_LOC_STRINGS": "YES",
-        "TARGETED_DEVICE_FAMILY": "1,2"
+        "TARGETED_DEVICE_FAMILY": "1,2",
+        "CODE_SIGN_ENTITLEMENTS": "Sources/Lolita.entitlements"
       },
       "name": "Debug"
     },
@@ -1368,7 +1383,8 @@
         "PRODUCT_BUNDLE_IDENTIFIER": "com.lolita.ios",
         "PRODUCT_NAME": "Lolita",
         "SWIFT_EMIT_LOC_STRINGS": "YES",
-        "TARGETED_DEVICE_FAMILY": "1,2"
+        "TARGETED_DEVICE_FAMILY": "1,2",
+        "CODE_SIGN_ENTITLEMENTS": "Sources/Lolita.entitlements"
       },
       "name": "Release"
     },
@@ -1404,16 +1420,20 @@
       "buildPhases": [
         "48C00BFD564253FD79208E54",
         "D25F3FE1066439065F829783",
-        "D20B71B536D2B29EAB2BAB63"
+        "D20B71B536D2B29EAB2BAB63",
+        "828979F68B345F300A7E54D2"
       ],
       "buildRules": [],
       "dependencies": [
         "F75E5312E76F5008FF8FCB77",
-        "751A73A447FE9A69C5F66883"
+        "751A73A447FE9A69C5F66883",
+        "3725AA4330F4D4DD15FFD9EB",
+        "4107A89C391D0DA5D13C326F"
       ],
       "packageProductDependencies": [
         "915B0F063325828C4FE658A8",
-        "4977B8978A8CDF190708BC54"
+        "4977B8978A8CDF190708BC54",
+        "02D8109949557A1377D9E980"
       ],
       "name": "Lolita",
       "productName": "Lolita",
@@ -1425,7 +1445,23 @@
       "attributes": {
         "BuildIndependentTargetsInParallel": "1",
         "LastSwiftUpdateCheck": "2600",
-        "LastUpgradeCheck": "2600"
+        "LastUpgradeCheck": "2600",
+        "TargetAttributes": {
+          "7E8FD449E05734D259F4417F": {
+            "SystemCapabilities": {
+              "com.apple.ApplicationGroups.iOS": {
+                "enabled": "1"
+              }
+            }
+          },
+          "3035E744984E19FED7D2F79D": {
+            "SystemCapabilities": {
+              "com.apple.ApplicationGroups.iOS": {
+                "enabled": "1"
+              }
+            }
+          }
+        }
       },
       "buildConfigurationList": "ACCE24BF57A78573A2CF2ADB",
       "compatibilityVersion": "Xcode 16.0",
@@ -1438,13 +1474,15 @@
       "mainGroup": "3B7B22B0D82194BEF5B53A33",
       "packageReferences": [
         "4AF28B6844FB3618EA40FF96",
-        "FBDDEA3F71201D732DCF5D44"
+        "FBDDEA3F71201D732DCF5D44",
+        "0CF405D00DBA788B31AEE70C"
       ],
       "productRefGroup": "7C7A71D1AA87D0AFC3FED78B",
       "projectDirPath": "",
       "projectRoot": "",
       "targets": [
-        "7E8FD449E05734D259F4417F"
+        "7E8FD449E05734D259F4417F",
+        "3035E744984E19FED7D2F79D"
       ]
     },
     "BABBF126756E4A709B7CD5C1": {
@@ -1556,6 +1594,320 @@
     "EC2AF1C96CA19897F9BC0A0C": {
       "isa": "PBXBuildFile",
       "fileRef": "DDA9E07C3116F8F3B7A87D58"
+    },
+    "0CF405D00DBA788B31AEE70C": {
+      "isa": "XCRemoteSwiftPackageReference",
+      "repositoryURL": "https://github.com/weichsel/ZIPFoundation.git",
+      "requirement": {
+        "kind": "upToNextMajorVersion",
+        "minimumVersion": "0.9.19"
+      }
+    },
+    "02D8109949557A1377D9E980": {
+      "isa": "XCSwiftPackageProductDependency",
+      "package": "0CF405D00DBA788B31AEE70C",
+      "productName": "ZIPFoundation"
+    },
+    "3725AA4330F4D4DD15FFD9EB": {
+      "isa": "PBXTargetDependency",
+      "productRef": "02D8109949557A1377D9E980"
+    },
+    "13FF836390A81A6235C9EDE2": {
+      "isa": "PBXGroup",
+      "children": [
+        "83FE2A764EF3F039FF152D71",
+        "42DB10B4447A3C5CE14834B7",
+        "65EBDAE9A59FD7C476E1A72E",
+        "02FA9ADC15BB8F1BAF94D71F",
+        "2B6EF98DA549D4A5A64EDA0F",
+        "857A742E12DA79CF3FF80057",
+        "A481E00FC353BB73824F0067",
+        "9E942C302A40ABD683FC0978",
+        "B035015951A3F14EB91FC7CD",
+        "D50E94015F4492B163A66312",
+        "6DC71BF6A0BCE03E43CAB354"
+      ],
+      "name": "Additional",
+      "sourceTree": "<group>"
+    },
+    "83FE2A764EF3F039FF152D71": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Data/Activity/OutfitActivityCoordinator.swift",
+      "sourceTree": "<group>"
+    },
+    "9353E20E54E18E0E37BB19F6": {
+      "isa": "PBXBuildFile",
+      "fileRef": "83FE2A764EF3F039FF152D71"
+    },
+    "42DB10B4447A3C5CE14834B7": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Data/Activity/OutfitWidgetShared.swift",
+      "sourceTree": "<group>"
+    },
+    "CB4855BF8BC0BD2F6C130EB8": {
+      "isa": "PBXBuildFile",
+      "fileRef": "42DB10B4447A3C5CE14834B7"
+    },
+    "65EBDAE9A59FD7C476E1A72E": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Data/File/TaobaoOrderParser.swift",
+      "sourceTree": "<group>"
+    },
+    "9441F7EFC7631196E0F75E3C": {
+      "isa": "PBXBuildFile",
+      "fileRef": "65EBDAE9A59FD7C476E1A72E"
+    },
+    "02FA9ADC15BB8F1BAF94D71F": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Data/File/ZipArchiveReader.swift",
+      "sourceTree": "<group>"
+    },
+    "07893DC926CE699CE925FA21": {
+      "isa": "PBXBuildFile",
+      "fileRef": "02FA9ADC15BB8F1BAF94D71F"
+    },
+    "2B6EF98DA549D4A5A64EDA0F": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Data/Notification/PaymentReminderService.swift",
+      "sourceTree": "<group>"
+    },
+    "F746AA4D6A04D0BBCEF41328": {
+      "isa": "PBXBuildFile",
+      "fileRef": "2B6EF98DA549D4A5A64EDA0F"
+    },
+    "857A742E12DA79CF3FF80057": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Data/Repository/TaobaoImportRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "D0A490CD5FA69E0913E1166E": {
+      "isa": "PBXBuildFile",
+      "fileRef": "857A742E12DA79CF3FF80057"
+    },
+    "A481E00FC353BB73824F0067": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "UI/Navigation/AppRouteState.swift",
+      "sourceTree": "<group>"
+    },
+    "2D1FC5A877AC8338784C6AE9": {
+      "isa": "PBXBuildFile",
+      "fileRef": "A481E00FC353BB73824F0067"
+    },
+    "9E942C302A40ABD683FC0978": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "UI/Screen/Import/TaobaoImportScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "2604FDC444A35D8D7380F557": {
+      "isa": "PBXBuildFile",
+      "fileRef": "9E942C302A40ABD683FC0978"
+    },
+    "B035015951A3F14EB91FC7CD": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "UI/Screen/Import/TaobaoImportViewModel.swift",
+      "sourceTree": "<group>"
+    },
+    "0FAD9C217735FB4B80C5DF9E": {
+      "isa": "PBXBuildFile",
+      "fileRef": "B035015951A3F14EB91FC7CD"
+    },
+    "D50E94015F4492B163A66312": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "UI/Screen/Payment/CalendarBackground.swift",
+      "sourceTree": "<group>"
+    },
+    "B68DFFE0E7922215D27B14AE": {
+      "isa": "PBXBuildFile",
+      "fileRef": "D50E94015F4492B163A66312"
+    },
+    "6DC71BF6A0BCE03E43CAB354": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "UI/Screen/Settings/ReminderSettingsScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "65B5C86567B327E3AF1FE49A": {
+      "isa": "PBXBuildFile",
+      "fileRef": "6DC71BF6A0BCE03E43CAB354"
+    },
+    "217EBCF00E890B8889F940C6": {
+      "isa": "PBXGroup",
+      "children": [
+        "D5B4340A32B8ECA15B7F31F1",
+        "5D148336CCBB3FA86D1D4347",
+        "5DF4FE850BEDA793AEAC9328"
+      ],
+      "name": "LolitaWidget",
+      "path": "LolitaWidget",
+      "sourceTree": "<group>"
+    },
+    "D5B4340A32B8ECA15B7F31F1": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "OutfitWidget.swift",
+      "sourceTree": "<group>"
+    },
+    "5D148336CCBB3FA86D1D4347": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "text.plist.xml",
+      "path": "Info.plist",
+      "sourceTree": "<group>"
+    },
+    "5DF4FE850BEDA793AEAC9328": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "text.plist.entitlements",
+      "path": "LolitaWidget.entitlements",
+      "sourceTree": "<group>"
+    },
+    "1DB99955E9C260D14FCAF587": {
+      "isa": "PBXFileReference",
+      "explicitFileType": "wrapper.app-extension",
+      "includeInIndex": "0",
+      "path": "LolitaWidget.appex",
+      "sourceTree": "BUILT_PRODUCTS_DIR"
+    },
+    "651EC55D905BDDCC076CB98F": {
+      "isa": "PBXBuildFile",
+      "fileRef": "D5B4340A32B8ECA15B7F31F1"
+    },
+    "70288B7281A96CF2A0E90713": {
+      "isa": "PBXBuildFile",
+      "fileRef": "42DB10B4447A3C5CE14834B7"
+    },
+    "D7CE85154C45668A7DF6E416": {
+      "isa": "PBXSourcesBuildPhase",
+      "buildActionMask": "2147483647",
+      "files": [
+        "651EC55D905BDDCC076CB98F",
+        "70288B7281A96CF2A0E90713"
+      ],
+      "runOnlyForDeploymentPostprocessing": "0"
+    },
+    "F5C2877B46E56E431F8582E9": {
+      "isa": "PBXResourcesBuildPhase",
+      "buildActionMask": "2147483647",
+      "files": [],
+      "runOnlyForDeploymentPostprocessing": "0"
+    },
+    "2C35F31C8EED8B71BC7DC96F": {
+      "isa": "PBXFrameworksBuildPhase",
+      "buildActionMask": "2147483647",
+      "files": [],
+      "runOnlyForDeploymentPostprocessing": "0"
+    },
+    "A0278B658675DC7C6BE83DDD": {
+      "isa": "XCBuildConfiguration",
+      "name": "Debug",
+      "buildSettings": {
+        "APPLICATION_EXTENSION_API_ONLY": "YES",
+        "CODE_SIGN_STYLE": "Automatic",
+        "CODE_SIGN_ENTITLEMENTS": "LolitaWidget/LolitaWidget.entitlements",
+        "DEVELOPMENT_TEAM": "M5MJ2R5MT7",
+        "CURRENT_PROJECT_VERSION": "1",
+        "MARKETING_VERSION": "1.0",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "INFOPLIST_FILE": "LolitaWidget/Info.plist",
+        "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
+        "PRODUCT_BUNDLE_IDENTIFIER": "com.lolita.ios.widget",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SDKROOT": "iphoneos",
+        "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
+        "SWIFT_VERSION": "6.0",
+        "SKIP_INSTALL": "YES",
+        "TARGETED_DEVICE_FAMILY": "1,2",
+        "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"
+      }
+    },
+    "F501A56BC7A07F729602AB1D": {
+      "isa": "XCBuildConfiguration",
+      "name": "Release",
+      "buildSettings": {
+        "APPLICATION_EXTENSION_API_ONLY": "YES",
+        "CODE_SIGN_STYLE": "Automatic",
+        "CODE_SIGN_ENTITLEMENTS": "LolitaWidget/LolitaWidget.entitlements",
+        "DEVELOPMENT_TEAM": "M5MJ2R5MT7",
+        "CURRENT_PROJECT_VERSION": "1",
+        "MARKETING_VERSION": "1.0",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "INFOPLIST_FILE": "LolitaWidget/Info.plist",
+        "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
+        "PRODUCT_BUNDLE_IDENTIFIER": "com.lolita.ios.widget",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SDKROOT": "iphoneos",
+        "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
+        "SWIFT_VERSION": "6.0",
+        "SKIP_INSTALL": "YES",
+        "TARGETED_DEVICE_FAMILY": "1,2",
+        "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"
+      }
+    },
+    "9F88D3BC7497711042A2FE9E": {
+      "isa": "XCConfigurationList",
+      "buildConfigurations": [
+        "A0278B658675DC7C6BE83DDD",
+        "F501A56BC7A07F729602AB1D"
+      ],
+      "defaultConfigurationIsVisible": "0",
+      "defaultConfigurationName": "Release"
+    },
+    "3035E744984E19FED7D2F79D": {
+      "isa": "PBXNativeTarget",
+      "name": "LolitaWidget",
+      "productName": "LolitaWidget",
+      "productReference": "1DB99955E9C260D14FCAF587",
+      "productType": "com.apple.product-type.app-extension",
+      "buildConfigurationList": "9F88D3BC7497711042A2FE9E",
+      "buildPhases": [
+        "D7CE85154C45668A7DF6E416",
+        "F5C2877B46E56E431F8582E9",
+        "2C35F31C8EED8B71BC7DC96F"
+      ],
+      "buildRules": [],
+      "dependencies": []
+    },
+    "30A9776ECDCFA1B857564361": {
+      "isa": "PBXContainerItemProxy",
+      "containerPortal": "366F8106F2E6FA5C5333C87D",
+      "proxyType": "1",
+      "remoteGlobalIDString": "3035E744984E19FED7D2F79D",
+      "remoteInfo": "LolitaWidget"
+    },
+    "4107A89C391D0DA5D13C326F": {
+      "isa": "PBXTargetDependency",
+      "target": "3035E744984E19FED7D2F79D",
+      "targetProxy": "30A9776ECDCFA1B857564361",
+      "platformFilter": "ios"
+    },
+    "F9BD167D39363F1BB01B64C6": {
+      "isa": "PBXBuildFile",
+      "fileRef": "1DB99955E9C260D14FCAF587",
+      "settings": {
+        "ATTRIBUTES": [
+          "RemoveHeadersOnCopy"
+        ]
+      },
+      "platformFilter": "ios"
+    },
+    "828979F68B345F300A7E54D2": {
+      "isa": "PBXCopyFilesBuildPhase",
+      "buildActionMask": "2147483647",
+      "dstPath": "",
+      "dstSubfolderSpec": "13",
+      "files": [
+        "F9BD167D39363F1BB01B64C6"
+      ],
+      "name": "Embed App Extensions",
+      "runOnlyForDeploymentPostprocessing": "0"
     }
   },
   "rootObject": "366F8106F2E6FA5C5333C87D"

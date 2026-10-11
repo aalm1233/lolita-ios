@@ -7,6 +7,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "6.29.0"),
         .package(url: "https://github.com/onevcat/Kingfisher.git", from: "8.0.0"),
+        .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.19"),
     ],
     targets: [
         .executableTarget(
@@ -14,9 +15,10 @@ let package = Package(
             dependencies: [
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "Kingfisher", package: "Kingfisher"),
+                .product(name: "ZIPFoundation", package: "ZIPFoundation"),
             ],
             path: "Sources",
-            exclude: ["Info.plist"],
+            exclude: ["Info.plist", "Lolita.entitlements"],
             resources: [.process("Resources")]
         ),
         .testTarget(name: "LolitaTests", dependencies: ["lolita"], path: "Tests")

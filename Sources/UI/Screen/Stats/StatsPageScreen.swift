@@ -2,13 +2,7 @@ import SwiftUI
 import Charts
 
 private enum StatsTab: String, CaseIterable {
-    case overview = "总览", calendar = "年历", distribution = "分布", trend = "趋势", wishlist = "心愿"
-}
-
-struct StatsChartValue: Identifiable {
-    let name: String
-    let amount: Double
-    var id: String { name }
+    case overview = "总览", calendar = "付款年历", distribution = "消费分布", trend = "消费趋势", wishlist = "愿望单"
 }
 
 struct StatsPageScreen: View {
@@ -18,6 +12,11 @@ struct StatsPageScreen: View {
     @State private var selectedTab: StatsTab = .overview
     @State private var dimension = "品牌"
     @State private var showQuarters = false
+    @State private var selectedYear = String(Calendar.current.component(.year, from: Date()))
+    @State private var drilldown: StatsItemFilter?
+    @AppStorage("showTotalPrice") private var showTotalPrice = true
+    @AppStorage("statsDistributionChartStyle") private var distributionStyle: StatsDistributionChartStyle = .donut
+    @AppStorage("statsTrendChartStyle") private var trendStyle: StatsTrendChartStyle = .line
 
     private var primaryColor: Color {
         colorScheme == .dark ? skinManager.current.primaryColorDark : skinManager.current.primaryColor
@@ -25,9 +24,14 @@ struct StatsPageScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            LolitaSegmentedTabs(options: StatsTab.allCases, selection: $selectedTab, label: { $0.rawValue })
-                .padding(.horizontal, skinManager.current.spacingL)
-                .padding(.vertical, skinManager.current.spacingM)
+            HStack(spacing: 4) {
+                LolitaPageTabs(options: StatsTab.allCases, selection: $selectedTab, label: { $0.rawValue }, compact: true)
+                if selectedTab == .calendar {
+                    CalendarBackgroundPicker()
+                        .frame(width: 44, height: 44)
+                }
+            }
+            .padding(.horizontal, 12)
 
             if selectedTab == .calendar {
                 PaymentYearSummaryScreen()
@@ -42,12 +46,14 @@ struct StatsPageScreen: View {
                         case .calendar: EmptyView()
                         }
                     }
-                    .padding(.horizontal, selectedTab == .overview ? skinManager.current.spacingM : skinManager.current.spacingL)
-                    .padding(.vertical, skinManager.current.spacingL)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, skinManager.current.spacingL)
                 }
             }
         }
-        .lolitaNavBar(title: "统计")
+        .lolitaNavBar(title: "", isHidden: true)
+        .navigationDestination(item: $drilldown) { StatsFilteredItemsScreen(filter: $0) }
         .onAppear { viewModel.load() }
         .onDisappear { viewModel.stopObserving() }
     }
@@ -60,8 +66,17 @@ struct StatsPageScreen: View {
                 wishedCount: viewModel.wishedCount,
                 coordinateCount: viewModel.totalCoordinates,
                 outfitCount: viewModel.totalOutfits,
-                totalSpending: viewModel.totalSpending
+                totalSpending: viewModel.totalSpending,
+                onSelectStatus: { drilldown = .status($0) }
             )
+            NavigationLink { CoordinateListScreen() } label: {
+                HStack {
+                    Label("查看全部套装", systemImage: "square.stack")
+                    Spacer()
+                    Text("\(viewModel.totalCoordinates) 套").foregroundStyle(.secondary)
+                    Image(systemName: "chevron.right").font(.caption)
+                }.font(.subheadline).padding(12)
+            }.buttonStyle(.plain)
 
             if let item = viewModel.mostExpensive {
                 LolitaSection(title: "最贵单品") {
@@ -72,7 +87,7 @@ struct StatsPageScreen: View {
                                 .foregroundStyle(.primary)
                                 .lineLimit(2)
                             Spacer(minLength: 8)
-                            Text(statsMoney(item.totalSpending))
+                            Text(statsMoney(item.totalSpending, visible: showTotalPrice))
                                 .font(.subheadline.weight(.semibold))
                                 .monospacedDigit()
                                 .foregroundStyle(primaryColor)
@@ -92,7 +107,9 @@ struct StatsPageScreen: View {
                 } else {
                     let rows = Array(viewModel.topBrands.prefix(5))
                     ForEach(Array(rows.enumerated()), id: \.element.0) { index, row in
-                        StatsRankingRow(rank: index + 1, name: row.0, count: row.1, maximumCount: rows.map(\.1).max() ?? 1)
+                        filterLink(.attribute("品牌", row.0, ownedOnly: true)) {
+                            StatsRankingRow(rank: index + 1, name: row.0, count: row.1, maximumCount: rows.map(\.1).max() ?? 1)
+                        }
                     }
                 }
             }
@@ -102,7 +119,9 @@ struct StatsPageScreen: View {
                     StatsEmptyState(title: "暂无风格记录", subtitle: "为服饰选择风格，查看衣橱的搭配偏好。", systemImage: "sparkles")
                 } else {
                     ForEach(viewModel.styleDistribution, id: \.0) { name, count in
-                        StatsRankingRow(name: name, count: count, maximumCount: viewModel.styleDistribution.map(\.1).max() ?? 1)
+                        filterLink(.attribute("风格", name, ownedOnly: false)) {
+                            StatsRankingRow(name: name, count: count, maximumCount: viewModel.styleDistribution.map(\.1).max() ?? 1)
+                        }
                     }
                 }
             }
@@ -122,34 +141,73 @@ struct StatsPageScreen: View {
     private var distribution: some View {
         Group {
             LolitaSegmentedTabs(options: ["品牌", "分类", "风格", "季节", "月份"], selection: $dimension, label: { $0 })
+            LolitaSegmentedTabs(options: StatsDistributionChartStyle.allCases, selection: $distributionStyle, label: { $0.rawValue })
             if buckets.isEmpty {
                 LolitaCard {
                     StatsEmptyState(title: "暂无消费记录", subtitle: "记录付款后，在这里查看消费分布。")
                 }
             } else {
-                StatsDonutCard(title: "\(dimension)消费分布", rows: buckets, centerLabel: "合计", centerValue: statsMoney(buckets.reduce(0) { $0 + $1.amount }))
+                let chartRows = dimension == "月份" ? buckets : StatsAggregates.groupedDistribution(buckets)
+                StatsDonutCard(title: "\(dimension)消费分布", rows: chartRows, centerLabel: "合计",
+                    centerValue: statsMoney(buckets.reduce(0) { $0 + $1.amount }, visible: showTotalPrice),
+                    style: distributionStyle, onSelect: { name in
+                        guard let row = chartRows.first(where: { $0.name == name }) else { return }
+                        drilldown = distributionFilter(row)
+                    })
+                if dimension == "季节" {
+                    Text("多季节服饰会分别计入所选季节，累计金额包含重复归类。")
+                        .font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
+                }
                 LolitaSection(title: "\(dimension)消费明细") {
-                    ForEach(Array(buckets.enumerated()), id: \.element.id) { index, row in
-                        StatsAmountRow(name: row.name, amount: row.amount, color: statsChartColor(index: index, skin: skinManager.current, isDark: colorScheme == .dark))
+                    ForEach(Array(chartRows.enumerated()), id: \.element.id) { index, row in
+                        filterLink(distributionFilter(row)) {
+                            StatsAmountRow(name: row.name, amount: row.amount,
+                                color: statsChartColor(index: index, skin: skinManager.current, isDark: colorScheme == .dark),
+                                percentage: buckets.reduce(0) { $0 + $1.amount } > 0 ? row.amount / buckets.reduce(0) { $0 + $1.amount } : 0)
+                        }
                     }
                 }
             }
         }
     }
 
+    private func distributionFilter(_ row: StatsChartValue) -> StatsItemFilter {
+        if dimension == "月份" { return .paymentPeriod(row.name) }
+        if !row.members.isEmpty { return .attributes(dimension, row.members, ownedOnly: true) }
+        return .attribute(dimension, row.name, ownedOnly: true)
+    }
+
     private var trend: some View {
-        let rows = showQuarters ? viewModel.quarterlySpending : viewModel.monthlySpending
+        let rows = viewModel.trendSpending(year: selectedYear, quarters: showQuarters)
         return Group {
+            HStack {
+                Text("消费年份").font(.subheadline).foregroundStyle(.secondary)
+                Spacer()
+                Picker("消费年份", selection: $selectedYear) {
+                    Text("全部年份").tag("全部年份")
+                    ForEach(viewModel.spendingYears, id: \.self) { Text("\($0) 年").tag($0) }
+                }.labelsHidden()
+            }
             LolitaSegmentedTabs(options: [false, true], selection: $showQuarters, label: { $0 ? "按季度" : "按月份" })
+            LolitaSegmentedTabs(options: StatsTrendChartStyle.allCases, selection: $trendStyle, label: { $0.rawValue })
+            HStack {
+                Text(selectedYear == "全部年份" ? "历史已付合计" : "\(selectedYear) 年已付合计").font(.subheadline).foregroundStyle(.secondary)
+                Spacer()
+                Text(statsMoney(rows.reduce(0) { $0 + $1.totalSpending }, visible: showTotalPrice)).font(.headline).foregroundStyle(primaryColor).monospacedDigit()
+            }.padding(.vertical, 6)
             if rows.isEmpty {
                 LolitaCard {
                     StatsEmptyState(title: "暂无已付记录", subtitle: "完成付款后，可以查看消费随时间的变化。", systemImage: "chart.xyaxis.line")
                 }
             } else {
-                StatsTrendCard(title: showQuarters ? "季度消费趋势" : "月度消费趋势", rows: rows.map { StatsChartValue(name: $0.yearMonth, amount: $0.totalSpending) })
+                StatsTrendCard(title: showQuarters ? "季度消费趋势" : "月度消费趋势",
+                    rows: rows.map { StatsChartValue(name: $0.yearMonth, amount: $0.totalSpending) }, style: trendStyle,
+                    onSelect: { drilldown = .paymentPeriod($0) })
                 LolitaSection(title: showQuarters ? "季度消费" : "月度消费") {
                     ForEach(rows, id: \.yearMonth) { row in
-                        StatsAmountRow(name: row.yearMonth, amount: row.totalSpending)
+                        filterLink(.paymentPeriod(row.yearMonth)) {
+                            StatsAmountRow(name: row.yearMonth, amount: row.totalSpending)
+                        }
                     }
                 }
             }
@@ -158,19 +216,36 @@ struct StatsPageScreen: View {
 
     private var wishlist: some View {
         Group {
-            LolitaCard(variant: .featured) {
-                VStack(alignment: .leading, spacing: skinManager.current.spacingM) {
+            LolitaCard(variant: .compact) {
+                HStack(spacing: 12) {
                     Label("愿望单预算", systemImage: "heart")
-                        .font(.subheadline)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text(statsMoney(viewModel.wishlistBudget))
-                        .font(.system(size: 30, weight: .semibold, design: .rounded))
+                    Spacer(minLength: 4)
+                    Text(statsMoney(viewModel.wishlistBudget, visible: showTotalPrice))
+                        .font(.system(size: 28, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(primaryColor)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
+                        .layoutPriority(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 4)
+            }
+            LolitaCard {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("已实现 (\(viewModel.ownedCount)/\(viewModel.ownedCount + viewModel.wishedCount))")
+                            .font(.subheadline.weight(.medium))
+                        Spacer()
+                        Text(viewModel.wishlistFulfillmentRate, format: .percent.precision(.fractionLength(1)))
+                            .font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(primaryColor)
+                    }
+                    ProgressView(value: viewModel.wishlistFulfillmentRate).tint(primaryColor)
+                    Text("已拥有件数 ÷（已拥有 + 心愿），待尾款不计入实现率。")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
             if viewModel.wishlistPriorityStats.isEmpty {
                 LolitaCard {
@@ -181,11 +256,15 @@ struct StatsPageScreen: View {
                     title: "心愿优先级",
                     rows: viewModel.wishlistPriorityStats.map { StatsChartValue(name: priorityName($0.priority), amount: Double($0.itemCount)) },
                     centerLabel: "心愿件数",
-                    centerValue: "\(viewModel.wishlistPriorityStats.reduce(0) { $0 + $1.itemCount })"
+                    centerValue: "\(viewModel.wishlistPriorityStats.reduce(0) { $0 + $1.itemCount })",
+                    valuesAreMoney: false, onSelect: { name in
+                        guard let priority = viewModel.wishlistPriorityStats.first(where: { priorityName($0.priority) == name }) else { return }
+                        drilldown = .priority(ItemPriority(rawValue: priority.priority) ?? .medium)
+                    }
                 )
                 LolitaSection(title: "优先级明细") {
                     ForEach(Array(viewModel.wishlistPriorityStats.enumerated()), id: \.element.priority) { index, row in
-                        HStack(spacing: skinManager.current.spacingM) {
+                        filterLink(.priority(ItemPriority(rawValue: row.priority) ?? .medium)) { HStack(spacing: skinManager.current.spacingM) {
                             Circle()
                                 .fill(statsChartColor(index: index, skin: skinManager.current, isDark: colorScheme == .dark))
                                 .frame(width: 8, height: 8)
@@ -194,15 +273,25 @@ struct StatsPageScreen: View {
                                 Text("\(row.itemCount) 件心愿").font(.caption).foregroundStyle(.secondary)
                             }
                             Spacer(minLength: 8)
-                            Text(statsMoney(row.totalBudget))
+                            Text(statsMoney(row.totalBudget, visible: showTotalPrice))
                                 .font(.subheadline.weight(.medium))
                                 .monospacedDigit()
                         }
                         .padding(.vertical, skinManager.current.spacingS)
+                        }
                     }
                 }
             }
         }
+    }
+
+    private func filterLink<Content: View>(_ filter: StatsItemFilter, @ViewBuilder content: () -> Content) -> some View {
+        Button { drilldown = filter } label: {
+            HStack(spacing: 10) {
+                content().frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.right").font(.caption.weight(.medium)).foregroundStyle(.tertiary)
+            }.contentShape(Rectangle())
+        }.buttonStyle(.plain)
     }
 
     private func priorityName(_ value: String) -> String {
@@ -215,6 +304,7 @@ struct StatsPageScreen: View {
 }
 
 struct StatsSummaryView: View {
+    @AppStorage("showTotalPrice") private var showTotalPrice = true
     @EnvironmentObject var skinManager: SkinManager
     @Environment(\.colorScheme) private var colorScheme
     let ownedCount: Int
@@ -223,6 +313,7 @@ struct StatsSummaryView: View {
     let coordinateCount: Int
     let outfitCount: Int
     let totalSpending: Double
+    var onSelectStatus: ((ItemStatus) -> Void)? = nil
 
     private var primaryColor: Color {
         colorScheme == .dark ? skinManager.current.primaryColorDark : skinManager.current.primaryColor
@@ -230,33 +321,83 @@ struct StatsSummaryView: View {
 
     var body: some View {
         VStack(spacing: skinManager.current.spacingM + skinManager.current.spacingS) {
-            LolitaCard(variant: .featured) {
-                VStack(alignment: .leading, spacing: skinManager.current.spacingM) {
-                    HStack {
+            LolitaCard(variant: .compact) {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Label("总消费", systemImage: "yensign.circle")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        Spacer()
                         Label("\(outfitCount) 次穿搭", systemImage: "calendar")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    Text(statsMoney(totalSpending))
-                        .font(.system(size: 32, weight: .semibold, design: .rounded))
+                    Spacer(minLength: 4)
+                    Text(statsMoney(totalSpending, visible: showTotalPrice))
+                        .font(.system(size: 28, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(primaryColor)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
+                        .layoutPriority(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 4)
             }
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: skinManager.current.spacingM + skinManager.current.spacingS) {
-                StatCard(title: "已拥有", value: "\(ownedCount)", color: primaryColor, systemImage: "hanger")
-                StatCard(title: "待尾款", value: "\(pendingCount)", color: primaryColor, systemImage: "clock")
-                StatCard(title: "心愿", value: "\(wishedCount)", color: primaryColor, systemImage: "heart")
+                statusCard(.owned, title: "已拥有", count: ownedCount, icon: "hanger")
+                statusCard(.pendingBalance, title: "待尾款", count: pendingCount, icon: "clock")
+                statusCard(.wished, title: "心愿", count: wishedCount, icon: "heart")
                 StatCard(title: "套装", value: "\(coordinateCount)", color: primaryColor, systemImage: "square.stack")
             }
         }
+    }
+
+    @ViewBuilder private func statusCard(_ status: ItemStatus, title: String, count: Int, icon: String) -> some View {
+        if let onSelectStatus {
+            Button { onSelectStatus(status) } label: {
+                StatCard(title: title, value: "\(count)", color: primaryColor, systemImage: icon)
+            }.buttonStyle(.plain)
+        } else {
+            StatCard(title: title, value: "\(count)", color: primaryColor, systemImage: icon)
+        }
+    }
+}
+
+struct StatsFilteredItemsScreen: View {
+    @AppStorage("showTotalPrice") private var showTotalPrice = true
+    let filter: StatsItemFilter
+    @StateObject private var viewModel = StatsPageViewModel()
+    @State private var search = ""
+
+    private var items: [Item] {
+        let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        return viewModel.filteredItems(filter).filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                LolitaCollectionHeader(title: "筛选结果", count: items.count)
+                if items.isEmpty {
+                    LolitaEmptyState(title: search.isEmpty ? "暂无符合条件的服饰" : "未找到相关服饰", message: "更换条件后再试试。", systemImage: "magnifyingglass")
+                } else {
+                    LazyVGrid(columns: [GridItem(.flexible(), alignment: .top), GridItem(.flexible(), alignment: .top)], spacing: 12) {
+                        ForEach(items, id: \.id) { item in
+                            NavigationLink { ItemDetailScreen(itemId: item.id) } label: {
+                                ItemCollectionCard(item: item, brandName: viewModel.brands.first { $0.id == item.brandId }?.name,
+                                                   brandLogoPath: viewModel.brands.first { $0.id == item.brandId }?.logoUrl,
+                                                   categoryName: viewModel.categories.first { $0.id == item.categoryId }?.name,
+                                                   price: showTotalPrice ? viewModel.pricesByItem[item.id] : nil)
+                            }.buttonStyle(.plain)
+                        }
+                    }
+                }
+            }.padding(16)
+        }
+        .searchable(text: $search, prompt: "搜索服饰")
+        .lolitaNavBar(title: filter.title, showBack: true)
+        .onAppear { viewModel.load() }
+        .onDisappear { viewModel.stopObserving() }
     }
 }
 
@@ -339,10 +480,12 @@ struct StatsRankingRow: View {
 }
 
 struct StatsAmountRow: View {
+    @AppStorage("showTotalPrice") private var showTotalPrice = true
     @EnvironmentObject var skinManager: SkinManager
     let name: String
     let amount: Double
     var color: Color? = nil
+    var percentage: Double? = nil
 
     var body: some View {
         HStack(spacing: skinManager.current.spacingM) {
@@ -351,12 +494,16 @@ struct StatsAmountRow: View {
             }
             Text(name).font(.subheadline).lineLimit(2)
             Spacer(minLength: 8)
-            Text(statsMoney(amount))
+            Text(statsMoney(amount, visible: showTotalPrice))
                 .font(.subheadline.weight(.medium))
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+            if let percentage {
+                Text(percentage, format: .percent.precision(.fractionLength(1)))
+                    .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+            }
         }
         .padding(.vertical, skinManager.current.spacingS)
     }
@@ -365,14 +512,18 @@ struct StatsAmountRow: View {
 struct StatsDonutCard: View {
     @EnvironmentObject var skinManager: SkinManager
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("showTotalPrice") private var showTotalPrice = true
     let title: String
     let rows: [StatsChartValue]
     let centerLabel: String
     let centerValue: String
+    var style: StatsDistributionChartStyle = .donut
+    var valuesAreMoney = true
+    var onSelect: ((String) -> Void)? = nil
 
-    private var positiveRows: [StatsChartValue] {
-        rows.filter { $0.amount > 0 }
-    }
+    private var positiveRows: [StatsChartValue] { rows.filter { $0.amount.isFinite && $0.amount > 0 } }
+    private var displayedCenter: String { valuesAreMoney && !showTotalPrice ? "¥***" : centerValue }
+    private var total: Double { positiveRows.reduce(0) { $0 + $1.amount } }
 
     var body: some View {
         LolitaCard {
@@ -380,54 +531,111 @@ struct StatsDonutCard: View {
                 Text(title).font(.subheadline.weight(.semibold))
                 if positiveRows.isEmpty {
                     VStack(spacing: skinManager.current.spacingM) {
-                        Image(systemName: "chart.pie")
-                            .font(.title2)
-                            .foregroundStyle(.tertiary)
-                        Text("暂无金额数据")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                        Image(systemName: "chart.pie").font(.title2).foregroundStyle(.tertiary)
+                        Text(valuesAreMoney ? "暂无金额数据" : "暂无件数数据")
+                            .font(.subheadline).foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, skinManager.current.spacingXL)
                 } else {
                     Chart(positiveRows) { row in
-                        SectorMark(angle: .value("数值", row.amount), innerRadius: .ratio(0.72), angularInset: 2)
-                            .cornerRadius(3)
-                            .foregroundStyle(by: .value("维度", row.name))
+                        if style == .bar {
+                            BarMark(x: .value(valuesAreMoney && !showTotalPrice ? "占比%" : "数值", plottedAmount(row.amount)), y: .value("维度", row.name))
+                                .foregroundStyle(by: .value("维度", row.name))
+                                .cornerRadius(3)
+                                .accessibilityLabel(row.name)
+                                .accessibilityValue(accessibleValue(row))
+                        } else {
+                            SectorMark(angle: .value(valuesAreMoney && !showTotalPrice ? "占比%" : "数值", plottedAmount(row.amount)), innerRadius: .ratio(style == .donut ? 0.72 : 0), angularInset: 2)
+                                .cornerRadius(3)
+                                .foregroundStyle(by: .value("维度", row.name))
+                                .accessibilityLabel(row.name)
+                                .accessibilityValue(accessibleValue(row))
+                        }
                     }
                     .chartForegroundStyleScale(domain: rows.map(\.name), range: rows.indices.map { statsChartColor(index: $0, skin: skinManager.current, isDark: colorScheme == .dark) })
                     .chartLegend(.hidden)
+                    .chartXAxis {
+                        if style == .bar {
+                            AxisMarks(values: .automatic(desiredCount: 4)) { _ in
+                                AxisGridLine()
+                                if !valuesAreMoney || showTotalPrice { AxisValueLabel().font(.caption2) }
+                            }
+                        }
+                    }
+                    .chartYAxis {
+                        if style == .bar { AxisMarks(position: .leading) { AxisValueLabel().font(.caption2) } }
+                    }
                     .chartBackground { proxy in
                         GeometryReader { geometry in
-                            if let plotFrame = proxy.plotFrame {
+                            if style == .donut, let plotFrame = proxy.plotFrame {
                                 let frame = geometry[plotFrame]
                                 VStack(spacing: 4) {
                                     Text(centerLabel).font(.caption).foregroundStyle(.secondary)
-                                    Text(centerValue)
-                                        .font(.title3.weight(.semibold))
-                                        .monospacedDigit()
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.6)
+                                    Text(displayedCenter).font(.title3.weight(.semibold)).monospacedDigit()
+                                        .lineLimit(1).minimumScaleFactor(0.6)
                                 }
                                 .frame(width: min(frame.width, frame.height) * 0.64, height: frame.height)
                                 .position(x: frame.midX, y: frame.midY)
                             }
                         }
                     }
-                    .frame(height: 210)
-                    .accessibilityLabel("\(title)，\(centerLabel)\(centerValue)")
+                    .chartOverlay { proxy in
+                        GeometryReader { geometry in
+                            Color.clear.contentShape(Rectangle()).gesture(SpatialTapGesture().onEnded { tap in
+                                guard onSelect != nil, let plotFrame = proxy.plotFrame else { return }
+                                let frame = geometry[plotFrame]
+                                guard frame.contains(tap.location) else { return }
+                                if style == .bar {
+                                    let y = tap.location.y - frame.minY
+                                    let name = positiveRows.compactMap { row -> (String, CGFloat)? in
+                                        proxy.position(forY: row.name).map { (row.name, abs($0 - y)) }
+                                    }.min { $0.1 < $1.1 }?.0
+                                    if let name { onSelect?(name) }
+                                } else {
+                                    let dx = tap.location.x - frame.midX
+                                    let dy = tap.location.y - frame.midY
+                                    let radius = hypot(dx, dy)
+                                    let outerRadius = min(frame.width, frame.height) / 2
+                                    guard radius <= outerRadius, style != .donut || radius >= outerRadius * 0.72 else { return }
+                                    var angle = atan2(dx, -dy)
+                                    if angle < 0 { angle += 2 * .pi }
+                                    if let name = StatsChartSelection.sector(at: angle / (2 * .pi), rows: positiveRows) { onSelect?(name) }
+                                }
+                            })
+                        }
+                    }
+                    .frame(height: style == .bar ? max(210, CGFloat(positiveRows.count) * 30) : 210)
+                    .accessibilityLabel("\(title)，\(centerLabel)\(displayedCenter)")
+                    if onSelect != nil {
+                        Text(style == .bar ? "点击柱状条查看服饰明细" : "点击图表切片查看服饰明细")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    private func accessibleValue(_ row: StatsChartValue) -> String {
+        let value = valuesAreMoney ? statsMoney(row.amount, visible: showTotalPrice) : String(format: "%.0f 件", row.amount)
+        return "\(value)，\(String(format: "%.1f%%", row.amount / total * 100))"
+    }
+    private func plottedAmount(_ amount: Double) -> Double {
+        StatsDisplay.chartAmount(amount, total: total, visible: !valuesAreMoney || showTotalPrice)
     }
 }
 
 struct StatsTrendCard: View {
     @EnvironmentObject var skinManager: SkinManager
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("showTotalPrice") private var showTotalPrice = true
     let title: String
     let rows: [StatsChartValue]
+    var style: StatsTrendChartStyle = .line
+    var onSelect: ((String) -> Void)? = nil
+    private var total: Double { rows.reduce(0) { $0 + $1.amount } }
+    private func plottedAmount(_ amount: Double) -> Double { StatsDisplay.chartAmount(amount, total: total, visible: showTotalPrice) }
 
     private var primaryColor: Color {
         colorScheme == .dark ? skinManager.current.primaryColorDark : skinManager.current.primaryColor
@@ -446,31 +654,51 @@ struct StatsTrendCard: View {
             VStack(alignment: .leading, spacing: skinManager.current.spacingL) {
                 Text(title).font(.subheadline.weight(.semibold))
                 Chart(rows) { row in
-                    AreaMark(x: .value("时间", row.name), y: .value("金额", row.amount))
-                        .foregroundStyle(LinearGradient(colors: [primaryColor.opacity(0.20), primaryColor.opacity(0.02)], startPoint: .top, endPoint: .bottom))
-                    LineMark(x: .value("时间", row.name), y: .value("金额", row.amount))
-                        .foregroundStyle(primaryColor)
-                        .lineStyle(StrokeStyle(lineWidth: 2))
-                    PointMark(x: .value("时间", row.name), y: .value("金额", row.amount))
-                        .foregroundStyle(primaryColor)
-                        .symbolSize(24)
+                    if style == .bar {
+                        BarMark(x: .value("时间", row.name), y: .value(showTotalPrice ? "金额" : "占比%", plottedAmount(row.amount)))
+                            .foregroundStyle(primaryColor).cornerRadius(3)
+                            .accessibilityLabel(row.name).accessibilityValue(statsMoney(row.amount, visible: showTotalPrice))
+                    } else {
+                        AreaMark(x: .value("时间", row.name), y: .value(showTotalPrice ? "金额" : "占比%", plottedAmount(row.amount)))
+                            .foregroundStyle(LinearGradient(colors: [primaryColor.opacity(0.20), primaryColor.opacity(0.02)], startPoint: .top, endPoint: .bottom))
+                            .accessibilityHidden(true)
+                        LineMark(x: .value("时间", row.name), y: .value(showTotalPrice ? "金额" : "占比%", plottedAmount(row.amount)))
+                            .foregroundStyle(primaryColor).lineStyle(StrokeStyle(lineWidth: 2))
+                            .accessibilityHidden(true)
+                        PointMark(x: .value("时间", row.name), y: .value(showTotalPrice ? "金额" : "占比%", plottedAmount(row.amount)))
+                            .foregroundStyle(primaryColor).symbolSize(24)
+                            .accessibilityLabel(row.name).accessibilityValue(statsMoney(row.amount, visible: showTotalPrice))
+                    }
                 }
                 .chartXAxis {
                     AxisMarks(values: axisLabels) { value in
                         AxisValueLabel {
-                            if let label = value.as(String.self) {
-                                Text(label.count == 7 ? String(label.suffix(5)) : label).font(.caption2)
-                            }
+                            if let label = value.as(String.self) { Text(label.count == 7 ? String(label.suffix(5)) : label).font(.caption2) }
                         }
                     }
                 }
                 .chartYAxis {
                     AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { _ in
                         AxisGridLine().foregroundStyle(primaryColor.opacity(0.10))
-                        AxisValueLabel().font(.caption2)
+                        if showTotalPrice { AxisValueLabel().font(.caption2) }
+                    }
+                }
+                .chartOverlay { proxy in
+                    GeometryReader { geometry in
+                        Color.clear.contentShape(Rectangle()).gesture(SpatialTapGesture().onEnded { tap in
+                            guard onSelect != nil, let plotFrame = proxy.plotFrame else { return }
+                            let frame = geometry[plotFrame]
+                            guard frame.contains(tap.location) else { return }
+                            let x = tap.location.x - frame.minX
+                            let name = rows.compactMap { row -> (String, CGFloat)? in
+                                proxy.position(forX: row.name).map { (row.name, abs($0 - x)) }
+                            }.min { $0.1 < $1.1 }?.0
+                            if let name { onSelect?(name) }
+                        })
                     }
                 }
                 .frame(height: 220)
+                if onSelect != nil { Text("点击图表查看对应期间已付服饰").font(.caption).foregroundStyle(.secondary) }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -529,6 +757,12 @@ struct PaymentYearSummaryScreen: View {
                 }
                 .buttonStyle(.plain)
 
+                LolitaSection(title: "全年付款") {
+                    StatsAmountRow(name: "已付", amount: payments.filter(\.isPaid).reduce(0) { $0 + $1.amount }, color: .green)
+                    StatsAmountRow(name: "待付", amount: payments.filter { !$0.isPaid }.reduce(0) { $0 + $1.amount }, color: .orange)
+                    StatsAmountRow(name: "逾期", amount: payments.filter { !$0.isPaid && $0.dueDate < Int64(Date().timeIntervalSince1970 * 1000) }.reduce(0) { $0 + $1.amount }, color: .red)
+                }
+
                 LazyVGrid(columns: monthColumns, spacing: skinManager.current.spacingM + skinManager.current.spacingS) {
                     ForEach(1...12, id: \.self) { month in
                         let values = payments.filter { Calendar.current.component(.month, from: Date(timeIntervalSince1970: Double($0.dueDate) / 1000)) == month }
@@ -544,8 +778,11 @@ struct PaymentYearSummaryScreen: View {
                     }
                 }
             }
-            .padding(skinManager.current.spacingL)
+            .padding(.horizontal, skinManager.current.spacingL)
+            .padding(.top, 8)
+            .padding(.bottom, skinManager.current.spacingL)
         }
+        .background { CalendarBackground() }
         .task(id: year) {
             payments = []
             let start = Int64(date(month: 1).timeIntervalSince1970 * 1000)
@@ -563,6 +800,7 @@ struct PaymentYearSummaryScreen: View {
 }
 
 struct PaymentMonthSummaryCard: View {
+    @AppStorage("showTotalPrice") private var showTotalPrice = true
     @EnvironmentObject var skinManager: SkinManager
     @Environment(\.colorScheme) private var colorScheme
     let month: Int
@@ -590,7 +828,7 @@ struct PaymentMonthSummaryCard: View {
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text("待付").font(.caption2).foregroundStyle(.secondary)
-                    Text(statsMoney(pendingAmount))
+                    Text(statsMoney(pendingAmount, visible: showTotalPrice))
                         .font(.title3.weight(.semibold))
                         .monospacedDigit()
                         .foregroundStyle(pendingAmount > 0 ? primaryColor : .secondary)
@@ -604,7 +842,7 @@ struct PaymentMonthSummaryCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(month) 月，\(paymentCount) 笔付款，待付\(statsMoney(pendingAmount))")
+        .accessibilityLabel("\(month) 月，\(paymentCount) 笔付款，待付\(statsMoney(pendingAmount, visible: showTotalPrice))")
     }
 
     private var monthTitle: some View {
@@ -631,8 +869,8 @@ struct PaymentMonthSummaryCard: View {
     }
 }
 
-private func statsMoney(_ amount: Double) -> String {
-    String(format: "¥%.2f", amount)
+private func statsMoney(_ amount: Double, visible: Bool) -> String {
+    StatsDisplay.money(amount, visible: visible)
 }
 
 private func statsChartColor(index: Int, skin: any SkinProtocol, isDark: Bool) -> Color {

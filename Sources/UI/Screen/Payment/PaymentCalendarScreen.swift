@@ -5,6 +5,8 @@ struct PaymentCalendarScreen: View {
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel = PaymentCalendarViewModel()
     @State private var selectedDate: Date?
+    @State private var mutationId: Int64?
+    @State private var paymentError: String?
 
     private var accent: Color {
         colorScheme == .dark ? skinManager.current.primaryColorDark : skinManager.current.primaryColor
@@ -39,7 +41,12 @@ struct PaymentCalendarScreen: View {
             }
             .padding(16)
         }
+        .background { CalendarBackground() }
         .lolitaNavBar(title: "付款日历", showBack: true)
+        .toolbar { ToolbarItem(placement: .primaryAction) { CalendarBackgroundPicker() } }
+        .alert("付款操作失败", isPresented: Binding(get: { paymentError != nil }, set: { if !$0 { paymentError = nil } })) {
+            Button("确定") { paymentError = nil }
+        } message: { Text(paymentError ?? "") }
         .onAppear { selectedDate = nil; viewModel.load() }
         .onChange(of: viewModel.currentMonth) { _, _ in selectedDate = nil }
         .onDisappear { viewModel.stopObserving() }
@@ -68,8 +75,8 @@ struct PaymentCalendarScreen: View {
 
     private var summaryBar: some View {
         HStack(spacing: 12) {
-            summaryCard("待付款", amount: viewModel.totalUnpaid, symbol: "creditcard", color: accent)
-            summaryCard("已逾期", amount: viewModel.overdueAmount, symbol: "exclamationmark.triangle", color: .red)
+            summaryCard("全部待付", amount: viewModel.totalUnpaid, symbol: "creditcard", color: accent)
+            summaryCard("全部逾期", amount: viewModel.overdueAmount, symbol: "exclamationmark.triangle", color: .red)
         }
     }
 
@@ -139,12 +146,14 @@ struct PaymentCalendarScreen: View {
                     let overdue = payment.dueDate < Int64(Date().timeIntervalSince1970 * 1000)
                     let status = payment.isPaid ? "已付" : (overdue ? "逾期" : "待付")
                     let color: Color = payment.isPaid ? .green : (overdue ? .red : .orange)
-                    HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(alignment: .top, spacing: 12) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(payment.itemName)
+                            NavigationLink { ItemDetailScreen(itemId: payment.itemId) } label: { Text(payment.itemName)
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(.primary)
                                 .fixedSize(horizontal: false, vertical: true)
+                            }.buttonStyle(.plain)
                             LolitaBadge(text: status, color: color)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -154,6 +163,26 @@ struct PaymentCalendarScreen: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)
                             .layoutPriority(1)
+                        }
+                        HStack(spacing: 16) {
+                            NavigationLink { PaymentEditScreen(priceId: payment.priceId, paymentId: payment.paymentId) } label: {
+                                Label("编辑付款", systemImage: "pencil")
+                            }
+                            Spacer()
+                            if !payment.isPaid {
+                                Button {
+                                    mutationId = payment.paymentId
+                                    Task {
+                                        defer { mutationId = nil }
+                                        do { try await viewModel.markPaid(payment) }
+                                        catch { paymentError = userFacingError(error) }
+                                    }
+                                } label: {
+                                    if mutationId == payment.paymentId { ProgressView() }
+                                    else { Label("标记已付", systemImage: "checkmark.circle") }
+                                }.disabled(mutationId != nil)
+                            }
+                        }.font(.caption.weight(.medium)).buttonStyle(.plain).foregroundStyle(accent)
                     }
                     .padding(.vertical, 4)
                     if payment.paymentId != payments.last?.paymentId { Divider() }

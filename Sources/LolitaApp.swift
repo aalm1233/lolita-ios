@@ -6,6 +6,10 @@ struct LolitaApp: App {
     @StateObject private var skinManager = SkinManager()
     @State private var isReady = false
     @State private var startupError: String?
+    @Environment(\.scenePhase) private var scenePhase
+    #if os(iOS)
+    @UIApplicationDelegateAdaptor(LolitaNotificationDelegate.self) private var notificationDelegate
+    #endif
 
     var body: some Scene {
         WindowGroup {
@@ -23,7 +27,14 @@ struct LolitaApp: App {
                 }
             }
             .environmentObject(skinManager)
+            .onOpenURL { AppRouteState.shared.open($0) }
             .task { await initialize() }
+            .onChange(of: scenePhase) { _, phase in
+                if isReady, phase == .active {
+                    OutfitActivityCoordinator.shared.refresh()
+                    Task { _ = await AppModule.shared.paymentReminderService.synchronize() }
+                }
+            }
         }
     }
 
@@ -34,6 +45,8 @@ struct LolitaApp: App {
         do {
             if AppModule.shared.db == nil { try AppModule.shared.setupDatabase() }
             try await AppModule.shared.seedIfNeeded()
+            OutfitActivityCoordinator.shared.start(db: AppModule.shared.db.dbQueue)
+            AppModule.shared.paymentReminderService.start()
             isReady = true
         } catch {
             startupError = error.localizedDescription

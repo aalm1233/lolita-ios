@@ -73,6 +73,8 @@ final class AppModule: @unchecked Sendable {
         PaymentRepository(db: db.dbQueue)
     }()
 
+    @MainActor lazy var paymentReminderService = PaymentReminderService(repository: paymentRepository)
+
     // MARK: - Preset seeding
 
     private func seedPresetData() async throws {

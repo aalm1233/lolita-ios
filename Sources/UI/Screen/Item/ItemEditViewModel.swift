@@ -150,6 +150,7 @@ final class ItemEditViewModel: ObservableObject {
             item.id = existing.id
             item.createdAt = existing.createdAt
             item.coordinateOrder = existing.coordinateOrder
+            item.importOrderKeys = existing.importOrderKeys
         }
 
         if itemId != nil { try await itemRepo.update(item) }

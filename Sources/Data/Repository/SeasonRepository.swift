@@ -26,6 +26,7 @@ final class SeasonRepository: Sendable {
     func insert(_ season: Season) async throws -> Season {
         try await db.write { db in
             var s = season
+            s.name = try Self.validatedName(s.name)
             try s.insert(db)
             return s
         }
@@ -35,18 +36,38 @@ final class SeasonRepository: Sendable {
         try await db.write { db in
             let old = try Season.fetchOne(db, key: season.id)
             var s = season
-            s.name = try InputValidation.name(s.name)
+            s.name = try Self.validatedName(s.name)
             try s.update(db)
             if let old, old.name != s.name {
-                try db.execute(sql: "UPDATE items SET season = ?, updatedAt = ? WHERE season = ?", arguments: [s.name, Int64(Date().timeIntervalSince1970 * 1000), old.name])
+                try Self.rewriteItemReferences(in: db, oldName: old.name, newName: s.name)
             }
         }
     }
 
     func delete(_ season: Season) async throws {
         try await db.write { db in
-            try db.execute(sql: "UPDATE items SET season = NULL, updatedAt = ? WHERE season = ?", arguments: [Int64(Date().timeIntervalSince1970 * 1000), season.name])
+            try Self.rewriteItemReferences(in: db, oldName: season.name, newName: nil)
             try season.delete(db)
+        }
+    }
+
+    static func validatedName(_ text: String) throws -> String {
+        let name = try InputValidation.name(text)
+        guard !name.contains(",") else { throw ValidationError.invalid("一个季节名称不能包含逗号，请分别添加") }
+        return name
+    }
+
+    /// Multi-season values are comma-separated tokens, not a single foreign key.
+    static func rewriteItemReferences(in db: Database, oldName: String, newName: String?) throws {
+        let timestamp = Int64(Date().timeIntervalSince1970 * 1000)
+        for var item in try Item.fetchAll(db) {
+            let tokens = item.season?.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty } ?? []
+            guard tokens.contains(oldName) else { continue }
+            var seen = Set<String>()
+            let updated = tokens.compactMap { $0 == oldName ? newName : $0 }.filter { seen.insert($0).inserted }
+            item.season = updated.isEmpty ? nil : updated.joined(separator: ",")
+            item.updatedAt = timestamp
+            try item.update(db)
         }
     }
 }

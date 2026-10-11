@@ -1,25 +1,232 @@
 import SwiftUI
 @preconcurrency import GRDB
+#if os(iOS)
+import PhotosUI
+#endif
 
 struct SettingsScreen: View {
+    @EnvironmentObject private var skinManager: SkinManager
+    @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("profileNickname") private var nickname = ""
+    @AppStorage("profileAvatarPath") private var avatarPath = ""
+    @AppStorage("showTotalPrice") private var showTotalPrice = true
+    @State private var items: [Item] = []
+    @State private var coordinates: [Coordinate] = []
+    @State private var totalSpent = 0.0
+    @State private var showNicknameEditor = false
+    @State private var nicknameDraft = ""
+    @State private var error: String?
+    #if os(iOS)
+    @State private var pickedAvatar: PhotosPickerItem?
+    @State private var avatarTask: Task<Void, Never>?
+    @State private var avatarImportId: UUID?
+    #endif
+
+    private var accent: Color { colorScheme == .dark ? skinManager.current.accentColorDark : skinManager.current.accentColor }
+
     var body: some View {
-        List {
-            Section("衣橱资料") {
-                NavigationLink { BrandManageScreen() } label: { Label("品牌管理", systemImage: "tag") }
-                NavigationLink { CategoryManageScreen() } label: { Label("分类管理", systemImage: "square.grid.2x2") }
-                NavigationLink { StyleManageScreen() } label: { Label("风格管理", systemImage: "sparkles") }
-                NavigationLink { SeasonManageScreen() } label: { Label("季节管理", systemImage: "leaf") }
-                NavigationLink { LocationManageScreen() } label: { Label("位置管理", systemImage: "archivebox") }
-                NavigationLink { AttributeManageScreen(kind: .source) } label: { Label("购买渠道管理", systemImage: "bag") }
-            }
-            Section("个性化") {
-                NavigationLink { ThemeSelectScreen() } label: { Label("主题选择", systemImage: "paintpalette") }
-            }
-            Section("数据") {
-                NavigationLink { BackupRestoreScreen() } label: { Label("备份与恢复", systemImage: "externaldrive") }
+        let displayedAvatar = avatarPath
+        let displayedAccent = accent
+        VStack(spacing: 0) {
+            LolitaRootToolbar(title: "个人") { EmptyView() }
+            ScrollView {
+                VStack(spacing: 14) {
+                    PersonalProfileCard(nickname: nickname, avatarPath: avatarPath,
+                                        itemCount: items.filter { $0.status != .wished }.count,
+                                        coordinateCount: coordinates.count, totalSpent: totalSpent,
+                                        onEditNickname: { nicknameDraft = nickname; showNicknameEditor = true }) {
+                        #if os(iOS)
+                        PhotosPicker(selection: $pickedAvatar, matching: .images) {
+                            PersonalAvatarView(path: displayedAvatar, color: displayedAccent)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("设置头像")
+                        #else
+                        PersonalAvatarView(path: displayedAvatar, color: displayedAccent)
+                        #endif
+                    }
+
+                    NavigationLink { AttributeSettingsScreen() } label: {
+                        SettingsMenuCard(title: "属性管理", subtitle: "品牌、分类、风格、季节、位置与渠道", symbol: "square.grid.2x2", color: .purple)
+                    }
+                    NavigationLink { BackupRestoreScreen() } label: {
+                        SettingsMenuCard(title: "数据备份与恢复", subtitle: "ZIP 图片备份、安卓备份恢复与全表 CSV", symbol: "externaldrive", color: .blue)
+                    }
+                    NavigationLink { TaobaoImportScreen() } label: {
+                        SettingsMenuCard(title: "淘宝订单导入", subtitle: "选择订单 Excel，核对定金尾款后导入", symbol: "cart", color: .orange)
+                    }
+                    NavigationLink { ReminderSettingsScreen() } label: {
+                        SettingsMenuCard(title: "提醒与系统日历", subtitle: "付款通知、日历联动和每日穿搭提醒", symbol: "bell", color: .teal)
+                    }
+                    NavigationLink { ThemeSelectScreen() } label: {
+                        SettingsMenuCard(title: "皮肤选择", subtitle: skinManager.currentSkinType.displayName, symbol: "paintpalette", color: accent)
+                    }
+                    LolitaSection(title: "显示设置") {
+                        Toggle(isOn: $showTotalPrice) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("显示总价").font(.subheadline.weight(.medium))
+                                Text("在衣橱、统计和个人页显示金额汇总")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        .tint(accent)
+                    }
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 16)
             }
         }
-        .lolitaNavBar(title: "设置")
+        .lolitaNavBar(title: "个人", isHidden: true)
+        .task { for await value in AppModule.shared.itemRepository.observeAll() { items = value } }
+        .task { for await value in AppModule.shared.coordinateRepository.observeAll() { coordinates = value } }
+        .task { for await value in AppModule.shared.priceRepository.getTotalSpending() { totalSpent = value } }
+        .alert("设置昵称", isPresented: $showNicknameEditor) {
+            TextField("昵称", text: $nicknameDraft)
+            Button("保存") { nickname = String(nicknameDraft.trimmingCharacters(in: .whitespacesAndNewlines).prefix(30)) }
+            Button("取消", role: .cancel) { }
+        }
+        .alert("头像设置失败", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
+            Button("确定") { error = nil }
+        } message: { Text(error ?? "") }
+        #if os(iOS)
+        .onChange(of: pickedAvatar) { _, selection in
+            avatarTask?.cancel()
+            guard let selection else { return }
+            let requestId = UUID()
+            avatarImportId = requestId
+            avatarTask = Task {
+                defer {
+                    if avatarImportId == requestId {
+                        avatarTask = nil
+                        avatarImportId = nil
+                        pickedAvatar = nil
+                    }
+                }
+                do {
+                    guard let data = try await selection.loadTransferable(type: Data.self),
+                          !Task.isCancelled, avatarImportId == requestId, let image = UIImage(data: data),
+                          let path = ImageFileHelper.save(image: image) else {
+                        if !Task.isCancelled { error = "无法读取这张图片，请重新选择。" }
+                        return
+                    }
+                    let old = avatarPath
+                    avatarPath = path
+                    if !old.isEmpty { try? ImageFileHelper.deleteUnreferenced(paths: [old], db: AppModule.shared.db.dbQueue) }
+                } catch { if !Task.isCancelled { self.error = userFacingError(error) } }
+            }
+        }
+        .onDisappear {
+            avatarTask?.cancel()
+            avatarTask = nil
+            avatarImportId = nil
+            pickedAvatar = nil
+        }
+        #endif
+    }
+
+}
+
+struct PersonalAvatarView: View {
+    let path: String
+    let color: Color
+    var body: some View {
+        ZStack {
+            Circle().fill(color.opacity(0.12))
+            if !path.isEmpty {
+                LolitaShimmerImage(url: ImageFileHelper.fileURL(for: path))
+            } else {
+                Image(systemName: "heart.fill").font(.system(size: 28)).foregroundStyle(color)
+            }
+        }
+        .frame(width: 56, height: 56)
+        .clipShape(Circle())
+        .overlay(alignment: .bottomTrailing) {
+            Image(systemName: "camera.fill").font(.system(size: 10))
+                .foregroundStyle(.white).padding(5).background(color, in: Circle())
+        }
+    }
+}
+
+struct PersonalProfileCard<Avatar: View>: View {
+    @AppStorage("showTotalPrice") private var showTotalPrice = true
+    @EnvironmentObject private var skinManager: SkinManager
+    @Environment(\.colorScheme) private var colorScheme
+    let nickname: String
+    let avatarPath: String
+    let itemCount: Int
+    let coordinateCount: Int
+    let totalSpent: Double
+    let onEditNickname: () -> Void
+    @ViewBuilder let avatar: () -> Avatar
+
+    var body: some View {
+        LolitaCard {
+            HStack(spacing: 12) {
+                avatar()
+                VStack(alignment: .leading, spacing: 5) {
+                    Button(action: onEditNickname) {
+                        HStack(spacing: 5) {
+                            Text(nickname.isEmpty ? "点击设置昵称" : nickname).font(.headline).lineLimit(1)
+                            Image(systemName: "pencil").font(.caption)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+                    .buttonStyle(.plain)
+                    Text("\(itemCount) 件服饰 · \(coordinateCount) 套搭配")
+                        .font(.caption).foregroundStyle(.secondary)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("总消费").font(.caption2).foregroundStyle(.secondary)
+                        Text(showTotalPrice ? totalSpent.formatted(.currency(code: "CNY").precision(.fractionLength(0))) : "金额已隐藏")
+                            .font(.system(size: 22, weight: .semibold, design: .rounded)).monospacedDigit()
+                            .foregroundStyle(colorScheme == .dark ? skinManager.current.accentColorDark : skinManager.current.accentColor)
+                            .lineLimit(1).minimumScaleFactor(0.65)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+struct SettingsMenuCard: View {
+    let title: String
+    let subtitle: String
+    let symbol: String
+    let color: Color
+    var body: some View {
+        LolitaCard(variant: .compact) {
+            HStack(spacing: 13) {
+                Image(systemName: symbol).font(.system(size: 20)).foregroundStyle(color)
+                    .frame(width: 44, height: 44).background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 13))
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
+                    Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+            }
+            .padding(4)
+        }
+    }
+}
+
+struct AttributeSettingsScreen: View {
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                NavigationLink { BrandManageScreen() } label: { SettingsMenuCard(title: "品牌", subtitle: "管理衣橱品牌", symbol: "tag", color: .pink) }
+                NavigationLink { CategoryManageScreen() } label: { SettingsMenuCard(title: "分类", subtitle: "服饰与配饰类型", symbol: "square.grid.2x2", color: .purple) }
+                NavigationLink { StyleManageScreen() } label: { SettingsMenuCard(title: "风格", subtitle: "搭配风格与偏好", symbol: "sparkles", color: .orange) }
+                NavigationLink { SeasonManageScreen() } label: { SettingsMenuCard(title: "季节", subtitle: "服饰适用季节", symbol: "leaf", color: .green) }
+                NavigationLink { LocationManageScreen() } label: { SettingsMenuCard(title: "位置", subtitle: "衣柜与收纳位置", symbol: "archivebox", color: .teal) }
+                NavigationLink { AttributeManageScreen(kind: .source) } label: { SettingsMenuCard(title: "购买渠道", subtitle: "店铺与来源", symbol: "bag", color: .blue) }
+            }
+            .buttonStyle(.plain).padding(16)
+        }
+        .lolitaNavBar(title: "属性管理", showBack: true)
     }
 }
 
@@ -73,11 +280,13 @@ final class AttributeManageViewModel: ObservableObject {
     }
 
     func save(kind: AttributeKind, original: AttributeRow?, name: String, group: CategoryGroup) async throws {
-        let name = try InputValidation.name(name)
+        let name = try kind == .season ? SeasonRepository.validatedName(name) : InputValidation.name(name)
         try await queue.write { db in
             if let original {
                 try db.execute(sql: "UPDATE \(kind.table) SET name = ? WHERE id = ?", arguments: [name, original.id])
-                if let reference = kind.reference {
+                if kind == .season {
+                    try SeasonRepository.rewriteItemReferences(in: db, oldName: original.name, newName: name)
+                } else if let reference = kind.reference {
                     try db.execute(sql: "UPDATE items SET \(reference) = ?, updatedAt = ? WHERE \(reference) = ?", arguments: [name, Int64(Date().timeIntervalSince1970 * 1000), original.name])
                 }
                 if kind == .category { try db.execute(sql: "UPDATE categories SET \"group\" = ? WHERE id = ?", arguments: [group.rawValue, original.id]) }
@@ -94,7 +303,9 @@ final class AttributeManageViewModel: ObservableObject {
 
     func delete(kind: AttributeKind, row: AttributeRow) async throws {
         try await queue.write { db in
-            if let reference = kind.reference {
+            if kind == .season {
+                try SeasonRepository.rewriteItemReferences(in: db, oldName: row.name, newName: nil)
+            } else if let reference = kind.reference {
                 try db.execute(sql: "UPDATE items SET \(reference) = NULL, updatedAt = ? WHERE \(reference) = ?", arguments: [Int64(Date().timeIntervalSince1970 * 1000), row.name])
             }
             try db.execute(sql: "DELETE FROM \(kind.table) WHERE id = ?", arguments: [row.id])

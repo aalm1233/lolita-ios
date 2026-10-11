@@ -31,6 +31,11 @@ final class SourcePreviewExport: XCTestCase {
         skin.currentSkinType = type
         let boards: [(String, AnyView)] = [
             ("wardrobe", AnyView(WardrobePreviewContent())),
+            ("home-search", AnyView(HomeSearchPreviewContent())),
+            ("outfits", AnyView(OutfitListPreviewContent())),
+            ("gallery", AnyView(GalleryPreviewContent())),
+            ("personal", AnyView(PersonalPreviewContent())),
+            ("detail", AnyView(DetailPreviewContent())),
             ("stats", AnyView(StatsPreviewContent())),
             ("editing", AnyView(EditingPreviewContent())),
             ("calendar", AnyView(CalendarPreviewContent())),
@@ -71,24 +76,128 @@ final class SourcePreviewExport: XCTestCase {
 private struct WardrobePreviewContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("我的衣橱").font(.title2.weight(.semibold))
-            LolitaSegmentedTabs(options: ItemSubTab.allCases, selection: .constant(.items), label: { $0.rawValue })
-            LolitaSection(title: "我的服饰") {
-                ItemRow(item: PreviewItems.first, brandName: "Angelic Pretty")
-                Divider().opacity(0.35)
-                ItemRow(item: PreviewItems.second, brandName: "Baby, The Stars Shine Bright")
-                Divider().opacity(0.35)
-                ItemRow(item: PreviewItems.third)
+            // Native text fields and menus are represented by their labels in ImageRenderer.
+            LolitaHomeToolbar(isSearching: false, onSearch: {}, onCancel: {}) {
+                LolitaPageTabs(options: ItemSubTab.allCases, selection: .constant(.items), label: { $0.rawValue }, compact: true)
+            } actions: {
+                ForEach(["line.3.horizontal.decrease.circle", "arrow.up.arrow.down", "square.grid.2x2"], id: \.self) { symbol in
+                    Image(systemName: symbol).frame(width: 36, height: 44)
+                }
+            } searchField: {
+                Text("搜索服饰").foregroundStyle(.secondary).lineLimit(1)
             }
-            LolitaCollectionHeader(title: "共收藏", count: 3)
+            HStack {
+                Text("3 件服饰").font(.subheadline.weight(.semibold))
+                Spacer()
+                Text("合计 ¥2,380").font(.caption.weight(.semibold)).foregroundStyle(.pink)
+            }
+            LazyVGrid(columns: [GridItem(.flexible(), alignment: .top), GridItem(.flexible(), alignment: .top)], spacing: 12) {
+                ItemCollectionCard(item: PreviewItems.first, brandName: "Angelic Pretty", categoryName: "连衣裙", price: 1280)
+                ItemCollectionCard(item: PreviewItems.second, brandName: "Baby, The Stars Shine Bright", categoryName: "连衣裙", price: 980)
+                ItemCollectionCard(item: PreviewItems.third, brandName: "Innocent World", categoryName: "发带", price: 120)
+            }
+            Text("套装与穿搭").font(.headline)
+            CoordinateCollectionCard(coordinate: Coordinate(name: "草莓茶会", description: "春日出游的搭配"), items: [PreviewItems.first, PreviewItems.third], price: 1400, mode: .list)
+            OutfitLogCollectionCard(log: OutfitLog(date: 1_791_670_400_000, note: "今天穿着草莓花园和朋友去看展。"), items: [PreviewItems.first, PreviewItems.third])
+        }
+    }
+}
+
+private struct HomeSearchPreviewContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            LolitaHomeToolbar(isSearching: true, onSearch: {}, onCancel: {}, clearSearch: {}) {
+                EmptyView()
+            } actions: {
+                EmptyView()
+            } searchField: {
+                Text("草莓").foregroundStyle(.primary).frame(maxWidth: .infinity, alignment: .leading)
+            }
+            Text("搜索结果").font(.caption).foregroundStyle(.secondary)
+            ItemCollectionCard(item: PreviewItems.first, brandName: "Angelic Pretty", categoryName: "连衣裙", price: 1280)
+        }
+    }
+}
+
+private struct OutfitListPreviewContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            LolitaRootToolbar(title: "穿搭日记", subtitle: "3 篇 · 3 天") {
+                ForEach(["magnifyingglass", "sun.max", "plus"], id: \.self) { symbol in
+                    Image(systemName: symbol).frame(width: 44, height: 44)
+                }
+            }
+            Text("2026 年 10 月 11 日").font(.caption).foregroundStyle(.secondary)
+            OutfitLogCollectionCard(log: OutfitLog(date: 1_791_670_400_000, note: "今天穿着草莓花园和朋友去看展。"),
+                                    items: [PreviewItems.first, PreviewItems.third])
+            OutfitLogCollectionCard(log: OutfitLog(date: 1_791_584_000_000, note: "秋天的茶会，试试新的蕾丝裙。"),
+                                    items: [PreviewItems.second])
+        }
+    }
+}
+
+private struct GalleryPreviewContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("服饰画廊").font(.title2.weight(.semibold))
+            LazyVGrid(columns: [GridItem(.flexible(), alignment: .top), GridItem(.flexible(), alignment: .top)], spacing: 12) {
+                ItemCollectionCard(item: PreviewItems.first, brandName: "Angelic Pretty", categoryName: "连衣裙", price: 1280, mode: .gallery)
+                ItemCollectionCard(item: PreviewItems.second, brandName: "Baby, The Stars Shine Bright", categoryName: "连衣裙", price: 980, mode: .gallery)
+            }
+            Text("信息列表").font(.headline)
+            ItemCollectionCard(item: PreviewItems.first, brandName: "Angelic Pretty", categoryName: "连衣裙", price: 1280, mode: .list)
+            ItemCollectionCard(item: PreviewItems.second, brandName: "Baby, The Stars Shine Bright", categoryName: "连衣裙", price: 980, mode: .list)
+        }
+    }
+}
+
+private struct PersonalPreviewContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            LolitaRootToolbar(title: "个人") { EmptyView() }
+            PersonalProfileCard(nickname: "草莓茶会", avatarPath: "", itemCount: 139, coordinateCount: 27, totalSpent: 27830, onEditNickname: {}) {
+                PersonalAvatarView(path: "", color: .pink)
+            }
+            SettingsMenuCard(title: "属性管理", subtitle: "品牌、分类、风格、季节、位置与渠道", symbol: "square.grid.2x2", color: .purple)
+            SettingsMenuCard(title: "数据备份与恢复", subtitle: "ZIP 图片备份、安卓备份恢复与全表 CSV", symbol: "externaldrive", color: .blue)
+            SettingsMenuCard(title: "淘宝订单导入", subtitle: "选择订单 Excel，核对定金尾款后导入", symbol: "cart", color: .orange)
+            SettingsMenuCard(title: "提醒与系统日历", subtitle: "付款通知、日历联动和每日穿搭提醒", symbol: "bell", color: .teal)
+            SettingsMenuCard(title: "皮肤选择", subtitle: "默认 · 粉白", symbol: "paintpalette", color: .pink)
+            LolitaSection(title: "显示设置") {
+                HStack { Text("显示总价"); Spacer(); Image(systemName: "checkmark.circle.fill").foregroundStyle(.pink) }
+            }
+        }
+    }
+}
+
+private struct DetailPreviewContent: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("服饰详情").font(.title2.weight(.semibold)).frame(maxWidth: .infinity, alignment: .leading)
+            LolitaCollectionImage(path: nil, title: "草莓花园", symbol: "tshirt", ratio: 0.9)
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+            DetailTitleCard(title: PreviewItems.first.name, subtitle: "Angelic Pretty · 连衣裙") {
+                LolitaBadge(text: "待尾款", color: .orange)
+            }
+            LolitaSection(title: "基本信息") {
+                DetailRow(label: "品牌", value: "Angelic Pretty")
+                DetailRow(label: "风格", value: "甜系")
+                DetailRow(label: "季节", value: "春,秋")
+                DetailRow(label: "所属套装", value: "草莓茶会")
+            }
+            LolitaSection(title: "价格与付款") {
+                StatsAmountRow(name: "总价", amount: 1280)
+                StatsAmountRow(name: "已付", amount: 300, color: .green)
+                StatsAmountRow(name: "待付", amount: 980, color: .orange)
+            }
         }
     }
 }
 
 private struct StatsPreviewContent: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("衣橱统计").font(.title2.weight(.semibold))
+        VStack(alignment: .leading, spacing: 8) {
+            LolitaPageTabs(options: ["总览", "付款年历", "消费分布", "消费趋势", "愿望单"], selection: .constant("总览"), label: { $0 }, compact: true)
             StatsSummaryView(ownedCount: 28, pendingCount: 6, wishedCount: 12, coordinateCount: 8, outfitCount: 32, totalSpending: 27830)
             LolitaSection(title: "品牌 Top 5") {
                 StatsRankingRow(rank: 1, name: "Angelic Pretty", count: 12, maximumCount: 12)
@@ -105,8 +214,9 @@ private struct EditingPreviewContent: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("编辑服饰与套装").font(.title2.weight(.semibold))
             LolitaSection(title: "颜色") {
-                EditColorSelection(colors: MatchingEngine.colors, selectedColors: .constant(["粉色", "白色"]))
+                EditColorSelection(colors: MatchingEngine.colors, selectedColors: .constant(["粉色", "白色", "香槟金"]))
             }
+            LolitaSection(title: "季节") { EditSeasonSelection(seasons: MatchingEngine.seasons, selection: .constant("春,秋")) }
             LolitaSection(title: "已选服饰 · 2 件") {
                 EditSelectedItemRow(item: PreviewItems.first, order: 1, onRemove: {})
                 Divider().opacity(0.35)

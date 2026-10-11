@@ -78,10 +78,7 @@ struct ItemEditScreen: View {
                     Text("未设置").tag("")
                     ForEach(viewModel.styles, id: \.id) { Text($0.name).tag($0.name) }
                 }
-                Picker("季节", selection: $viewModel.season) {
-                    Text("未设置").tag("")
-                    ForEach(viewModel.seasons, id: \.id) { Text($0.name).tag($0.name) }
-                }
+                EditSeasonSelection(seasons: viewModel.seasons.map(\.name), selection: $viewModel.season)
                 LabeledContent("尺码") {
                     TextField("如 S、M、均码", text: $viewModel.size)
                         .multilineTextAlignment(.trailing)
@@ -226,6 +223,13 @@ struct EditColorSelection: View {
 
     let colors: [String]
     @Binding var selectedColors: Set<String>
+    var allowsCustomColor = true
+    @State private var showCustomColor = false
+    @State private var customColor = ""
+
+    private var visibleColors: [String] {
+        colors + selectedColors.subtracting(Set(colors)).sorted()
+    }
 
     private var accent: Color {
         colorScheme == .dark ? skinManager.current.primaryColorDark : skinManager.current.primaryColor
@@ -233,7 +237,7 @@ struct EditColorSelection: View {
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 72))], spacing: 10) {
-            ForEach(colors, id: \.self) { color in
+            ForEach(visibleColors, id: \.self) { color in
                 let selected = selectedColors.contains(color)
                 Button {
                     if selected { selectedColors.remove(color) }
@@ -251,8 +255,44 @@ struct EditColorSelection: View {
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
+            if allowsCustomColor { Button { customColor = ""; showCustomColor = true } label: {
+                Label("自定义", systemImage: "plus")
+                    .font(.subheadline).frame(maxWidth: .infinity, minHeight: 36)
+                    .foregroundStyle(accent)
+                    .background(accent.opacity(0.04), in: Capsule())
+                    .overlay(Capsule().strokeBorder(accent.opacity(0.15)))
+            }
+            .buttonStyle(.plain) }
         }
         .padding(.vertical, 6)
+        .alert("自定义颜色", isPresented: $showCustomColor) {
+            TextField("颜色名称", text: $customColor)
+            Button("添加") {
+                let name = customColor.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !name.isEmpty { selectedColors.insert(String(name.prefix(30))) }
+            }
+            Button("取消", role: .cancel) {}
+        }
+    }
+}
+
+struct EditSeasonSelection: View {
+    let seasons: [String]
+    @Binding var selection: String
+
+    private var selected: Set<String> {
+        Set(selection.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty })
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("季节（可多选）").font(.subheadline).foregroundStyle(.secondary)
+            EditColorSelection(colors: seasons, selectedColors: Binding(get: { selected }, set: { values in
+                let known = seasons.filter { values.contains($0) }
+                let other = values.subtracting(Set(seasons)).sorted()
+                selection = (known + other).joined(separator: ",")
+            }), allowsCustomColor: false)
+        }
     }
 }
 

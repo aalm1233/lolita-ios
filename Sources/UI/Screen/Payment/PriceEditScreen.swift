@@ -18,10 +18,12 @@ struct PriceEditScreen: View {
                     Text("定金+尾款").tag(PriceType.depositBalance)
                 }
 
-                TextField("总价", text: $viewModel.totalPriceText)
+                if viewModel.type == .full {
+                    TextField("总价", text: $viewModel.totalPriceText)
 #if os(iOS)
-                    .keyboardType(.decimalPad)
+                        .keyboardType(.decimalPad)
 #endif
+                }
 
                 if viewModel.type == .depositBalance {
                     TextField("定金", text: $viewModel.depositText)
@@ -32,6 +34,10 @@ struct PriceEditScreen: View {
 #if os(iOS)
                         .keyboardType(.decimalPad)
 #endif
+                    LabeledContent("总价") {
+                        Text((Double(viewModel.depositText) ?? 0) + (Double(viewModel.balanceText) ?? 0), format: .currency(code: "CNY"))
+                            .monospacedDigit()
+                    }
                 }
                 if viewModel.priceId == nil {
                     Toggle(viewModel.type == .full ? "已付全款" : "已付定金", isOn: $viewModel.initialPaid)
@@ -43,6 +49,7 @@ struct PriceEditScreen: View {
                 Text("价格信息")
             }
         }
+        .disabled(viewModel.isSaving)
         .alert("保存失败", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
             Button("确定", role: .cancel) { saveError = nil }
         } message: { Text(saveError ?? "") }

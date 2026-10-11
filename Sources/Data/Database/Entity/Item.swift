@@ -19,6 +19,7 @@ struct Item: Codable, Sendable, FetchableRecord, MutablePersistableRecord {
     var coordinateOrder: Int = 0
     var locationId: Int64? = nil
     var source: String? = nil
+    var importOrderKeys: StringList? = nil
     var createdAt: Int64 = Int64(Date().timeIntervalSince1970 * 1000)
     var updatedAt: Int64 = Int64(Date().timeIntervalSince1970 * 1000)
 
@@ -27,7 +28,7 @@ struct Item: Codable, Sendable, FetchableRecord, MutablePersistableRecord {
     enum Columns: String, ColumnExpression {
         case id, name, brandId, categoryId, status, priority, description
         case colors, season, style, size, sizeChartImageUrl, imageUrls
-        case coordinateId, coordinateOrder, locationId, source
+        case coordinateId, coordinateOrder, locationId, source, importOrderKeys
         case createdAt, updatedAt
     }
 
@@ -50,6 +51,7 @@ struct Item: Codable, Sendable, FetchableRecord, MutablePersistableRecord {
         container["coordinateOrder"] = coordinateOrder
         container["locationId"] = locationId
         container["source"] = source
+        container["importOrderKeys"] = importOrderKeys
         container["createdAt"] = createdAt
         container["updatedAt"] = updatedAt
     }
