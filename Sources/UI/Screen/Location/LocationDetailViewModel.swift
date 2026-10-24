@@ -11,12 +11,15 @@ enum LocationDetailDataFactory {
             guard locationId > 0, try Location.fetchOne(db, key: locationId) != nil else { throw ValidationError.invalid("收纳位置已被删除") }
             for id in addedIds {
                 guard var item = try Item.fetchOne(db, key: id) else { throw ValidationError.invalid("选中的服饰已被删除") }
+                guard try StorageRepository.isOwned(db, item: item) else { throw ValidationError.invalid("仅已拥有物品可以收纳") }
+                item.storageNodeId = nil
                 item.locationId = locationId
                 item.updatedAt = timestamp
                 try item.update(db)
             }
             for id in removedIds {
                 guard var item = try Item.fetchOne(db, key: id), item.locationId == locationId else { continue }
+                item.storageNodeId = nil
                 item.locationId = nil
                 item.updatedAt = timestamp
                 try item.update(db)
@@ -31,6 +34,8 @@ enum LocationDetailDataFactory {
             for id in itemIds {
                 guard var item = try Item.fetchOne(db, key: id) else { throw ValidationError.invalid("选中的服饰已被删除") }
                 guard item.locationId == nil else { throw ValidationError.invalid("\(item.name)已经放入其他位置，请刷新后再试") }
+                guard try StorageRepository.isOwned(db, item: item) else { throw ValidationError.invalid("仅已拥有物品可以收纳") }
+                item.storageNodeId = nil
                 item.locationId = locationId
                 item.updatedAt = timestamp
                 try item.update(db)
@@ -104,6 +109,6 @@ final class LocationDetailViewModel: ObservableObject {
 
     func delete() async throws {
         guard let location else { return }
-        try await locationRepo.delete(location)
+        try await locationRepo.delete(location, clearContents: true)
     }
 }

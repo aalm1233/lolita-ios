@@ -47,34 +47,72 @@ final class ItemRepository: Sendable {
         }
     }
 
-    func insert(_ item: Item) async throws -> Item {
+    func insert(_ item: Item, clearingDraft: String? = nil) async throws -> Item {
         try await db.write { db in
             var i = item
             i.name = try InputValidation.name(i.name)
+            try StorageRepository.validatePlacement(db, item: i, previous: try Item.fetchOne(db, key: i.id))
+            try Self.validateParent(db, item: i)
             try i.insert(db)
+            if let clearingDraft { try ItemDraft.deleteOne(db, key: clearingDraft) }
+            if i.includedInParentPrice, let parent = i.parentItemId { try OrderRepository.refreshStatuses(db, itemId: parent) }
             return i
         }
     }
 
-    func update(_ item: Item) async throws {
+    func update(_ item: Item, clearingDraft: String? = nil, expectedUpdatedAt: Int64? = nil) async throws {
         try await db.write { db in
+            if let expectedUpdatedAt { guard try Item.fetchOne(db, key: item.id)?.updatedAt == expectedUpdatedAt else { throw ValidationError.invalid("物品已在其他页面更改，草稿已保留，请重新核对") } }
             var i = item
             i.name = try InputValidation.name(i.name)
+            try StorageRepository.validatePlacement(db, item: i, previous: try Item.fetchOne(db, key: i.id))
+            try Self.validateParent(db, item: i)
+            if i.status == .wished, try OrderBinding.fetchOne(db, key: i.id) != nil,
+               try Item.fetchOne(db, key: i.id)?.status != .wished {
+                throw ValidationError.invalid("请先归档当前订单，再将物品移回心愿")
+            }
             i.updatedAt = Int64(Date().timeIntervalSince1970 * 1000)
             try i.update(db)
+            if let clearingDraft { try ItemDraft.deleteOne(db, key: clearingDraft) }
             try Self.refreshPaymentStatus(db, itemId: i.id)
+            if i.includedInParentPrice, let parent = i.parentItemId { try OrderRepository.refreshStatuses(db, itemId: parent) }
         }
     }
 
     func delete(_ item: Item) async throws {
-        try await db.write { db in try item.delete(db) }
-        try? ImageFileHelper.deleteUnreferenced(paths: item.imageUrls.values + [item.sizeChartImageUrl].compactMap { $0 }, db: db)
+        let draftImages = try await db.read { db in try ItemDraft.filter(Column("targetItemId") == item.id).fetchAll(db).flatMap(\.allImagePaths) }
+        try await db.write { @Sendable db in
+            try db.execute(sql: "DELETE FROM orderBindings WHERE itemId = ?", arguments: [item.id])
+            try item.delete(db)
+        }
+        try? ImageFileHelper.deleteUnreferenced(paths: item.allImagePaths + draftImages, db: db)
     }
 }
 
 // Keep derived status updates in the same transaction as payment/price mutations.
 extension ItemRepository {
+    private static func validateParent(_ db: Database, item: Item) throws {
+        guard let parentId = item.parentItemId else {
+            guard !item.includedInParentPrice else { throw ValidationError.invalid("共价小物必须选择主件") }
+            return
+        }
+        guard parentId != item.id, let parent = try Item.fetchOne(db, key: parentId), parent.parentItemId == nil,
+              try Item.filter(Column("parentItemId") == item.id).fetchCount(db) == 0 else {
+            throw ValidationError.invalid("主件不存在或会形成多层、循环关联")
+        }
+        if item.includedInParentPrice {
+            guard try Price.filter(Price.Columns.itemId == item.id).fetchCount(db) == 0,
+                  try ItemReferencePrice.fetchOne(db, key: item.id) == nil else {
+                throw ValidationError.invalid("小物已有独立账本或参考价，不能直接改为共价；请保留或先核对独立记录")
+            }
+        }
+    }
+
     static func refreshPaymentStatus(_ db: Database, itemId: Int64) throws {
+        if try OrderBinding.fetchOne(db, key: itemId) != nil {
+            try OrderRepository.refreshStatuses(db, itemId: itemId)
+            return
+        }
         guard let item = try Item.fetchOne(db, key: itemId), item.status != .wished else { return }
         let unpaid = try Int.fetchOne(db, sql: """
             SELECT COUNT(*) FROM payments pay JOIN prices pr ON pay.priceId = pr.id

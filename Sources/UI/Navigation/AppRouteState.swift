@@ -16,6 +16,10 @@ enum AppDeepLink: Equatable, Identifiable {
     static func parse(_ url: URL) -> AppDeepLink? {
         guard url.scheme?.lowercased() == "lolita" else { return nil }
         if url.host == "today-outfit", url.path.isEmpty || url.path == "/" { return .todayOutfit }
+        if url.host == "stage" {
+            let parts = url.path.split(separator: "/")
+            if parts.count == 1, let id = Int64(parts[0]), id > 0 { return .payment(-id) }
+        }
         if url.host == "payment" {
             let parts = url.path.split(separator: "/")
             if parts.count == 1, let id = Int64(parts[0]), id > 0 { return .payment(id) }

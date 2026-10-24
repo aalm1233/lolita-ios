@@ -3,7 +3,7 @@ import GRDB
 @testable import lolita
 
 final class StatsAndRecommendationRegressionTests: XCTestCase {
-    func testMonthlyDrilldownUsesPaidDueMonthAndDeduplicatesItems() {
+    func testMonthlyDrilldownUsesActualPaidMonthAndExcludesUnknownDates() {
         let items = [Item(id: 1, name: "已拥有", brandId: 1, categoryId: 1),
                      Item(id: 2, name: "尾款", brandId: 1, categoryId: 1, status: .pendingBalance),
                      Item(id: 3, name: "心愿", brandId: 1, categoryId: 1, status: .wished)]
@@ -15,8 +15,8 @@ final class StatsAndRecommendationRegressionTests: XCTestCase {
                         Payment(id: 3, priceId: 2, amount: 100, dueDate: october, isPaid: false),
                         Payment(id: 4, priceId: 3, amount: 100, dueDate: october, isPaid: true)]
         let result = StatsItemFilter.paymentPeriod("2025-10").apply(to: items, brands: [], categories: [], prices: prices, payments: payments)
-        XCTAssertEqual(result.map(\.id), [1])
-        XCTAssertTrue(StatsItemFilter.paymentPeriod("2025-11").apply(to: items, brands: [], categories: [], prices: prices, payments: payments).isEmpty)
+        XCTAssertTrue(result.isEmpty, "不能用到期日补造真实付款月份")
+        XCTAssertEqual(StatsItemFilter.paymentPeriod("2025-11").apply(to: items, brands: [], categories: [], prices: prices, payments: payments).map(\.id), [1])
         XCTAssertEqual(StatsItemFilter.paymentPeriod("2025-Q4").apply(to: items, brands: [], categories: [], prices: prices, payments: payments).map(\.id), [1])
     }
 
@@ -65,7 +65,7 @@ final class StatsAndRecommendationRegressionTests: XCTestCase {
         }
         XCTAssertEqual(vm.pricesByItem.values.reduce(0, +), 200)
         XCTAssertEqual(vm.filteredItems(.paymentPeriod("1970-01")).count, 0)
-        try await database.dbQueue.write { @Sendable db in try db.execute(sql: "UPDATE payments SET isPaid=1") }
+        try await database.dbQueue.write { @Sendable db in try db.execute(sql: "UPDATE payments SET isPaid=1, paidDate=0") }
         for _ in 0..<100 {
             if vm.filteredItems(.paymentPeriod("1970-01")).count == 1 { break }
             try await Task.sleep(for: .milliseconds(10))
@@ -92,17 +92,17 @@ final class StatsAndRecommendationRegressionTests: XCTestCase {
         let price = try await PriceRepository(db: database.dbQueue).saveWithPayments(Price(itemId: item.id, type: .full, totalPrice: 200))
         let repository = PaymentRepository(db: database.dbQueue)
         let vm = PaymentCalendarViewModel(repository: repository)
-        let payment = try await database.dbQueue.read { @Sendable db in try XCTUnwrap(Payment.fetchOne(db)) }
-        let row = PaymentWithItemInfo(paymentId: payment.id, amount: 200, dueDate: payment.dueDate, isPaid: false,
+        let stage = try await database.dbQueue.read { @Sendable db in try XCTUnwrap(PaymentStage.fetchOne(db)) }
+        let row = PaymentWithItemInfo(paymentId: -stage.id, amount: 200, dueDate: 0, isPaid: false,
                                       priceId: price.id, priceType: "FULL", itemName: item.name, itemId: item.id)
         try await vm.markPaid(row)
-        let first = try await repository.getById(payment.id)
+        let first = try await database.dbQueue.read { @Sendable db in try Payment.fetchOne(db) }
         XCTAssertTrue(first?.isPaid == true)
         XCTAssertNotNil(first?.paidDate)
         let savedStatus = try await database.dbQueue.read { @Sendable db in try Item.fetchOne(db, key: item.id)?.status }
         XCTAssertEqual(savedStatus, .owned)
         try await vm.markPaid(row)
-        let repeated = try await repository.getById(payment.id)
+        let repeated = try await database.dbQueue.read { @Sendable db in try Payment.fetchOne(db) }
         XCTAssertEqual(repeated?.paidDate, first?.paidDate)
     }
 

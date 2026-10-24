@@ -154,6 +154,9 @@ final class EditorImageRegressionTests: XCTestCase {
         let chart = try XCTUnwrap(vm.sizeChartImageUrl)
         defer { ImageFileHelper.delete(path: chart) }
 
+        vm.composition = .pair
+        vm.specifications.profiles["footwear"] = ["heelHeightCm": "5–7"]
+        vm.sizeChartImageUrls = [chart, committed]
         let gate = holdDatabase(database.dbQueue)
         defer { gate.release.signal() }
         let saving = Task { try await vm.save() }
@@ -172,6 +175,9 @@ final class EditorImageRegressionTests: XCTestCase {
         // redefine the image set that the pending transaction committed.
         vm.imageUrls = [late]
         vm.name = "事务之后的输入"
+        vm.composition = .set
+        vm.specifications.profiles["footwear"] = ["heelHeightCm": "99"]
+        vm.sizeChartImageUrls = [late]
         gate.release.signal()
         try await saving.value
         try await gate.blocker.value
@@ -179,6 +185,9 @@ final class EditorImageRegressionTests: XCTestCase {
         XCTAssertEqual(stored?.imageUrls.values, [committed])
         XCTAssertEqual(stored?.sizeChartImageUrl, chart)
         XCTAssertEqual(stored?.name, item.name)
+        XCTAssertEqual(stored?.composition, .pair)
+        XCTAssertEqual(stored?.sizeChartImageUrls.values, [chart, committed])
+        XCTAssertEqual(try WardrobeSpecifications.decode(stored?.specificationsJson ?? "").profiles["footwear"]?["heelHeightCm"], "5–7")
         vm.discardImages()
         XCTAssertTrue(FileManager.default.fileExists(atPath: committed))
         XCTAssertTrue(FileManager.default.fileExists(atPath: chart))

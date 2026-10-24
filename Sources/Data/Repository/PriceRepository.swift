@@ -45,6 +45,7 @@ struct PaymentWithItemInfo: Codable, FetchableRecord {
     var priceType: String
     var itemName: String
     var itemId: Int64
+    var stageId: Int64? = nil
 }
 
 final class PriceRepository: Sendable {
@@ -62,12 +63,22 @@ final class PriceRepository: Sendable {
         }
     }
 
+    func reference(itemId: Int64) async throws -> ItemReferencePrice? {
+        try await db.read { @Sendable db in try ItemReferencePrice.fetchOne(db, key: itemId) }
+    }
+
     func getById(_ id: Int64) async throws -> Price? {
         try await db.read { db in try Price.fetchOne(db, key: id) }
     }
 
+    func orderSnapshot(_ id: Int64) async throws -> OrderSnapshot {
+        try await db.read { @Sendable db in try OrderRepository.snapshot(db, priceId: id) }
+    }
+
     func insert(_ price: Price) async throws -> Price {
         try await db.write { db in
+            let owner = try OrderRepository.orderOwner(db, itemId: price.itemId)
+            guard owner.id == price.itemId else { throw ValidationError.invalid("共价小物请在主件订单中记账") }
             var p = try Self.normalized(price)
             try p.insert(db)
             return p
@@ -77,6 +88,12 @@ final class PriceRepository: Sendable {
     func update(_ price: Price) async throws {
         let value = try Self.normalized(price)
         try await db.write { db in
+            guard try OrderBinding.filter(Column("priceId") == value.id).fetchCount(db) == 0,
+                  try PaymentStage.filter(Column("priceId") == value.id).fetchCount(db) == 0,
+                  try OrderRefund.filter(Column("priceId") == value.id).fetchCount(db) == 0,
+                  try OrderCancellation.fetchOne(db, key: value.id) == nil else {
+                throw ValidationError.invalid("请在订单计划中修改当前订单")
+            }
             let old = try Price.fetchOne(db, key: value.id)
             try value.update(db)
             try ItemRepository.refreshPaymentStatus(db, itemId: value.itemId)
@@ -88,6 +105,12 @@ final class PriceRepository: Sendable {
 
     func delete(_ price: Price) async throws {
         try await db.write { db in
+            guard try OrderBinding.filter(Column("priceId") == price.id).fetchCount(db) == 0,
+                  try PaymentStage.filter(Column("priceId") == price.id).fetchCount(db) == 0,
+                  try OrderRefund.filter(Column("priceId") == price.id).fetchCount(db) == 0,
+                  try OrderCancellation.fetchOne(db, key: price.id) == nil else {
+                throw ValidationError.invalid("当前订单不能直接删除，请归档保留原账本")
+            }
             try price.delete(db)
             try ItemRepository.refreshPaymentStatus(db, itemId: price.itemId)
         }
@@ -101,8 +124,8 @@ final class PriceRepository: Sendable {
             guard deposit.isFinite, balance.isFinite, deposit >= 0, balance >= 0 else {
                 throw ValidationError.invalid("定金和尾款必须是有效的非负金额")
             }
-            result.totalPrice = deposit + balance
-        } else {
+            result.totalPrice = try OrderAccounting.sum([deposit, balance])
+        } else if price.type == .full {
             result.deposit = nil
             result.balance = nil
         }
@@ -116,11 +139,11 @@ final class PriceRepository: Sendable {
 
     func getTotalSpending() -> AsyncStream<Double> {
         AsyncStream { continuation in
-            let observation = ValueObservation.tracking { db in
+            let observation = ValueObservation.tracking { @Sendable db in
                 try Double.fetchOne(db, sql: """
-                    SELECT COALESCE(SUM(p.totalPrice), 0.0)
-                    FROM prices p INNER JOIN items i ON p.itemId = i.id
-                    WHERE i.status = 'OWNED'
+                    SELECT COALESCE(SUM(pay.amount), 0.0)
+                    FROM payments pay JOIN prices p ON pay.priceId = p.id JOIN items i ON p.itemId = i.id
+                    WHERE pay.isPaid = 1
                 """) ?? 0.0
             }
             let cancellable = observation.start(in: db) { error in
@@ -134,13 +157,14 @@ final class PriceRepository: Sendable {
 
     func getSpendingByBrand() -> AsyncStream<[BrandSpending]> {
         AsyncStream { continuation in
-            let observation = ValueObservation.tracking { db in
+            let observation = ValueObservation.tracking { @Sendable db in
                 try SQLRequest<BrandSpending>(sql: """
-                    SELECT b.name AS name, COALESCE(SUM(p.totalPrice), 0.0) AS totalSpending
-                    FROM prices p
+                    SELECT b.name AS name, COALESCE(SUM(pay.amount), 0.0) AS totalSpending
+                    FROM payments pay
+                    INNER JOIN prices p ON pay.priceId = p.id
                     INNER JOIN items i ON p.itemId = i.id
                     INNER JOIN brands b ON i.brandId = b.id
-                    WHERE i.status = 'OWNED'
+                    WHERE pay.isPaid = 1
                     GROUP BY b.name
                     ORDER BY totalSpending DESC
                 """).fetchAll(db)
@@ -156,13 +180,14 @@ final class PriceRepository: Sendable {
 
     func getSpendingByCategory() -> AsyncStream<[CategorySpending]> {
         AsyncStream { continuation in
-            let observation = ValueObservation.tracking { db in
+            let observation = ValueObservation.tracking { @Sendable db in
                 try SQLRequest<CategorySpending>(sql: """
-                    SELECT c.name AS name, COALESCE(SUM(p.totalPrice), 0.0) AS totalSpending
-                    FROM prices p
+                    SELECT c.name AS name, COALESCE(SUM(pay.amount), 0.0) AS totalSpending
+                    FROM payments pay
+                    INNER JOIN prices p ON pay.priceId = p.id
                     INNER JOIN items i ON p.itemId = i.id
                     INNER JOIN categories c ON i.categoryId = c.id
-                    WHERE i.status = 'OWNED'
+                    WHERE pay.isPaid = 1
                     GROUP BY c.name
                     ORDER BY totalSpending DESC
                 """).fetchAll(db)
@@ -178,12 +203,13 @@ final class PriceRepository: Sendable {
 
     func getSpendingByStyle() -> AsyncStream<[StyleSpending]> {
         AsyncStream { continuation in
-            let observation = ValueObservation.tracking { db in
+            let observation = ValueObservation.tracking { @Sendable db in
                 try SQLRequest<StyleSpending>(sql: """
-                    SELECT i.style AS style, COALESCE(SUM(p.totalPrice), 0.0) AS totalSpending
-                    FROM prices p
+                    SELECT i.style AS style, COALESCE(SUM(pay.amount), 0.0) AS totalSpending
+                    FROM payments pay
+                    INNER JOIN prices p ON pay.priceId = p.id
                     INNER JOIN items i ON p.itemId = i.id
-                    WHERE i.status = 'OWNED' AND i.style IS NOT NULL AND i.style != ''
+                    WHERE pay.isPaid = 1 AND i.style IS NOT NULL AND i.style != ''
                     GROUP BY i.style
                     ORDER BY totalSpending DESC
                 """).fetchAll(db)
@@ -199,15 +225,14 @@ final class PriceRepository: Sendable {
 
     func getMonthlySpending() -> AsyncStream<[MonthlySpending]> {
         AsyncStream { continuation in
-            let observation = ValueObservation.tracking { db in
+            let observation = ValueObservation.tracking { @Sendable db in
                 try SQLRequest<MonthlySpending>(sql: """
-                    SELECT strftime('%Y-%m', pay.dueDate / 1000, 'unixepoch') AS yearMonth,
+                    SELECT strftime('%Y-%m', pay.paidDate / 1000, 'unixepoch', 'localtime') AS yearMonth,
                            COALESCE(SUM(pay.amount), 0.0) AS totalSpending
                     FROM payments pay
                     INNER JOIN prices pr ON pay.priceId = pr.id
                     INNER JOIN items i ON pr.itemId = i.id
-                    WHERE i.status IN ('OWNED', 'PENDING_BALANCE')
-                      AND pay.isPaid = 1
+                    WHERE pay.isPaid = 1 AND pay.paidDate IS NOT NULL
                     GROUP BY yearMonth
                     ORDER BY yearMonth ASC
                 """).fetchAll(db)
@@ -223,12 +248,13 @@ final class PriceRepository: Sendable {
 
     func getMostExpensiveItem() -> AsyncStream<ItemWithSpending?> {
         AsyncStream { continuation in
-            let observation = ValueObservation.tracking { db in
+            let observation = ValueObservation.tracking { @Sendable db in
                 try SQLRequest<ItemWithSpending>(sql: """
-                    SELECT i.name AS itemName, COALESCE(SUM(p.totalPrice), 0.0) AS totalSpending, i.id AS itemId
-                    FROM prices p
+                    SELECT i.name AS itemName, COALESCE(SUM(pay.amount), 0.0) AS totalSpending, i.id AS itemId
+                    FROM payments pay
+                    INNER JOIN prices p ON pay.priceId = p.id
                     INNER JOIN items i ON p.itemId = i.id
-                    WHERE i.status = 'OWNED'
+                    WHERE pay.isPaid = 1
                     GROUP BY i.id
                     ORDER BY totalSpending DESC
                     LIMIT 1
@@ -245,11 +271,12 @@ final class PriceRepository: Sendable {
 
     func getWishlistTotalBudget() -> AsyncStream<Double> {
         AsyncStream { continuation in
-            let observation = ValueObservation.tracking { db in
+            let observation = ValueObservation.tracking { @Sendable db in
                 try Double.fetchOne(db, sql: """
-                    SELECT COALESCE(SUM(p.totalPrice), 0.0)
-                    FROM prices p INNER JOIN items i ON p.itemId = i.id
-                    WHERE i.status = 'WISHED'
+                    SELECT COALESCE(SUM(COALESCE(r.amount, (SELECT SUM(p.totalPrice) FROM prices p
+                      WHERE p.itemId=i.id AND p.purchaseRecordStatus='NEEDS_REVIEW'
+                      AND NOT EXISTS(SELECT 1 FROM paymentStages s WHERE s.priceId=p.id)), 0)), 0)
+                    FROM items i LEFT JOIN itemReferencePrices r ON r.itemId=i.id WHERE i.status='WISHED'
                 """) ?? 0.0
             }
             let cancellable = observation.start(in: db) { error in
@@ -263,12 +290,14 @@ final class PriceRepository: Sendable {
 
     func getWishlistByPriorityStats() -> AsyncStream<[PriorityStats]> {
         AsyncStream { continuation in
-            let observation = ValueObservation.tracking { db in
+            let observation = ValueObservation.tracking { @Sendable db in
                 try SQLRequest<PriorityStats>(sql: """
                     SELECT i.priority AS priority, COUNT(DISTINCT i.id) AS itemCount,
-                           COALESCE(SUM(p.totalPrice), 0.0) AS totalBudget
+                           COALESCE(SUM(COALESCE(r.amount, (SELECT SUM(p.totalPrice) FROM prices p
+                             WHERE p.itemId=i.id AND p.purchaseRecordStatus='NEEDS_REVIEW'
+                             AND NOT EXISTS(SELECT 1 FROM paymentStages s WHERE s.priceId=p.id)), 0)), 0) AS totalBudget
                     FROM items i
-                    LEFT JOIN prices p ON p.itemId = i.id
+                    LEFT JOIN itemReferencePrices r ON r.itemId = i.id
                     WHERE i.status = 'WISHED'
                     GROUP BY i.priority
                 """).fetchAll(db)
@@ -285,18 +314,20 @@ final class PriceRepository: Sendable {
 
 extension PriceRepository {
     func getTotalByCoordinate(_ coordinateId: Int64) async throws -> Double {
-        try await db.read { db in
-            try Double.fetchOne(db, sql: "SELECT COALESCE(SUM(p.totalPrice), 0) FROM prices p JOIN items i ON p.itemId = i.id WHERE i.coordinateId = ?", arguments: [coordinateId]) ?? 0
+        try await db.read { @Sendable db in
+            let items = try Item.filter(Item.Columns.coordinateId == coordinateId).fetchAll(db)
+            let values = OrderAccounting.displayAmounts(prices: try Price.fetchAll(db), bindings: try OrderBinding.fetchAll(db), stages: try PaymentStage.fetchAll(db))
+            return try OrderAccounting.sum(items.map { values[$0.id] ?? 0 })
         }
     }
 
     func getSpendingBySeason() -> AsyncStream<[StyleSpending]> {
         AsyncStream { continuation in
-            let observation = ValueObservation.tracking { db in
+            let observation = ValueObservation.tracking { @Sendable db in
                 try SQLRequest<StyleSpending>(sql: """
-                    SELECT i.season AS style, COALESCE(SUM(p.totalPrice), 0) AS totalSpending
-                    FROM prices p JOIN items i ON p.itemId = i.id
-                    WHERE i.status = 'OWNED' AND i.season IS NOT NULL AND i.season != ''
+                    SELECT i.season AS style, COALESCE(SUM(pay.amount), 0) AS totalSpending
+                    FROM payments pay JOIN prices p ON pay.priceId = p.id JOIN items i ON p.itemId = i.id
+                    WHERE pay.isPaid = 1 AND i.season IS NOT NULL AND i.season != ''
                     GROUP BY i.season ORDER BY totalSpending DESC
                     """).fetchAll(db)
             }
@@ -309,39 +340,25 @@ extension PriceRepository {
 extension PriceRepository {
     /// Create the initial payment schedule, or rebuild only unpaid amounts on price edits.
     /// Paid history is retained and deducted, so editing cannot charge an amount twice.
-    func saveWithPayments(_ price: Price, initialPaidDate: Int64? = nil) async throws -> Price {
+    func saveWithPayments(_ price: Price, initialPaidDate: Int64? = nil, stages: [PaymentStage]? = nil,
+                          expected: String? = nil) async throws -> Price {
         let value = try Self.normalized(price)
-        return try await db.write { db in
-            var saved = value
-            let original = value.id == 0 ? nil : try Price.fetchOne(db, key: value.id)
-            if value.id != 0 && original == nil { throw ValidationError.invalid("价格记录已不存在") }
-            let oldPayments = try Payment.filter(Payment.Columns.priceId == value.id).fetchAll(db)
-            let paid = oldPayments.filter(\.isPaid).reduce(0) { $0 + $1.amount }
-            guard saved.totalPrice + 0.001 >= paid else { throw ValidationError.invalid("总价不能低于已付款金额，请先核对付款记录") }
-            if saved.id == 0 { try saved.insert(db) } else { try saved.update(db) }
-            let changed = original == nil || original?.type != saved.type || original?.totalPrice != saved.totalPrice
-                || original?.deposit != saved.deposit || original?.balance != saved.balance
-            if changed {
-                try Payment.filter(Payment.Columns.priceId == saved.id && Payment.Columns.isPaid == false).deleteAll(db)
-                let now = Int64(Date().timeIntervalSince1970 * 1000)
-                func add(amount: Double, paidDate: Int64?) throws {
-                    guard amount > 0 else { return }
-                    var payment = Payment(priceId: saved.id, amount: amount, dueDate: paidDate ?? now,
-                                          isPaid: paidDate != nil, paidDate: paidDate)
-                    try payment.insert(db)
-                }
-                let date = original == nil ? initialPaidDate : nil
-                if saved.type == .full {
-                    try add(amount: max(0, saved.totalPrice - paid), paidDate: date)
-                } else {
-                    let deposit = saved.deposit ?? 0
-                    let balance = saved.balance ?? 0
-                    try add(amount: max(0, deposit - paid), paidDate: date)
-                    try add(amount: max(0, balance - max(0, paid - deposit)), paidDate: nil)
+        return try await db.write { @Sendable db in
+            let existing = value.id == 0 ? [] : try PaymentStage.filter(Column("priceId") == value.id).order(Column("id")).fetchAll(db)
+            var plan = stages ?? (value.type == .depositBalance
+                ? [PaymentStage(name: "定金", amount: value.deposit ?? 0), PaymentStage(name: "尾款", amount: value.balance ?? 0)]
+                : [PaymentStage(name: "全款", amount: value.totalPrice)])
+            if stages == nil {
+                plan = plan.filter { $0.amount > 0 }
+                for index in plan.indices where existing.indices.contains(index) {
+                    plan[index].id = existing[index].id
+                    plan[index].dueDate = existing[index].dueDate
+                    plan[index].reminderSet = existing[index].reminderSet
+                    plan[index].customReminderDays = existing[index].customReminderDays
                 }
             }
-            try ItemRepository.refreshPaymentStatus(db, itemId: saved.itemId)
-            return saved
+            if value.id == 0 { return try OrderRepository.create(db, price: value, stages: plan, initialPaidDate: initialPaidDate) }
+            return try OrderRepository.update(db, price: value, stages: plan, expected: expected)
         }
     }
 }

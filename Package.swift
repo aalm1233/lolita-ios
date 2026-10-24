@@ -21,6 +21,8 @@ let package = Package(
             exclude: ["Info.plist", "Lolita.entitlements"],
             resources: [.process("Resources")]
         ),
-        .testTarget(name: "LolitaTests", dependencies: ["lolita"], path: "Tests")
+        .testTarget(name: "LolitaTests", dependencies: ["lolita"], path: "Tests"),
+        // Native interaction tests run through the Lolita-Ledger-UI Xcode scheme.
+        .testTarget(name: "LolitaUITests", dependencies: [], path: "UITests")
     ]
 )

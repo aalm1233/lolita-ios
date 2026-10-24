@@ -22,6 +22,16 @@ struct Item: Codable, Sendable, FetchableRecord, MutablePersistableRecord {
     var importOrderKeys: StringList? = nil
     var createdAt: Int64 = Int64(Date().timeIntervalSince1970 * 1000)
     var updatedAt: Int64 = Int64(Date().timeIntervalSince1970 * 1000)
+    var parentItemId: Int64? = nil
+    var includedInParentPrice: Bool = false
+
+    var composition: ItemComposition = .unconfirmed
+    var specificationsJson: String = ""
+    var sizeChartImageUrls: StringList = StringList()
+    var storageNodeId: Int64? = nil
+
+    var detailImagePaths: [String] { var seen = Set<String>(); return ([sizeChartImageUrl].compactMap { $0 } + sizeChartImageUrls.values).filter { seen.insert($0).inserted } }
+    var allImagePaths: [String] { imageUrls.values + detailImagePaths }
 
     static let databaseTableName = "items"
 
@@ -29,7 +39,7 @@ struct Item: Codable, Sendable, FetchableRecord, MutablePersistableRecord {
         case id, name, brandId, categoryId, status, priority, description
         case colors, season, style, size, sizeChartImageUrl, imageUrls
         case coordinateId, coordinateOrder, locationId, source, importOrderKeys
-        case createdAt, updatedAt
+        case createdAt, updatedAt, parentItemId, includedInParentPrice, composition, specificationsJson, sizeChartImageUrls, storageNodeId
     }
 
     // Room treats 0 as an unset ID; SQLite/GRDB needs NULL to generate one.
@@ -54,6 +64,12 @@ struct Item: Codable, Sendable, FetchableRecord, MutablePersistableRecord {
         container["importOrderKeys"] = importOrderKeys
         container["createdAt"] = createdAt
         container["updatedAt"] = updatedAt
+        container["composition"] = composition
+        container["specificationsJson"] = specificationsJson
+        container["sizeChartImageUrls"] = sizeChartImageUrls
+        container["storageNodeId"] = storageNodeId
+        container["parentItemId"] = parentItemId
+        container["includedInParentPrice"] = includedInParentPrice
     }
 
     mutating func didInsert(_ inserted: InsertionSuccess) {

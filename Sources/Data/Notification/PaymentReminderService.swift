@@ -24,7 +24,7 @@ struct PaymentNotificationPlan: Sendable, Equatable {
     let originalFireDate: Date
     let dueDate: Date
     let fingerprint: String
-    var url: String { "lolita://payment/\(paymentId)" }
+    var url: String { paymentId < 0 ? "lolita://stage/\(-paymentId)" : "lolita://payment/\(paymentId)" }
 }
 
 enum PaymentReminderPlanner {
@@ -40,7 +40,7 @@ enum PaymentReminderPlanner {
     static func notifications(_ records: [PaymentReminderRecord], now: Date,
                               calendar: Calendar = .current) -> [PaymentNotificationPlan] {
         records.compactMap { record -> PaymentNotificationPlan? in
-            guard record.reminderSet, !record.isPaid, record.paymentId > 0,
+            guard record.reminderSet, !record.isPaid, record.paymentId != 0,
                   record.amount.isFinite, record.amount >= 0 else { return nil }
             let due = Date(timeIntervalSince1970: Double(record.dueDate) / 1000)
             guard let followingDay = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: due)),
@@ -134,7 +134,7 @@ private final class SystemPaymentCalendarClient: PaymentCalendarClient {
     func contains(_ identifier: String) -> Bool { ownedEvent(identifier) != nil }
     private func ownedEvent(_ identifier: String) -> EKEvent? {
         guard let event = store.event(withIdentifier: identifier),
-              event.url?.absoluteString.hasPrefix("lolita://payment/") == true else { return nil }
+              event.url?.absoluteString.hasPrefix("lolita://payment/") == true || event.url?.absoluteString.hasPrefix("lolita://stage/") == true else { return nil }
         return event
     }
     func save(_ record: PaymentReminderRecord, existingIdentifier: String?) throws -> String {
@@ -150,7 +150,7 @@ private final class SystemPaymentCalendarClient: PaymentCalendarClient {
         event.endDate = event.startDate.addingTimeInterval(3600)
         event.timeZone = .current
         event.isAllDay = false
-        event.url = URL(string: "lolita://payment/\(record.paymentId)")
+        event.url = URL(string: record.paymentId < 0 ? "lolita://stage/\(-record.paymentId)" : "lolita://payment/\(record.paymentId)")
         event.notes = "由洛丽塔衣橱同步。付款变更、支付或删除后会同步更新。"
         let days = min(365, max(0, record.customReminderDays ?? 1))
         guard let alarmDate = PaymentReminderPlanner.reminderDate(due: event.startDate, days: days) else {

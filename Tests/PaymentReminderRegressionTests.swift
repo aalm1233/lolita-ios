@@ -202,6 +202,13 @@ final class PaymentReminderRegressionTests: XCTestCase {
         let storedPrice = try await prices.getById(payment.priceId)
         var price = try XCTUnwrap(storedPrice)
         price.totalPrice = 200
+        let priorPrice = price
+        try await database.dbQueue.write { @Sendable db in
+            var current = priorPrice; current.purchaseRecordStatus = .tracked; try current.update(db)
+            var stage = PaymentStage(priceId: current.id, name: "全款", amount: 100)
+            try stage.insert(db)
+            try OrderBinding(itemId: current.itemId, priceId: current.id).insert(db)
+        }
         _ = try await prices.saveWithPayments(price)
         _ = await service.synchronize()
         XCTAssertTrue(notifications.pending.isEmpty)

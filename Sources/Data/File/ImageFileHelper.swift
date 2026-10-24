@@ -64,9 +64,11 @@ enum ImageFileHelper {
         let referenced = try db.read { db -> Set<String> in
             var paths = Set<String>()
             for item in try Item.fetchAll(db) {
-                paths.formUnion(item.imageUrls.values)
+                paths.formUnion(item.allImagePaths)
                 if let chart = item.sizeChartImageUrl { paths.insert(chart) }
             }
+            for node in try StorageNode.fetchAll(db) { if let image = node.imageUrl { paths.insert(image) } }
+            for draft in try ItemDraft.fetchAll(db) { paths.formUnion(draft.allImagePaths) }
             for coordinate in try Coordinate.fetchAll(db) { paths.formUnion(coordinate.imageUrls.values) }
             for log in try OutfitLog.fetchAll(db) { paths.formUnion(log.imageUrls.values) }
             for location in try Location.fetchAll(db) { if let image = location.imageUrl { paths.insert(image) } }
@@ -116,11 +118,23 @@ enum ImageFileHelper {
             for var item in try Item.fetchAll(db) {
                 let urls = images(item.imageUrls)
                 let chart = image(item.sizeChartImageUrl)
-                if urls.values != item.imageUrls.values || chart != item.sizeChartImageUrl {
+                let charts = images(item.sizeChartImageUrls)
+                if urls.values != item.imageUrls.values || chart != item.sizeChartImageUrl || charts.values != item.sizeChartImageUrls.values {
                     item.imageUrls = urls
                     item.sizeChartImageUrl = chart
+                    item.sizeChartImageUrls = charts
                     try item.update(db)
                     updated += 1
+                }
+            }
+            for var node in try StorageNode.fetchAll(db) {
+                let url = image(node.imageUrl)
+                if url != node.imageUrl { node.imageUrl = url; try node.update(db); updated += 1 }
+            }
+            for var draft in try ItemDraft.fetchAll(db) {
+                let photos = images(draft.imagePaths), charts = images(draft.detailImagePaths)
+                if photos.values != draft.imagePaths.values || charts.values != draft.detailImagePaths.values {
+                    draft.imagePaths = photos; draft.detailImagePaths = charts; try draft.update(db); updated += 1
                 }
             }
             for var coordinate in try Coordinate.fetchAll(db) {

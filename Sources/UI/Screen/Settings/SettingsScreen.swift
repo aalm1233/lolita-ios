@@ -48,13 +48,16 @@ struct SettingsScreen: View {
 
                     NavigationLink { AttributeSettingsScreen() } label: {
                         SettingsMenuCard(title: "属性管理", subtitle: "品牌、分类、风格、季节、位置与渠道", symbol: "square.grid.2x2", color: .purple)
-                    }
+                    }.accessibilityIdentifier("attribute-settings")
                     NavigationLink { BackupRestoreScreen() } label: {
                         SettingsMenuCard(title: "数据备份与恢复", subtitle: "ZIP 图片备份、安卓备份恢复与全表 CSV", symbol: "externaldrive", color: .blue)
                     }
                     NavigationLink { TaobaoImportScreen() } label: {
                         SettingsMenuCard(title: "淘宝订单导入", subtitle: "选择订单 Excel，核对定金尾款后导入", symbol: "cart", color: .orange)
                     }
+                    NavigationLink { FinanceOverviewScreen() } label: {
+                        SettingsMenuCard(title: "预算与资金", subtitle: "月预算、退款、净支出与年度付款", symbol: "yensign.circle", color: .mint)
+                    }.accessibilityIdentifier("finance-overview")
                     NavigationLink { ReminderSettingsScreen() } label: {
                         SettingsMenuCard(title: "提醒与系统日历", subtitle: "付款通知、日历联动和每日穿搭提醒", symbol: "bell", color: .teal)
                     }
@@ -177,7 +180,7 @@ struct PersonalProfileCard<Avatar: View>: View {
                     Text("\(itemCount) 件服饰 · \(coordinateCount) 套搭配")
                         .font(.caption).foregroundStyle(.secondary)
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("总消费").font(.caption2).foregroundStyle(.secondary)
+                        Text("已录实付").font(.caption2).foregroundStyle(.secondary)
                         Text(showTotalPrice ? totalSpent.formatted(.currency(code: "CNY").precision(.fractionLength(0))) : "金额已隐藏")
                             .font(.system(size: 22, weight: .semibold, design: .rounded)).monospacedDigit()
                             .foregroundStyle(colorScheme == .dark ? skinManager.current.accentColorDark : skinManager.current.accentColor)
@@ -218,7 +221,7 @@ struct AttributeSettingsScreen: View {
         ScrollView {
             VStack(spacing: 12) {
                 NavigationLink { BrandManageScreen() } label: { SettingsMenuCard(title: "品牌", subtitle: "管理衣橱品牌", symbol: "tag", color: .pink) }
-                NavigationLink { CategoryManageScreen() } label: { SettingsMenuCard(title: "分类", subtitle: "服饰与配饰类型", symbol: "square.grid.2x2", color: .purple) }
+                NavigationLink { CategoryManageScreen() } label: { SettingsMenuCard(title: "分类", subtitle: "服饰与配饰类型", symbol: "square.grid.2x2", color: .purple) }.accessibilityIdentifier("category-management")
                 NavigationLink { StyleManageScreen() } label: { SettingsMenuCard(title: "风格", subtitle: "搭配风格与偏好", symbol: "sparkles", color: .orange) }
                 NavigationLink { SeasonManageScreen() } label: { SettingsMenuCard(title: "季节", subtitle: "服饰适用季节", symbol: "leaf", color: .green) }
                 NavigationLink { LocationManageScreen() } label: { SettingsMenuCard(title: "位置", subtitle: "衣柜与收纳位置", symbol: "archivebox", color: .teal) }
@@ -250,6 +253,7 @@ struct AttributeRow: Identifiable, Sendable {
     var id: Int64
     var name: String
     var group: CategoryGroup?
+    var semantic: CategorySemantic = .unconfirmed
 }
 
 @MainActor
@@ -271,7 +275,7 @@ final class AttributeManageViewModel: ObservableObject {
         AsyncStream { continuation in
             let observation = ValueObservation.tracking { @Sendable db in
                 try Row.fetchAll(db, sql: "SELECT * FROM \(kind.table) ORDER BY name").map { row in
-                    AttributeRow(id: row["id"], name: row["name"], group: kind == .category ? row["group"] : nil)
+                    AttributeRow(id: row["id"], name: row["name"], group: kind == .category ? row["group"] : nil, semantic: kind == .category ? row["categorySemantic"] : .unconfirmed)
                 }
             }
             let token = observation.start(in: queue, onError: { _ in continuation.finish() }, onChange: { continuation.yield($0) })
@@ -279,7 +283,7 @@ final class AttributeManageViewModel: ObservableObject {
         }
     }
 
-    func save(kind: AttributeKind, original: AttributeRow?, name: String, group: CategoryGroup) async throws {
+    func save(kind: AttributeKind, original: AttributeRow?, name: String, group: CategoryGroup, semantic: CategorySemantic? = nil) async throws {
         let name = try kind == .season ? SeasonRepository.validatedName(name) : InputValidation.name(name)
         try await queue.write { db in
             if let original {
@@ -290,10 +294,12 @@ final class AttributeManageViewModel: ObservableObject {
                     try db.execute(sql: "UPDATE items SET \(reference) = ?, updatedAt = ? WHERE \(reference) = ?", arguments: [name, Int64(Date().timeIntervalSince1970 * 1000), original.name])
                 }
                 if kind == .category { try db.execute(sql: "UPDATE categories SET \"group\" = ? WHERE id = ?", arguments: [group.rawValue, original.id]) }
+                if kind == .category, let semantic { try db.execute(sql: "UPDATE categories SET categorySemantic = ? WHERE id = ?", arguments: [semantic.rawValue, original.id]) }
             } else {
                 let now = Int64(Date().timeIntervalSince1970 * 1000)
                 if kind == .category {
                     try db.execute(sql: "INSERT INTO categories(name, \"group\", isPreset, createdAt) VALUES (?, ?, 0, ?)", arguments: [name, group.rawValue, now])
+                    if let semantic { try db.execute(sql: "UPDATE categories SET categorySemantic = ? WHERE id = ?", arguments: [semantic.rawValue, db.lastInsertedRowID]) }
                 } else {
                     try db.execute(sql: "INSERT INTO \(kind.table)(name, isPreset, createdAt) VALUES (?, 0, ?)", arguments: [name, now])
                 }
@@ -319,6 +325,7 @@ struct AttributeManageScreen: View {
     @State private var editing: AttributeRow?
     @State private var name = ""
     @State private var group: CategoryGroup = .clothing
+    @State private var semantic: CategorySemantic = .unconfirmed
     @State private var showEditor = false
     @State private var error: String?
     @State private var search = ""
@@ -327,7 +334,7 @@ struct AttributeManageScreen: View {
         List {
             ForEach(vm.rows.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) }) { row in
                 Button {
-                    editing = row; name = row.name; group = row.group ?? .clothing; showEditor = true
+                    editing = row; name = row.name; group = row.group ?? .clothing; semantic = row.semantic; showEditor = true
                 } label: {
                     HStack { Text(row.name).foregroundStyle(.primary); Spacer(); Image(systemName: "pencil").foregroundStyle(.secondary) }
                 }
@@ -340,12 +347,14 @@ struct AttributeManageScreen: View {
         }
         .searchable(text: $search, prompt: "搜索\(kind.rawValue)")
         .lolitaNavBar(title: "\(kind.rawValue)管理", showBack: true)
-        .toolbar { ToolbarItem { Button("添加") { editing = nil; name = ""; group = .clothing; showEditor = true } } }
+        .toolbar { ToolbarItem { Button("添加") { editing = nil; name = ""; group = .clothing; semantic = .unconfirmed; showEditor = true } } }
         .sheet(isPresented: $showEditor) {
             NavigationStack {
                 Form {
                     TextField("名称", text: $name)
                     if kind == .category {
+                        Picker("稳定品类", selection: $semantic) { ForEach(CategorySemantic.allCases, id: \.self) { Text($0.label).tag($0) } }
+                        Text("显示名称可以修改；稳定品类决定专属规格，重命名不会自动改类型。").font(.caption).foregroundStyle(.secondary)
                         Picker("分组", selection: $group) { Text("服装").tag(CategoryGroup.clothing); Text("配饰").tag(CategoryGroup.accessory) }
                     }
                 }
@@ -355,7 +364,7 @@ struct AttributeManageScreen: View {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("保存") {
                             Task {
-                                do { try await vm.save(kind: kind, original: editing, name: name, group: group); showEditor = false }
+                                do { try await vm.save(kind: kind, original: editing, name: name, group: group, semantic: kind == .category ? semantic : nil); showEditor = false }
                                 catch { self.error = userFacingError(error) }
                             }
                         }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -375,16 +384,23 @@ struct AttributeManageScreen: View {
 
 struct LocationManageScreen: View {
     @State private var locations: [Location] = []
+    @State private var deleting: Location?
     @State private var error: String?
     var body: some View {
         List(locations, id: \.id) { location in
             NavigationLink(location.name) { LocationDetailScreen(locationId: location.id) }
                 .swipeActions {
                     Button("删除", role: .destructive) {
-                        Task { do { try await AppModule.shared.locationRepository.delete(location) } catch { self.error = userFacingError(error) } }
+                        deleting = location
                     }
                 }
         }
+        .confirmationDialog("删除房间及全部下级收纳位置？", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
+            Button("删除位置，物品移至未设置", role: .destructive) {
+                guard let location = deleting else { return }
+                Task { do { try await AppModule.shared.locationRepository.delete(location, clearContents: true); deleting = nil } catch { self.error = userFacingError(error) } }
+            }
+        } message: { Text("物品、账本和照片都会保留，只清除存放位置。") }
         .lolitaNavBar(title: "位置管理", showBack: true)
         .toolbar { ToolbarItem { NavigationLink(destination: LocationEditScreen()) { Image(systemName: "plus") } } }
         .task { for await value in AppModule.shared.locationRepository.observeAll() { locations = value } }

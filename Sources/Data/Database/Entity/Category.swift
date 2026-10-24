@@ -8,15 +8,18 @@ struct Category: Codable, Sendable, FetchableRecord, MutablePersistableRecord {
     var isPreset: Bool = false
     var createdAt: Int64 = Int64(Date().timeIntervalSince1970 * 1000)
 
+    var categorySemantic: CategorySemantic = .unconfirmed
+
     static let databaseTableName = "categories"
 
     enum Columns: String, ColumnExpression {
-        case id, name, group, isPreset, createdAt
+        case id, name, group, isPreset, createdAt, categorySemantic
     }
 
     // Room treats 0 as an unset ID; SQLite/GRDB needs NULL to generate one.
     func encode(to container: inout PersistenceContainer) throws {
         container["id"] = id == 0 ? nil : id
+        container["categorySemantic"] = categorySemantic
         container["name"] = name
         container["group"] = group
         container["isPreset"] = isPreset

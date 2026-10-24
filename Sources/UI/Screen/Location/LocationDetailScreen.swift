@@ -27,6 +27,10 @@ struct LocationDetailScreen: View {
                     if let description = viewModel.location?.description, !description.isEmpty {
                         LolitaSection(title: "位置说明") { Text(description).font(.body).fixedSize(horizontal: false, vertical: true) }
                     }
+                    if !viewModel.isUnassigned {
+                        NavigationLink("管理分层收纳") { StorageManageScreen(roomId: viewModel.locationId) }
+                            .accessibilityIdentifier("manage-storage")
+                    }
                     HStack {
                         Text(viewModel.isUnassigned ? "待分配服饰" : "存放服饰").font(.headline)
                         Spacer()
@@ -72,7 +76,7 @@ struct LocationDetailScreen: View {
                     catch { operationError = userFacingError(error) }
                 }
             }
-        } message: { Text("服饰会保留，并转到未分配位置。") }
+        } message: { Text("房间及下级收纳位置将删除；物品、账本和照片会保留，并移至未设置位置。") }
         .alert("操作失败", isPresented: Binding(get: { operationError != nil }, set: { if !$0 { operationError = nil } })) {
             Button("确定") { operationError = nil }
         } message: { Text(operationError ?? "") }
@@ -107,6 +111,7 @@ private struct LocationDetailItemPicker: View {
     }
     private var candidates: [Item] {
         (viewModel.isUnassigned ? viewModel.items : viewModel.allItems)
+            .filter { $0.status == .owned || selectedIds.contains($0.id) }
             .filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) || (viewModel.brandNames[$0.brandId] ?? "").localizedCaseInsensitiveContains(search) }
     }
 

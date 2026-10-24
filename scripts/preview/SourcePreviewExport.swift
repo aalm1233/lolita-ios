@@ -30,6 +30,7 @@ final class SourcePreviewExport: XCTestCase {
         skin.current = SkinManager.create(type)
         skin.currentSkinType = type
         let boards: [(String, AnyView)] = [
+            ("order-ledger", AnyView(OrderLedgerPreviewContent())),
             ("wardrobe", AnyView(WardrobePreviewContent())),
             ("home-search", AnyView(HomeSearchPreviewContent())),
             ("outfits", AnyView(OutfitListPreviewContent())),
@@ -42,6 +43,7 @@ final class SourcePreviewExport: XCTestCase {
             ("themes", AnyView(ThemePreviewContent()))
         ]
         for (name, board) in boards {
+            if let scene = ProcessInfo.processInfo.environment["LOLITA_PREVIEW_SCENE"], scene != name { continue }
             let content = VStack(alignment: .leading, spacing: 16) {
                 Text("源码组件预览 · \(Int(width)) pt\(largeText ? " · 辅助字号布局" : "")")
                     .font(.caption).foregroundStyle(.secondary)
@@ -276,6 +278,26 @@ private struct ThemePreviewContent: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("主题选择").font(.title2.weight(.semibold))
             SkinPreviewGrid(selectedType: .default)
+        }
+    }
+}
+
+private struct OrderLedgerPreviewContent: View {
+    private var order: OrderSnapshot {
+        OrderSnapshot(price: Price(id: 1, itemId: 1, type: .multiStage, totalPrice: 1234.56, shipping: 12, purchaseRecordStatus: .tracked),
+            binding: OrderBinding(itemId: 1, priceId: 1),
+            stages: [PaymentStage(id: 1, priceId: 1, name: "定金", amount: 200), PaymentStage(id: 2, priceId: 1, name: "尾款", amount: 1034.56)],
+            payments: [Payment(id: 1, priceId: 1, amount: 120, dueDate: 1000, isPaid: true, paidDate: 1000)])
+    }
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("订单与账本").font(.headline)
+            OrderLedgerSummary(order: order)
+            OrderLedgerSummary(order: order, showAmount: false)
+            LolitaSection(title: "历史购买资料待核对") {
+                Text("原账本、照片和付款日期全部保留，确认历史已购不会补造实付。")
+                    .font(.subheadline).fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }

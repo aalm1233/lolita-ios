@@ -1,76 +1,59 @@
 import SwiftUI
 
 struct PriceManageScreen: View {
-    @State private var deleteError: String?
-    @EnvironmentObject var skinManager: SkinManager
+    @AppStorage("showTotalPrice") private var showAmount = true
     @StateObject private var viewModel: PriceManageViewModel
-
-    init(itemId: Int64) {
-        _viewModel = StateObject(wrappedValue: PriceManageViewModel(itemId: itemId))
-    }
+    init(itemId: Int64) { _viewModel = StateObject(wrappedValue: PriceManageViewModel(itemId: itemId)) }
 
     var body: some View {
-        Group {
-            if viewModel.prices.isEmpty {
-                LolitaEmptyState(title: "暂无价格记录", message: "点击右上角 + 添加全款或定金与尾款。", systemImage: "yensign.circle")
-            } else {
-                List {
-                    ForEach(viewModel.prices, id: \.id) { price in
-                        NavigationLink(destination: PaymentManageScreen(priceId: price.id)) {
-                            PriceRow(price: price)
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                Task {
-                                    do { try await viewModel.delete(price) } catch { deleteError = userFacingError(error) }
-                                }
-                            } label: {
-                                Label("删除", systemImage: "trash")
-                            }
-                        }
+        ScrollView {
+            VStack(spacing: 16) {
+                if viewModel.isLoading { ProgressView("正在读取订单…") }
+                if let error = viewModel.error { Text(error).foregroundStyle(.red) }
+                if viewModel.isShared {
+                    LolitaSection(title: "共用主件订单") {
+                        Text("这件小物的价格已包含在主件中，付款在主件记一次。")
+                        NavigationLink("查看主件", destination: ItemDetailScreen(itemId: viewModel.ownerId))
                     }
                 }
-            }
-        }
-        .alert("删除失败", isPresented: Binding(get: { deleteError != nil }, set: { if !$0 { deleteError = nil } })) {
-            Button("确定") { deleteError = nil }
-        } message: { Text(deleteError ?? "") }
-        .lolitaNavBar(title: "价格管理", showBack: true)
-#if os(iOS)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                NavigationLink(destination: PriceEditScreen(itemId: viewModel.itemId)) {
-                    Image(systemName: "plus")
-                }
-            }
-        }
-#endif
-        .onAppear { Task { await viewModel.load() } }
-    }
-}
-
-private struct PriceRow: View {
-    let price: Price
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(price.type == .full ? "全款" : "定金+尾款")
-                    .font(.subheadline.weight(.medium))
-                Text(String(format: "¥%.2f", price.totalPrice))
-                    .font(.title3.weight(.bold))
-                    .monospacedDigit()
-                if price.type == .depositBalance {
-                    VStack(alignment: .leading, spacing: 4) {
-                        if let d = price.deposit { Text("定金 ¥\(String(format: "%.2f", d))") }
-                        if let b = price.balance { Text("尾款 ¥\(String(format: "%.2f", b))") }
+                if let current = viewModel.orders.first(where: \.isCurrent) {
+                    LolitaSection(title: "当前订单") { orderLink(current) }
+                } else if !viewModel.isLoading, viewModel.error == nil {
+                    LolitaSection(title: "当前订单") {
+                        Text(viewModel.orders.isEmpty ? "尚未建立购买订单。" : "请选择原账本中的当前订单，或明确建立一笔新购买。")
+                            .foregroundStyle(.secondary)
+                        NavigationLink("建立购买订单", destination: PriceEditScreen(itemId: viewModel.ownerId))
                     }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+                let historical = viewModel.orders.filter { !$0.isCurrent }
+                if !historical.isEmpty {
+                    LolitaSection(title: "原账本与历史订单") {
+                        Text("历史金额和付款保留；未选为当前的计划不计入待付，也不发送提醒。")
+                            .font(.caption).foregroundStyle(.secondary)
+                        ForEach(historical) { order in orderLink(order) }
+                    }
+                }
+            }.padding(16)
         }
-        .padding(.vertical, 4)
+        .lolitaNavBar(title: "购买订单", showBack: true)
+        .task { await viewModel.observe() }
     }
+
+    private func orderLink(_ order: OrderSnapshot) -> some View {
+        NavigationLink { PaymentManageScreen(priceId: order.id) } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(order.price.type.displayName).font(.headline)
+                    Spacer()
+                    Image(systemName: "chevron.right").foregroundStyle(.secondary)
+                }
+                Text(money(order.price.totalPrice)).font(.title3).monospacedDigit()
+                Text("已录实付 \(money(order.paidAmount))").font(.subheadline)
+                Text(order.cancellation != nil ? "已取消购买 · 原账本保留" : order.isTracked ? "待付 \(money(order.remainingAmount ?? 0))" : order.price.purchaseRecordStatus == .historicalOwned ? "历史已购 · 付款资料可能不完整" : "购买关系待核对")
+                    .font(.caption).foregroundStyle(.secondary)
+            }.foregroundStyle(.primary).padding(.vertical, 8)
+        }
+        .accessibilityIdentifier("order-\(order.id)")
+    }
+    private func money(_ value: Double) -> String { showAmount ? detailMoney(value) : "金额已隐藏" }
 }

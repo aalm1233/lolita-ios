@@ -21,6 +21,7 @@ struct PaymentCalendarScreen: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
+                NavigationLink("月预算与年度付款", destination: FinanceOverviewScreen(month: viewModel.currentMonth))
                 summaryBar
                 LolitaCard(variant: .gallery) {
                     VStack(spacing: 12) {
@@ -166,10 +167,10 @@ struct PaymentCalendarScreen: View {
                         }
                         HStack(spacing: 16) {
                             NavigationLink { PaymentEditScreen(priceId: payment.priceId, paymentId: payment.paymentId) } label: {
-                                Label("编辑付款", systemImage: "pencil")
+                                Label(payment.isPaid ? "更正付款" : "记录真实付款", systemImage: "pencil")
                             }
                             Spacer()
-                            if !payment.isPaid {
+                            if !payment.isPaid && payment.stageId == nil {
                                 Button {
                                     mutationId = payment.paymentId
                                     Task {

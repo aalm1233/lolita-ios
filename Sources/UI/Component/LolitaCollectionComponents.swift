@@ -416,7 +416,7 @@ struct LolitaCollectionControls: View {
 }
 
 func lolitaPriceLabel(_ amount: Double) -> String {
-    "¥" + amount.formatted(.number.precision(.fractionLength(0...2)))
+    "¥" + amount.formatted(.number.precision(.fractionLength(2)))
 }
 
 struct LolitaCollectionGrid<Content: View>: View {
@@ -495,6 +495,8 @@ struct LolitaItemStatus: View {
     var text: String {
         switch item.status {
         case .owned: return "已拥有"
+        case .pendingPayment: return "待付款"
+        case .pendingReview: return "待核对"
         case .pendingBalance: return "待尾款"
         case .wished:
             switch item.priority { case .high: return "高优先"; case .medium: return "中优先"; case .low: return "低优先" }
@@ -524,7 +526,7 @@ struct ItemCollectionCard: View {
                 VStack(alignment: .leading, spacing: 0) {
                     LolitaCollectionImage(path: item.imageUrls.values.first, title: item.name, symbol: "tshirt", ratio: mode == .gallery ? 0.75 : 0.8)
                         .overlay(alignment: .topTrailing) {
-                            if let price, price > 0 { LolitaImageLabel(text: lolitaPriceLabel(price)).padding(7) }
+                            if let price { LolitaImageLabel(text: lolitaPriceLabel(price)).padding(7) }
                         }
                         .overlay(alignment: .bottomLeading) {
                             if mode == .gallery {
@@ -585,7 +587,7 @@ struct CoordinateCollectionCard: View {
                                           title: coordinate.name, symbol: "photo.on.rectangle.angled")
                         .overlay(alignment: .topLeading) { LolitaImageLabel(text: "\(items.count) 件").padding(7) }
                         .overlay(alignment: .topTrailing) {
-                            if let price, price > 0 { LolitaImageLabel(text: lolitaPriceLabel(price)).padding(7) }
+                            if let price { LolitaImageLabel(text: lolitaPriceLabel(price)).padding(7) }
                         }
                     information.padding(9)
                 }
@@ -599,7 +601,7 @@ struct CoordinateCollectionCard: View {
             if !coordinate.description.isEmpty { Text(coordinate.description).font(.caption).foregroundStyle(.secondary).lineLimit(2) }
             HStack(spacing: 8) {
                 Text("\(items.count) 件服饰").font(.caption2).foregroundStyle(.secondary)
-                if mode == .list, let price, price > 0 { Text(lolitaPriceLabel(price)).font(.caption.weight(.semibold)).foregroundStyle(.primary) }
+                if mode == .list, let price { Text(lolitaPriceLabel(price)).font(.caption.weight(.semibold)).foregroundStyle(.primary) }
             }
             if !items.isEmpty { LolitaLinkedItemImages(items: items) }
         }

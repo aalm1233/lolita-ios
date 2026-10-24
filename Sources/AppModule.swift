@@ -73,6 +73,13 @@ final class AppModule: @unchecked Sendable {
         PaymentRepository(db: db.dbQueue)
     }()
 
+    lazy var orderRepository: OrderRepository = { OrderRepository(db: db.dbQueue) }()
+
+    lazy var afterSaleRepository = AfterSaleRepository(db: db.dbQueue)
+    lazy var storageRepository = StorageRepository(db: db.dbQueue)
+    lazy var itemDraftRepository = ItemDraftRepository(db: db.dbQueue)
+    lazy var financeRepository = FinanceRepository(db: db.dbQueue)
+
     @MainActor lazy var paymentReminderService = PaymentReminderService(repository: paymentRepository)
 
     // MARK: - Preset seeding

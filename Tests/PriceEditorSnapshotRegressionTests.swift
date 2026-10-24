@@ -47,7 +47,9 @@ final class PriceEditorSnapshotRegressionTests: XCTestCase {
         XCTAssertEqual(stored?.type, .full)
         XCTAssertEqual(stored?.totalPrice, 500)
         let payments = try await queue.read { @Sendable db in try Payment.filter(Payment.Columns.priceId == price.id).fetchAll(db) }
-        XCTAssertEqual(payments.map(\.amount), [500])
+        XCTAssertTrue(payments.isEmpty, "改计划不能伪造实付")
+        let stages = try await queue.read { @Sendable db in try PaymentStage.filter(Column("priceId") == price.id).fetchAll(db) }
+        XCTAssertEqual(stages.map(\.amount), [500])
     }
 
     @MainActor

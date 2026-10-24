@@ -50,7 +50,13 @@ final class CoordinateDetailViewModel: ObservableObject {
     }
 
     var imageUrls: [URL] { coordinate?.imageUrls.values.filter { !$0.isEmpty }.map { ImageFileHelper.fileURL(for: $0) } ?? [] }
-    var totalPrice: Double { pricesByItem.values.flatMap { $0 }.reduce(0) { $0 + $1.price.totalPrice } }
+    var totalPrice: Double {
+        let rows = pricesByItem.values.flatMap { $0 }
+        let values = OrderAccounting.displayAmounts(prices: rows.map(\.price), bindings: rows.filter(\.isCurrent).map {
+            OrderBinding(itemId: $0.price.itemId, priceId: $0.id, purchaseRecordStatus: $0.price.purchaseRecordStatus)
+        }, stages: rows.flatMap(\.stages))
+        return (try? OrderAccounting.sum(Array(values.values))) ?? 0
+    }
     var paidAmount: Double { pricesByItem.values.flatMap { $0 }.reduce(0) { $0 + $1.paidAmount } }
     var unpaidAmount: Double { pricesByItem.values.flatMap { $0 }.reduce(0) { $0 + $1.unpaidAmount } }
 

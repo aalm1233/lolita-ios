@@ -879,7 +879,8 @@
       "isa": "PBXGroup",
       "children": [
         "D7888B5850A784E15C857336",
-        "9C690B8FF889773632F48D8C"
+        "9C690B8FF889773632F48D8C",
+        "BF5BCA00323F3D7D4CC71D8F"
       ],
       "name": "Database",
       "path": "Data/Database",
@@ -899,7 +900,10 @@
         "0262A00CEE245794B07F34FA",
         "8A308EE71A1FA5C4C72C2CFE",
         "955C39CA5239AF67C5444C4E",
-        "378CA2A9C1A7EA19501A1F5B"
+        "378CA2A9C1A7EA19501A1F5B",
+        "94005D85D709735E2FFF930D",
+        "B8B75FF71B301D392ED06772",
+        "488A687F94D4EF55960C3868"
       ],
       "name": "Entity",
       "path": "Data/Database/Entity",
@@ -947,7 +951,12 @@
         "5FBDA7D4AA46F3A6AD4D4A04",
         "E49BA467E8EBAAE4482A7ED8",
         "4F51640B3A09EAB00449D180",
-        "D819C438516EEAE08C80DB43"
+        "D819C438516EEAE08C80DB43",
+        "84BBC6ADF075A64370F397A8",
+        "1A79A2FD634988E9E1F87ED6",
+        "CDF13C292132C47EB592AE47",
+        "B750C50A4A034C018080B7A7",
+        "0835C6B1A5E8FD52B12758E0"
       ],
       "name": "Repository",
       "path": "Data/Repository",
@@ -956,7 +965,9 @@
     "484E9A2BDE5D4D8D5E07F5C2": {
       "isa": "PBXGroup",
       "children": [
-        "A0981C98864A0A9265346D4B"
+        "A0981C98864A0A9265346D4B",
+        "6C781C951305B54B957814F4",
+        "376DF62B0A1ED351DB834E25"
       ],
       "name": "Domain",
       "path": "Domain",
@@ -973,7 +984,9 @@
         "6352103A99B013318517E84C",
         "417543181255C0B569E2BADE",
         "3661F8506FA349D396287238",
-        "DDA9E07C3116F8F3B7A87D58"
+        "DDA9E07C3116F8F3B7A87D58",
+        "41FB664F95EBB0911B39320F",
+        "061D35EDFF7F2AFF6AD84DB9"
       ],
       "name": "Component",
       "path": "UI/Component",
@@ -1022,7 +1035,8 @@
         "83BBCA0208E421CF3A93464A",
         "8E8FC62847BF5FD52ECB0613",
         "6D810E7427E0C3947F078C3E",
-        "56416F3D37B23567DBB5D001"
+        "56416F3D37B23567DBB5D001",
+        "1CC33A31C53D97D51974059F"
       ],
       "name": "Location",
       "path": "UI/Screen/Location",
@@ -1056,7 +1070,9 @@
         "E9F597DEEFEF3CF33DAA7C9D",
         "F9C04D9363C9A71BBB3EEF0C",
         "82FC5F6FD92C6AB50EAC2E36",
-        "D71034553F38C82804C63CFC"
+        "D71034553F38C82804C63CFC",
+        "2500BB53F2737C5A4224CCCB",
+        "ECDA47BC44F8B86C10459A1D"
       ],
       "name": "Payment",
       "path": "UI/Screen/Payment",
@@ -1148,7 +1164,8 @@
       "isa": "PBXGroup",
       "children": [
         "1C1E900B1688C0CF62E1EF28",
-        "1DB99955E9C260D14FCAF587"
+        "1DB99955E9C260D14FCAF587",
+        "22435ECAA7FEC92E64C2E1AA"
       ],
       "name": "Products",
       "sourceTree": "<group>"
@@ -1158,7 +1175,9 @@
       "children": [
         "D82CF0993E2E6D908A7630B1",
         "7C7A71D1AA87D0AFC3FED78B",
-        "217EBCF00E890B8889F940C6"
+        "217EBCF00E890B8889F940C6",
+        "D7EFEE6616D9FADD731A0C58",
+        "FB2DFBFCB0CE385FBC86C1B9"
       ],
       "sourceTree": "<group>"
     },
@@ -1273,7 +1292,23 @@
         "2604FDC444A35D8D7380F557",
         "0FAD9C217735FB4B80C5DF9E",
         "B68DFFE0E7922215D27B14AE",
-        "65B5C86567B327E3AF1FE49A"
+        "65B5C86567B327E3AF1FE49A",
+        "D5A114EDD0EE0F56BE9A9EAD",
+        "832418CA1FF83CEA5727B032",
+        "F2DC609BD1FDEC2BAE847065",
+        "C8EFA2EF349BFBC4F5211AAA",
+        "C9A9CA2CFA7DBD551A07A35C",
+        "47E95E366FB311BEDF9682DB",
+        "C79C52064EC9E80110A119D3",
+        "EFC1896E0D70F2ECF9C48188",
+        "35C9AA3548BDFE0427C8D338",
+        "A3A901C2881B30F54877A8E6",
+        "EF7AAAABD98A57A894B098AA",
+        "93948588A23483D0E27BC5AD",
+        "D535232C66E4F898EFF6CF6E",
+        "D759CCE98F2F6720AAA29A21",
+        "BB6FA8C5130C6D8AC2B4F304",
+        "E4B462D9A11AD5E758944D15"
       ],
       "runOnlyForDeploymentPostprocessing": "0"
     },
@@ -1460,6 +1495,10 @@
                 "enabled": "1"
               }
             }
+          },
+          "D27190BEADC97D2181B6B853": {
+            "CreatedOnToolsVersion": "26.5",
+            "TestTargetID": "7E8FD449E05734D259F4417F"
           }
         }
       },
@@ -1482,7 +1521,8 @@
       "projectRoot": "",
       "targets": [
         "7E8FD449E05734D259F4417F",
-        "3035E744984E19FED7D2F79D"
+        "3035E744984E19FED7D2F79D",
+        "D27190BEADC97D2181B6B853"
       ]
     },
     "BABBF126756E4A709B7CD5C1": {
@@ -1908,6 +1948,328 @@
       ],
       "name": "Embed App Extensions",
       "runOnlyForDeploymentPostprocessing": "0"
+    },
+    "94005D85D709735E2FFF930D": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Order.swift",
+      "sourceTree": "<group>"
+    },
+    "D5A114EDD0EE0F56BE9A9EAD": {
+      "isa": "PBXBuildFile",
+      "fileRef": "94005D85D709735E2FFF930D"
+    },
+    "BF5BCA00323F3D7D4CC71D8F": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "OrderMigration.swift",
+      "sourceTree": "<group>"
+    },
+    "832418CA1FF83CEA5727B032": {
+      "isa": "PBXBuildFile",
+      "fileRef": "BF5BCA00323F3D7D4CC71D8F"
+    },
+    "6C781C951305B54B957814F4": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "OrderAccounting.swift",
+      "sourceTree": "<group>"
+    },
+    "F2DC609BD1FDEC2BAE847065": {
+      "isa": "PBXBuildFile",
+      "fileRef": "6C781C951305B54B957814F4"
+    },
+    "84BBC6ADF075A64370F397A8": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "OrderRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "C8EFA2EF349BFBC4F5211AAA": {
+      "isa": "PBXBuildFile",
+      "fileRef": "84BBC6ADF075A64370F397A8"
+    },
+    "6F507C740484AEE57321E065": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "OrderLedgerUITests.swift",
+      "sourceTree": "<group>"
+    },
+    "5A7BD677253DD6846531E3A0": {
+      "isa": "PBXBuildFile",
+      "fileRef": "6F507C740484AEE57321E065"
+    },
+    "D7EFEE6616D9FADD731A0C58": {
+      "isa": "PBXGroup",
+      "children": [
+        "6F507C740484AEE57321E065",
+        "F4E01919EBEC6AB457A206C9",
+        "46E3FB04FDE7D4E37D8687D6"
+      ],
+      "path": "UITests",
+      "sourceTree": "<group>"
+    },
+    "22435ECAA7FEC92E64C2E1AA": {
+      "isa": "PBXFileReference",
+      "explicitFileType": "wrapper.cfbundle",
+      "includeInIndex": "0",
+      "path": "LolitaUITests.xctest",
+      "sourceTree": "BUILT_PRODUCTS_DIR"
+    },
+    "ED2CE31709BDC49223F22062": {
+      "isa": "PBXSourcesBuildPhase",
+      "buildActionMask": "2147483647",
+      "files": [
+        "5A7BD677253DD6846531E3A0",
+        "C4CC18DB9C3D778362B1768C",
+        "40245DFDAB75DB9EA489C928"
+      ],
+      "runOnlyForDeploymentPostprocessing": "0"
+    },
+    "E21D25BA87AC8C4448B262F5": {
+      "isa": "PBXFrameworksBuildPhase",
+      "buildActionMask": "2147483647",
+      "files": [],
+      "runOnlyForDeploymentPostprocessing": "0"
+    },
+    "F5B71617B1D48CD3655D88DB": {
+      "isa": "PBXResourcesBuildPhase",
+      "buildActionMask": "2147483647",
+      "files": [],
+      "runOnlyForDeploymentPostprocessing": "0"
+    },
+    "ADBA2D7CB5B6ED047F3C5068": {
+      "isa": "XCBuildConfiguration",
+      "name": "Debug",
+      "buildSettings": {
+        "CODE_SIGN_STYLE": "Automatic",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
+        "PRODUCT_BUNDLE_IDENTIFIER": "com.lolita.ios.uitests",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SDKROOT": "iphoneos",
+        "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
+        "SWIFT_VERSION": "6.0",
+        "TARGETED_DEVICE_FAMILY": "1,2",
+        "TEST_TARGET_NAME": "Lolita",
+        "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"
+      }
+    },
+    "8C4EA792054642D8B6D47FD2": {
+      "isa": "XCBuildConfiguration",
+      "name": "Release",
+      "buildSettings": {
+        "CODE_SIGN_STYLE": "Automatic",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
+        "PRODUCT_BUNDLE_IDENTIFIER": "com.lolita.ios.uitests",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "SDKROOT": "iphoneos",
+        "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
+        "SWIFT_VERSION": "6.0",
+        "TARGETED_DEVICE_FAMILY": "1,2",
+        "TEST_TARGET_NAME": "Lolita",
+        "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @loader_path/Frameworks"
+      }
+    },
+    "32F00E7C808FC918FE47E22D": {
+      "isa": "XCConfigurationList",
+      "buildConfigurations": [
+        "ADBA2D7CB5B6ED047F3C5068",
+        "8C4EA792054642D8B6D47FD2"
+      ],
+      "defaultConfigurationIsVisible": "0",
+      "defaultConfigurationName": "Debug"
+    },
+    "56F131D1F88A9B51C49C0B6B": {
+      "isa": "PBXContainerItemProxy",
+      "containerPortal": "366F8106F2E6FA5C5333C87D",
+      "proxyType": "1",
+      "remoteGlobalIDString": "7E8FD449E05734D259F4417F",
+      "remoteInfo": "Lolita"
+    },
+    "E662A12EFD500B43DF9B291B": {
+      "isa": "PBXTargetDependency",
+      "target": "7E8FD449E05734D259F4417F",
+      "targetProxy": "56F131D1F88A9B51C49C0B6B"
+    },
+    "D27190BEADC97D2181B6B853": {
+      "isa": "PBXNativeTarget",
+      "buildConfigurationList": "32F00E7C808FC918FE47E22D",
+      "buildPhases": [
+        "ED2CE31709BDC49223F22062",
+        "E21D25BA87AC8C4448B262F5",
+        "F5B71617B1D48CD3655D88DB"
+      ],
+      "buildRules": [],
+      "dependencies": [
+        "E662A12EFD500B43DF9B291B"
+      ],
+      "name": "LolitaUITests",
+      "productName": "LolitaUITests",
+      "productReference": "22435ECAA7FEC92E64C2E1AA",
+      "productType": "com.apple.product-type.bundle.ui-testing"
+    },
+    "B8B75FF71B301D392ED06772": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "AfterSale.swift",
+      "sourceTree": "<group>"
+    },
+    "C9A9CA2CFA7DBD551A07A35C": {
+      "isa": "PBXBuildFile",
+      "fileRef": "B8B75FF71B301D392ED06772"
+    },
+    "1A79A2FD634988E9E1F87ED6": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "AfterSaleRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "47E95E366FB311BEDF9682DB": {
+      "isa": "PBXBuildFile",
+      "fileRef": "1A79A2FD634988E9E1F87ED6"
+    },
+    "CDF13C292132C47EB592AE47": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "FinanceRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "C79C52064EC9E80110A119D3": {
+      "isa": "PBXBuildFile",
+      "fileRef": "CDF13C292132C47EB592AE47"
+    },
+    "2500BB53F2737C5A4224CCCB": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "AfterSaleScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "EFC1896E0D70F2ECF9C48188": {
+      "isa": "PBXBuildFile",
+      "fileRef": "2500BB53F2737C5A4224CCCB"
+    },
+    "ECDA47BC44F8B86C10459A1D": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "FinanceOverviewScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "35C9AA3548BDFE0427C8D338": {
+      "isa": "PBXBuildFile",
+      "fileRef": "ECDA47BC44F8B86C10459A1D"
+    },
+    "F4E01919EBEC6AB457A206C9": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "AfterSaleUITests.swift",
+      "sourceTree": "<group>"
+    },
+    "C4CC18DB9C3D778362B1768C": {
+      "isa": "PBXBuildFile",
+      "fileRef": "F4E01919EBEC6AB457A206C9"
+    },
+    "41FB664F95EBB0911B39320F": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "LolitaEditorSaveBar.swift",
+      "sourceTree": "<group>"
+    },
+    "A3A901C2881B30F54877A8E6": {
+      "isa": "PBXBuildFile",
+      "fileRef": "41FB664F95EBB0911B39320F"
+    },
+    "0AF0EBAEF1073F555D227E3C": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "AfterSaleBudgetRegressionTests.swift",
+      "sourceTree": "<group>"
+    },
+    "FB2DFBFCB0CE385FBC86C1B9": {
+      "isa": "PBXGroup",
+      "path": "Tests",
+      "children": [
+        "0AF0EBAEF1073F555D227E3C",
+        "FAA4D6C52C9E7B5345A8A5BA"
+      ],
+      "sourceTree": "<group>"
+    },
+    "376DF62B0A1ED351DB834E25": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Wardrobe.swift",
+      "sourceTree": "<group>"
+    },
+    "EF7AAAABD98A57A894B098AA": {
+      "isa": "PBXBuildFile",
+      "fileRef": "376DF62B0A1ED351DB834E25"
+    },
+    "488A687F94D4EF55960C3868": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "WardrobeStorage.swift",
+      "sourceTree": "<group>"
+    },
+    "93948588A23483D0E27BC5AD": {
+      "isa": "PBXBuildFile",
+      "fileRef": "488A687F94D4EF55960C3868"
+    },
+    "B750C50A4A034C018080B7A7": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "StorageRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "D535232C66E4F898EFF6CF6E": {
+      "isa": "PBXBuildFile",
+      "fileRef": "B750C50A4A034C018080B7A7"
+    },
+    "0835C6B1A5E8FD52B12758E0": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "ItemDraftRepository.swift",
+      "sourceTree": "<group>"
+    },
+    "D759CCE98F2F6720AAA29A21": {
+      "isa": "PBXBuildFile",
+      "fileRef": "0835C6B1A5E8FD52B12758E0"
+    },
+    "061D35EDFF7F2AFF6AD84DB9": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "StoragePlacementPicker.swift",
+      "sourceTree": "<group>"
+    },
+    "BB6FA8C5130C6D8AC2B4F304": {
+      "isa": "PBXBuildFile",
+      "fileRef": "061D35EDFF7F2AFF6AD84DB9"
+    },
+    "1CC33A31C53D97D51974059F": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "StorageManageScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "E4B462D9A11AD5E758944D15": {
+      "isa": "PBXBuildFile",
+      "fileRef": "1CC33A31C53D97D51974059F"
+    },
+    "46E3FB04FDE7D4E37D8687D6": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "WardrobeUITests.swift",
+      "sourceTree": "<group>"
+    },
+    "40245DFDAB75DB9EA489C928": {
+      "isa": "PBXBuildFile",
+      "fileRef": "46E3FB04FDE7D4E37D8687D6"
+    },
+    "FAA4D6C52C9E7B5345A8A5BA": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "WardrobeStorageRegressionTests.swift",
+      "sourceTree": "<group>"
     }
   },
   "rootObject": "366F8106F2E6FA5C5333C87D"

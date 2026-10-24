@@ -4,9 +4,10 @@ import Foundation
 final class LolitaDatabase {
     let dbQueue: DatabaseQueue
 
-    init(path: String) throws {
+    init(path: String, migrationTarget: String? = nil) throws {
         dbQueue = try DatabaseQueue(path: path)
-        try migrator.migrate(dbQueue)
+        if let migrationTarget { try migrator.migrate(dbQueue, upTo: migrationTarget) }
+        else { try migrator.migrate(dbQueue) }
     }
 
     private var migrator: DatabaseMigrator {
@@ -209,6 +210,18 @@ final class LolitaDatabase {
 
         migrator.registerMigration("v4-import-order-keys") { db in
             try db.alter(table: "items") { t in t.add(column: "importOrderKeys", .text) }
+        }
+
+        migrator.registerMigration("v5-order-ledger") { @Sendable db in
+            try OrderMigration.install(db)
+        }
+
+        migrator.registerMigration("v6-after-sale-budget") { @Sendable db in
+            try AfterSaleMigration.install(db)
+        }
+
+        migrator.registerMigration("v7-wardrobe-storage") { @Sendable db in
+            try WardrobeMigration.install(db)
         }
 
         return migrator

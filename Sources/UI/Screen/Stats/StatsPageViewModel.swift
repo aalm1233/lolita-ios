@@ -11,6 +11,8 @@ enum StatsItemFilter: Hashable {
     var title: String {
         switch self {
         case .status(.owned): return "已拥有服饰"
+        case .status(.pendingPayment): return "待付款服饰"
+        case .status(.pendingReview): return "待核对服饰"
         case .status(.pendingBalance): return "待尾款服饰"
         case .status(.wished): return "愿望单"
         case .attribute(let dimension, let value, _): return "\(value) · \(dimension)"
@@ -35,9 +37,10 @@ enum StatsItemFilter: Hashable {
         var paidItems: Set<Int64> = []
         if case .paymentPeriod(let period) = self {
             var calendar = Calendar(identifier: .gregorian)
-            calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+            calendar.timeZone = .current
             for payment in payments where payment.isPaid {
-                let date = Date(timeIntervalSince1970: Double(payment.dueDate) / 1000)
+                guard let paidDate = payment.paidDate else { continue }
+                let date = Date(timeIntervalSince1970: Double(paidDate) / 1000)
                 let year = calendar.component(.year, from: date)
                 let month = calendar.component(.month, from: date)
                 let key = period.contains("Q") ? "\(year)-Q\((month - 1) / 3 + 1)" : String(format: "%04d-%02d", year, month)
@@ -48,7 +51,7 @@ enum StatsItemFilter: Hashable {
             switch self {
             case .status(let status): return item.status == status
             case .priority(let priority): return item.status == .wished && item.priority == priority
-            case .paymentPeriod: return item.status != .wished && paidItems.contains(item.id)
+            case .paymentPeriod: return paidItems.contains(item.id)
             case .attribute(let dimension, let value, let ownedOnly):
                 guard !ownedOnly || item.status == .owned else { return false }
                 return matches(item, dimension: dimension, value: value)
@@ -125,13 +128,17 @@ enum StatsAggregates {
 }
 
 private struct StatsCatalogFacts: Sendable {
+    let references: [ItemReferencePrice]
     var categories: [Category]
     var prices: [Price]
     var payments: [Payment]
+    var bindings: [OrderBinding]
+    var stages: [PaymentStage]
 }
 
 @MainActor
 final class StatsPageViewModel: ObservableObject {
+    @Published private(set) var references: [ItemReferencePrice] = []
     @Published private(set) var items: [Item] = []
     @Published private(set) var outfitLogs: [OutfitLog] = []
     @Published private(set) var coordinates: [Coordinate] = []
@@ -139,6 +146,8 @@ final class StatsPageViewModel: ObservableObject {
     @Published private(set) var categories: [Category] = []
     @Published private(set) var prices: [Price] = []
     @Published private(set) var payments: [Payment] = []
+    @Published private(set) var bindings: [OrderBinding] = []
+    @Published private(set) var stages: [PaymentStage] = []
     @Published private(set) var spendingBySeason: [StyleSpending] = []
     @Published private(set) var totalSpending: Double = 0
     @Published private(set) var mostExpensive: ItemWithSpending? = nil
@@ -180,6 +189,9 @@ final class StatsPageViewModel: ObservableObject {
                 self?.categories = facts.categories
                 self?.prices = facts.prices
                 self?.payments = facts.payments
+                self?.bindings = facts.bindings
+                self?.stages = facts.stages
+                self?.references = facts.references
             }
         })
         observationTasks.append(Task { [weak self, coordinateRepo] in
@@ -226,7 +238,8 @@ final class StatsPageViewModel: ObservableObject {
     nonisolated private static func observeCatalog(db: DatabaseQueue) -> AsyncStream<StatsCatalogFacts> {
         AsyncStream { continuation in
             let observation = ValueObservation.tracking { @Sendable db in
-                StatsCatalogFacts(categories: try Category.fetchAll(db), prices: try Price.fetchAll(db), payments: try Payment.fetchAll(db))
+                StatsCatalogFacts(references: try ItemReferencePrice.fetchAll(db), categories: try Category.fetchAll(db), prices: try Price.fetchAll(db), payments: try Payment.fetchAll(db),
+                                  bindings: try OrderBinding.fetchAll(db), stages: try PaymentStage.fetchAll(db))
             }
             let token = observation.start(in: db, onError: { _ in continuation.finish() }, onChange: { continuation.yield($0) })
             continuation.onTermination = { _ in token.cancel() }
@@ -250,12 +263,14 @@ final class StatsPageViewModel: ObservableObject {
             return MonthlySpending(yearMonth: key, totalSpending: amounts[key] ?? 0)
         }
     }
-    var pricesByItem: [Int64: Double] { Dictionary(grouping: prices, by: \.itemId).mapValues { $0.reduce(0) { $0 + $1.totalPrice } } }
+    var pricesByItem: [Int64: Double] { OrderAccounting.displayAmounts(prices: prices, bindings: bindings, stages: stages, references: references) }
 
     var totalItems: Int { items.count }
     var ownedCount: Int { items.filter { $0.status == .owned }.count }
     var wishedCount: Int { items.filter { $0.status == .wished }.count }
     var pendingCount: Int { items.filter { $0.status == .pendingBalance }.count }
+    var pendingPaymentCount: Int { items.filter { $0.status == .pendingPayment }.count }
+    var pendingReviewCount: Int { items.filter { $0.status == .pendingReview }.count }
     var wishlistFulfillmentRate: Double { StatsAggregates.fulfillmentRate(owned: ownedCount, wished: wishedCount) }
     var totalCoordinates: Int { coordinates.count }
     var totalOutfits: Int { outfitLogs.count }

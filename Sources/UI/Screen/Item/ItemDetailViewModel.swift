@@ -4,9 +4,15 @@ import SwiftUI
 struct DetailPriceSummary: Identifiable, Sendable {
     let price: Price
     let payments: [Payment]
+    var stages: [PaymentStage] = []
+    var isCurrent = false
     var id: Int64 { price.id }
     var paidAmount: Double { payments.filter(\.isPaid).reduce(0) { $0 + $1.amount } }
-    var unpaidAmount: Double { payments.filter { !$0.isPaid }.reduce(0) { $0 + $1.amount } }
+    var unpaidAmount: Double {
+        if isCurrent && price.purchaseRecordStatus == .tracked { return max(0, price.totalPrice - paidAmount) }
+        if !stages.isEmpty { return 0 }
+        return payments.filter { !$0.isPaid }.reduce(0) { $0 + $1.amount }
+    }
     var firstPaidDate: Int64? { payments.compactMap { $0.isPaid ? $0.paidDate : nil }.min() }
 }
 
@@ -35,7 +41,10 @@ enum DetailDataFactory {
             let priceIds = prices.map(\.id)
             let payments = try Payment.filter(priceIds.contains(Payment.Columns.priceId)).order(Payment.Columns.dueDate).fetchAll(db)
             let paymentsByPrice = Dictionary(grouping: payments, by: \.priceId)
-            return Dictionary(grouping: prices.map { DetailPriceSummary(price: $0, payments: paymentsByPrice[$0.id] ?? []) }, by: { $0.price.itemId })
+            let stages = Dictionary(grouping: try PaymentStage.fetchAll(db), by: \.priceId)
+            let current = Set(try OrderBinding.fetchAll(db).map(\.priceId))
+            return Dictionary(grouping: prices.map { DetailPriceSummary(price: $0, payments: paymentsByPrice[$0.id] ?? [],
+                stages: stages[$0.id] ?? [], isCurrent: current.contains($0.id)) }, by: { $0.price.itemId })
         }
     }
 }
@@ -48,9 +57,12 @@ struct DetailRecommendationGroup: Identifiable {
 
 @MainActor
 final class ItemDetailViewModel: ObservableObject {
+    @Published private(set) var reference: ItemReferencePrice?
+    @Published private(set) var ownerId: Int64 = 0
     @Published private(set) var item: Item?
     @Published private(set) var brandName = ""
     @Published private(set) var categoryName = ""
+    @Published private(set) var semantic: CategorySemantic = .unconfirmed
     @Published private(set) var locationName = ""
     @Published private(set) var coordinate: Coordinate?
     @Published private(set) var prices: [DetailPriceSummary] = []
@@ -86,17 +98,22 @@ final class ItemDetailViewModel: ObservableObject {
                 return
             }
             async let loadedCatalog = DetailDataFactory.catalog(db: db)
-            async let loadedPrices = DetailDataFactory.prices(itemIds: [itemId], db: db)
+            let owner = try await OrderRepository(db: db).owner(itemId: itemId)
+            self.ownerId = owner.id
+            reference = try await AfterSaleRepository(db: db).reference(itemId: owner.id)
+            async let loadedPrices = DetailDataFactory.prices(itemIds: [owner.id], db: db)
             let (catalog, prices) = try await (loadedCatalog, loadedPrices)
             let coordinate = if let id = value.coordinateId { try await coordinateRepo.getById(id) } else { nil as Coordinate? }
             guard !Task.isCancelled else { return }
             self.item = value
             self.catalog = catalog
-            self.prices = prices[itemId] ?? []
+            self.prices = prices[owner.id] ?? []
             self.coordinate = coordinate
             brandName = catalog.brandNames[value.brandId] ?? "未知品牌"
             categoryName = catalog.categoryNames[value.categoryId] ?? "未分类"
-            locationName = value.locationId.flatMap { catalog.locationNames[$0] } ?? "未分配"
+            semantic = catalog.categories.first(where: { $0.id == value.categoryId })?.categorySemantic ?? .unconfirmed
+            let nodes = try await StorageRepository(db: db).getAll()
+            locationName = StorageTree.path(roomId: value.locationId, nodeId: value.storageNodeId, rooms: catalog.locations, nodes: nodes)
         } catch {
             if !Task.isCancelled { errorMessage = userFacingError(error) }
         }

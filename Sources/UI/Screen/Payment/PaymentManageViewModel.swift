@@ -2,46 +2,32 @@ import SwiftUI
 
 @MainActor
 final class PaymentManageViewModel: ObservableObject {
-    @Published private(set) var payments: [Payment] = []
-    @Published private(set) var price: Price?
+    @Published private(set) var order: OrderSnapshot?
+    @Published private(set) var error: String?
+    @Published var isWorking = false
     let priceId: Int64
-
-    private let paymentRepo = AppModule.shared.paymentRepository
-    private let priceRepo = AppModule.shared.priceRepository
-
+    private let repository = AppModule.shared.orderRepository
     init(priceId: Int64) { self.priceId = priceId }
 
-    func load() async {
-        price = try? await priceRepo.getById(priceId)
-    }
-
-    private var observationTask: Task<Void, Never>?
-
-    func stopObserving() { observationTask?.cancel(); observationTask = nil }
-
-    func observe() {
-        guard observationTask == nil else { return }
-        observationTask = Task { [weak self, paymentRepo, priceId] in
-            for await ps in paymentRepo.getByPrice(priceId) {
+    func observe() async {
+        do {
+            let first = try await repository.get(priceId)
+            order = first
+            for await values in repository.observe(itemId: first.price.itemId) {
                 guard !Task.isCancelled else { return }
-                self?.payments = ps
+                order = values.first { $0.id == priceId }
             }
-        }
+        } catch { self.error = userFacingError(error) }
     }
 
-    var totalAmount: Double {
-        payments.reduce(0) { $0 + $1.amount }
+    func bind() async throws {
+        guard let order else { return }
+        try await repository.bindHistorical(itemId: order.price.itemId, priceId: priceId)
     }
-
-    var paidAmount: Double {
-        payments.filter(\.isPaid).reduce(0) { $0 + $1.amount }
+    func confirm(historical: Bool) async throws {
+        guard let order else { return }
+        try await repository.confirmPurchase(priceId: priceId, historicalOwned: historical, paymentsVerified: !historical, expected: order.fingerprint)
     }
-
-    var remainingAmount: Double {
-        totalAmount - paidAmount
-    }
-
-    func delete(_ payment: Payment) async throws {
-        try await paymentRepo.delete(payment)
-    }
+    func archive() async throws { try await repository.archive(priceId: priceId, expected: order?.fingerprint) }
+    func delete(_ payment: Payment) async throws { try await repository.deletePayment(payment.id, expected: order?.fingerprint) }
 }

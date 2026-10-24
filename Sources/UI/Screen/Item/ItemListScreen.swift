@@ -210,6 +210,8 @@ struct ItemListScreen: View {
                             Text("全部").tag(nil as ItemStatus?)
                             Text("已拥有").tag(ItemStatus.owned as ItemStatus?)
                             Text("待尾款").tag(ItemStatus.pendingBalance as ItemStatus?)
+                            Text("待付款").tag(ItemStatus.pendingPayment as ItemStatus?)
+                            Text("待核对").tag(ItemStatus.pendingReview as ItemStatus?)
                         }
                     }
                 }
@@ -232,7 +234,7 @@ struct ItemListScreen: View {
         [viewModel.brands.first { $0.id == viewModel.brandFilter }?.name,
          viewModel.categories.first { $0.id == viewModel.categoryFilter }?.name,
          viewModel.groupFilter.map { $0 == .clothing ? "服装" : "小物" },
-         viewModel.statusFilter.map { $0 == .owned ? "已拥有" : "待尾款" },
+         viewModel.statusFilter.map(\.displayName),
          viewModel.seasonFilter, viewModel.styleFilter, viewModel.colorFilter].compactMap { $0 }.joined(separator: " · ")
     }
 
@@ -281,7 +283,7 @@ struct ItemListScreen: View {
                                     }.padding(10)
                                 }
                             }
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(.plain).accessibilityIdentifier("location-\(location.id)")
                     }
                 }
             }
@@ -348,6 +350,7 @@ struct ItemListScreen: View {
                 NavigationLink(destination: ItemDetailScreen(itemId: item.id)) { itemCard(item) }
             }
         }.buttonStyle(.plain)
+        .accessibilityIdentifier("item-\(item.id)")
         .contextMenu {
             NavigationLink(destination: ItemDetailScreen(itemId: item.id)) { Label("查看详情", systemImage: "info.circle") }
             NavigationLink(destination: ItemEditScreen(itemId: item.id)) { Label("编辑", systemImage: "pencil") }
@@ -426,7 +429,7 @@ struct ItemRow: View {
                 if !metadata.isEmpty { Text(metadata).font(.caption2).foregroundStyle(.secondary).lineLimit(2) }
                 HStack(spacing: 8) {
                     LolitaItemStatus(item: item)
-                    if let price, price > 0 { Text(lolitaPriceLabel(price)).font(.caption.weight(.semibold)).foregroundStyle(.primary).monospacedDigit() }
+                    if let price { Text(lolitaPriceLabel(price)).font(.caption.weight(.semibold)).foregroundStyle(.primary).monospacedDigit() }
                 }
             }.frame(maxWidth: .infinity, alignment: .leading)
         }.padding(.vertical, showsDescription ? 0 : 6)

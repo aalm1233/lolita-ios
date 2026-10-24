@@ -45,9 +45,12 @@ struct ItemCollectionFilter {
 }
 
 private struct CollectionFacts: Sendable {
+    var references: [ItemReferencePrice]
     var prices: [Price]
     var outfitItems: [OutfitItemCrossRef]
     var logs: [OutfitLog]
+    var bindings: [OrderBinding]
+    var stages: [PaymentStage]
 }
 
 @MainActor
@@ -116,7 +119,7 @@ final class ItemListViewModel: ObservableObject {
         observationTasks.append(Task { [weak self, db] in
             for await facts in Self.observeFacts(db: db) {
                 guard !Task.isCancelled else { return }
-                self?.pricesByItem = Dictionary(grouping: facts.prices, by: \.itemId).mapValues { $0.reduce(0) { $0 + $1.totalPrice } }
+                self?.pricesByItem = OrderAccounting.displayAmounts(prices: facts.prices, bindings: facts.bindings, stages: facts.stages, references: facts.references)
                 self?.outfitItems = facts.outfitItems
                 self?.logs = facts.logs
             }
@@ -127,7 +130,8 @@ final class ItemListViewModel: ObservableObject {
     nonisolated private static func observeFacts(db: DatabaseQueue) -> AsyncStream<CollectionFacts> {
         AsyncStream { continuation in
             let observation = ValueObservation.tracking { @Sendable db in
-                CollectionFacts(prices: try Price.fetchAll(db), outfitItems: try OutfitItemCrossRef.fetchAll(db), logs: try OutfitLog.fetchAll(db))
+                CollectionFacts(references: try ItemReferencePrice.fetchAll(db), prices: try Price.fetchAll(db), outfitItems: try OutfitItemCrossRef.fetchAll(db), logs: try OutfitLog.fetchAll(db),
+                                bindings: try OrderBinding.fetchAll(db), stages: try PaymentStage.fetchAll(db))
             }
             let token = observation.start(in: db, onError: { _ in continuation.finish() }, onChange: { continuation.yield($0) })
             continuation.onTermination = { _ in token.cancel() }

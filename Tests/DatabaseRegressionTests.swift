@@ -212,19 +212,21 @@ final class DatabaseRegressionTests: XCTestCase {
         let repo = PriceRepository(db: database.dbQueue)
         var price = try await repo.saveWithPayments(Price(itemId: item.id, type: .depositBalance, totalPrice: 300, deposit: 100, balance: 200), initialPaidDate: 1000)
         let initial = try read(database.dbQueue) { try Payment.fetchAll($0) }
-        XCTAssertEqual(initial.count, 2)
+        XCTAssertEqual(initial.count, 1)
+        XCTAssertEqual(try read(database.dbQueue) { try PaymentStage.fetchCount($0) }, 2)
         XCTAssertEqual(initial.filter(\.isPaid).reduce(0) { $0 + $1.amount }, 100)
         XCTAssertEqual(try read(database.dbQueue) { try Item.fetchOne($0, key: item.id)?.status }, .pendingBalance)
         price.balance = 250
         price = try await repo.saveWithPayments(price)
         let updated = try read(database.dbQueue) { try Payment.fetchAll($0) }
-        XCTAssertEqual(updated.count, 2)
+        XCTAssertEqual(updated.count, 1)
         XCTAssertEqual(updated.filter(\.isPaid).first?.id, initial.filter(\.isPaid).first?.id)
-        XCTAssertEqual(updated.reduce(0) { $0 + $1.amount }, 350)
+        XCTAssertEqual(updated.reduce(0) { $0 + $1.amount }, 100)
+        XCTAssertEqual(try read(database.dbQueue) { try PaymentStage.fetchAll($0).reduce(0) { $0 + $1.amount } }, 350)
         XCTAssertEqual(price.totalPrice, 350)
         price.deposit = 0; price.balance = 50
         do { _ = try await repo.saveWithPayments(price); XCTFail("Price below paid amount must fail") } catch { }
-        XCTAssertEqual(try read(database.dbQueue) { try Payment.fetchCount($0) }, 2)
+        XCTAssertEqual(try read(database.dbQueue) { try Payment.fetchCount($0) }, 1)
     }
 
     func testAmountValidationRejectsBadValues() throws {

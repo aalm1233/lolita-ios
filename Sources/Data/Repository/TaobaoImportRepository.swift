@@ -157,7 +157,18 @@ final class TaobaoImportRepository: Sendable {
                     var balancePayment = Payment(priceId: price.id, amount: price.balance ?? 0, dueDate: due, isPaid: balanceDraft != nil, paidDate: balanceDraft != nil ? due : nil)
                     try balancePayment.insert(db)
                 }
-                try ItemRepository.refreshPaymentStatus(db, itemId: item.id)
+                // Import into the same ledger in this transaction. Unpaid legacy rows are
+                // retained as source records; the active schedule is projected from stages.
+                let records = try Payment.filter(Payment.Columns.priceId == price.id).order(Payment.Columns.id).fetchAll(db)
+                for record in records {
+                    var stage = PaymentStage(priceId: price.id, name: price.type == .full ? "全款" : record.id == paid.id ? "定金" : "尾款",
+                                             amount: record.amount, dueDate: record.dueDate)
+                    try stage.insert(db)
+                    try db.execute(sql: "UPDATE payments SET stageId = ? WHERE id = ?", arguments: [stage.id, record.id])
+                }
+                price.purchaseRecordStatus = .tracked; try price.update(db)
+                try OrderBinding(itemId: item.id, priceId: price.id).insert(db)
+                try OrderRepository.refreshStatuses(db, itemId: item.id)
                 importedKeys.formUnion(keys); processed.formUnion(keys)
                 result.importedCount += 1
                 if partner != nil { result.mergedCount += 1 }

@@ -61,13 +61,7 @@ final class PaymentCalendarViewModel: ObservableObject {
     }
 
     func markPaid(_ value: PaymentWithItemInfo) async throws {
-        guard var payment = try await paymentRepo.getById(value.paymentId) else {
-            throw ValidationError.invalid("付款记录已不存在")
-        }
-        guard !payment.isPaid else { return }
-        payment.isPaid = true
-        payment.paidDate = Int64(Date().timeIntervalSince1970 * 1000)
-        try await paymentRepo.update(payment)
+        try await paymentRepo.markPaid(value.paymentId)
     }
 
     func goToNextMonth() {

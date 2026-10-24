@@ -29,17 +29,23 @@ struct ImageGalleryPager: View {
                     .background((colorScheme == .dark ? skinManager.current.accentColorDark : skinManager.current.accentColor).opacity(0.06))
                 } else {
                     #if os(iOS)
-                    TabView(selection: $currentIndex) {
-                        ForEach(Array(urls.enumerated()), id: \.offset) { index, url in
-                            galleryImage(url)
-                                .contentShape(Rectangle())
-                                .onTapGesture { showFullscreen = true }
-                                .accessibilityLabel("第\(index + 1)张照片")
-                                .accessibilityHint("轻点查看原图")
-                                .tag(index)
+                    // PageTabView needs a finite height inside a lazy scrolling stack.
+                    // Derive it from the available width, without feeding its intrinsic
+                    // size back into the enclosing scroll view's layout.
+                    GeometryReader { geometry in
+                        TabView(selection: $currentIndex) {
+                            ForEach(Array(urls.enumerated()), id: \.offset) { index, url in
+                                galleryImage(url)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { showFullscreen = true }
+                                    .accessibilityLabel("第\(index + 1)张照片")
+                                    .accessibilityHint("轻点查看原图")
+                                    .tag(index)
+                            }
                         }
+                        .tabViewStyle(.page(indexDisplayMode: .never))
+                        .frame(width: geometry.size.width, height: geometry.size.height)
                     }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
                     .aspectRatio(aspectRatio, contentMode: .fit)
                     .fullScreenCover(isPresented: $showFullscreen) {
                         FullScreenImageViewer(urls: urls, initialIndex: currentIndex)
@@ -68,7 +74,10 @@ struct ImageGalleryPager: View {
         KFImage(url)
             .onSuccess { result in
                 let size = result.image.size
-                if size.width > 0, size.height > 0 { imageRatios[url] = size.width / size.height }
+                if size.width > 0, size.height > 0 {
+                    let ratio = size.width / size.height
+                    if imageRatios[url] != ratio { imageRatios[url] = ratio }
+                }
             }
             .placeholder {
                 RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusM)

@@ -12,12 +12,14 @@ struct Payment: Codable, Sendable, FetchableRecord, MutablePersistableRecord {
     var reminderSet: Bool = false
     var customReminderDays: Int? = nil
     var createdAt: Int64 = Int64(Date().timeIntervalSince1970 * 1000)
+    var stageId: Int64? = nil
+    var operationId: String? = nil
 
     static let databaseTableName = "payments"
 
     enum Columns: String, ColumnExpression {
         case id, priceId, amount, dueDate, isPaid, paidDate
-        case calendarEventId, reminderSet, customReminderDays, createdAt
+        case calendarEventId, reminderSet, customReminderDays, createdAt, stageId, operationId
     }
 
     // Room treats 0 as an unset ID; SQLite/GRDB needs NULL to generate one.
@@ -32,6 +34,8 @@ struct Payment: Codable, Sendable, FetchableRecord, MutablePersistableRecord {
         container["reminderSet"] = reminderSet
         container["customReminderDays"] = customReminderDays
         container["createdAt"] = createdAt
+        container["stageId"] = stageId
+        container["operationId"] = operationId
     }
 
     mutating func didInsert(_ inserted: InsertionSuccess) {

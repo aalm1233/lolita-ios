@@ -7,6 +7,18 @@ enum ItemStatus: String, CaseIterable, Codable, Sendable, DatabaseValueConvertib
     case owned = "OWNED"
     case wished = "WISHED"
     case pendingBalance = "PENDING_BALANCE"
+    case pendingPayment = "PENDING_PAYMENT"
+    case pendingReview = "PENDING_REVIEW"
+
+    var displayName: String {
+        switch self {
+        case .owned: "已拥有"
+        case .wished: "心愿"
+        case .pendingBalance: "待尾款"
+        case .pendingPayment: "待付款"
+        case .pendingReview: "待核对"
+        }
+    }
 }
 
 enum ItemPriority: String, CaseIterable, Codable, Sendable, DatabaseValueConvertible {
@@ -23,6 +35,17 @@ enum CategoryGroup: String, CaseIterable, Codable, Sendable, DatabaseValueConver
 enum PriceType: String, CaseIterable, Codable, Sendable, DatabaseValueConvertible {
     case full = "FULL"
     case depositBalance = "DEPOSIT_BALANCE"
+    case multiStage = "MULTI_STAGE"
+
+    var displayName: String {
+        switch self { case .full: "全款"; case .depositBalance: "定金与尾款"; case .multiStage: "多阶段" }
+    }
+}
+
+enum PurchaseRecordStatus: String, Codable, Sendable, DatabaseValueConvertible {
+    case tracked = "TRACKED"
+    case historicalOwned = "HISTORICAL_OWNED"
+    case needsReview = "NEEDS_REVIEW"
 }
 
 // MARK: - List<String> JSON converter

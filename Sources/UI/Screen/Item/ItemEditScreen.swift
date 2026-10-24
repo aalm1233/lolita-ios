@@ -29,11 +29,11 @@ struct ItemEditScreen: View {
     var body: some View {
         Form {
             Section {
-                TextField("服饰名称（必填）", text: $viewModel.name)
+                TextField("服饰名称（必填）", text: $viewModel.name).accessibilityIdentifier("registration-name")
                 TextField("描述（选填）", text: $viewModel.description, axis: .vertical)
                     .lineLimit(2...5)
                 SearchableRecordPicker(title: "品牌", options: viewModel.brands.map { PickerRecord(id: $0.id, name: $0.name) }, selection: $viewModel.brandId)
-                SearchableRecordPicker(title: "分类", options: viewModel.categories.map { PickerRecord(id: $0.id, name: $0.name) }, selection: $viewModel.categoryId)
+                SearchableRecordPicker(title: "分类", options: viewModel.categories.map { PickerRecord(id: $0.id, name: $0.name) }, selection: $viewModel.categoryId).accessibilityIdentifier("registration-category")
             } header: {
                 Text("基本信息")
             }
@@ -45,6 +45,20 @@ struct ItemEditScreen: View {
                     Text("已拥有").tag(ItemStatus.owned)
                     Text("想要").tag(ItemStatus.wished)
                     Text("待尾款").tag(ItemStatus.pendingBalance)
+                    Text("待付款").tag(ItemStatus.pendingPayment)
+                    Text("待核对").tag(ItemStatus.pendingReview)
+                }
+                Picker("配套主件", selection: $viewModel.parentItemId) {
+                    Text("独立物品").tag(nil as Int64?)
+                    ForEach(viewModel.parentCandidates, id: \.id) { Text($0.name).tag($0.id as Int64?) }
+                }
+                .accessibilityIdentifier("parent-item-picker")
+                if viewModel.parentItemId != nil {
+                    Toggle("价格包含在主件订单中", isOn: $viewModel.includedInParentPrice)
+                    if viewModel.includedInParentPrice {
+                        Text("共价小物跟随主件购买状态，付款只在主件记录一次。已有独立账本的小物不能改为共价。")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 if viewModel.status == .wished {
                     Picker("心愿优先级", selection: $viewModel.priority) {
@@ -57,10 +71,14 @@ struct ItemEditScreen: View {
                     Text("未归入套装").tag(nil as Int64?)
                     ForEach(viewModel.coordinates, id: \.id) { Text($0.name).tag($0.id as Int64?) }
                 }
-                Picker("存放位置", selection: $viewModel.locationId) {
-                    Text("未设置").tag(nil as Int64?)
-                    ForEach(viewModel.locations, id: \.id) { location in
-                        Text(location.name).tag(location.id as Int64?)
+                if viewModel.status == .owned {
+                    StoragePlacementPicker(rooms: viewModel.locations, nodes: viewModel.storageNodes,
+                                           roomId: $viewModel.locationId, nodeId: $viewModel.storageNodeId)
+                } else {
+                    Text("仅已拥有物品可设置收纳位置").font(.caption).foregroundStyle(.secondary)
+                    if viewModel.locationId != nil {
+                        Text("历史位置：" + StorageTree.path(roomId: viewModel.locationId, nodeId: viewModel.storageNodeId, rooms: viewModel.locations, nodes: viewModel.storageNodes))
+                        Button("清除历史位置") { viewModel.locationId = nil; viewModel.storageNodeId = nil }
                     }
                 }
                 Picker("购买渠道", selection: $viewModel.source) {
@@ -79,8 +97,9 @@ struct ItemEditScreen: View {
                     ForEach(viewModel.styles, id: \.id) { Text($0.name).tag($0.name) }
                 }
                 EditSeasonSelection(seasons: viewModel.seasons.map(\.name), selection: $viewModel.season)
+                Menu("常用尺码") { ForEach(viewModel.sizeOptions, id: \.self) { value in Button(value) { viewModel.size = value } } }
                 LabeledContent("尺码") {
-                    TextField("如 S、M、均码", text: $viewModel.size)
+                    TextField("如 S、M、均码", text: $viewModel.size).accessibilityIdentifier("registration-size")
                         .multilineTextAlignment(.trailing)
                 }
             } header: {
@@ -88,6 +107,8 @@ struct ItemEditScreen: View {
             }
             .lolitaCollectionRowInsets()
             .listRowBackground(cardBackground)
+
+            registrationSection
 
             Section("颜色") {
                 EditColorSelection(colors: MatchingEngine.colors, selectedColors: $viewModel.colors)
@@ -104,67 +125,54 @@ struct ItemEditScreen: View {
                     viewModel.addImageData(data)
                 },
                 onRemove: viewModel.removeImage,
-                onImportingChanged: { isImportingPhotos = $0 }
+                onImportingChanged: { isImportingPhotos = $0 },
+                onSetCover: viewModel.setCover
             )
 
-            Section("尺码表") {
-                if let path = viewModel.sizeChartImageUrl {
-                    LolitaShimmerImage(url: ImageFileHelper.fileURL(for: path), contentMode: .fit)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 180)
-                        .clipped()
-                    Button("移除尺码表", role: .destructive) { viewModel.removeSizeChart() }
-                }
-                #if os(iOS)
-                let chartPickerTitle = viewModel.sizeChartImageUrl == nil ? "添加尺码表" : "更换尺码表"
-                let showsChartImportProgress = isImportingSizeChart
-                PhotosPicker(selection: $chartPickerItem, matching: .images) {
-                    HStack {
-                        Label(chartPickerTitle, systemImage: "photo")
-                        Spacer()
-                        if showsChartImportProgress { ProgressView() }
-                    }
-                }
-                .disabled(isImportingSizeChart)
-                .onChange(of: chartPickerItem) { _, item in
-                    guard let item else { return }
-                    chartImportTask?.cancel()
-                    let importId = UUID()
-                    chartImportId = importId
-                    isImportingSizeChart = true
-                    chartImportTask = Task { @MainActor in
-                        defer {
-                            if chartImportId == importId {
-                                chartImportTask = nil
-                                chartImportId = nil
-                                isImportingSizeChart = false
-                                chartPickerItem = nil
-                            }
-                        }
-                        let data = try? await item.loadTransferable(type: Data.self)
-                        guard !Task.isCancelled, chartImportId == importId, !isLeaving else { return }
-                        if let data { viewModel.setSizeChart(data: data) }
-                    }
-                }
-                #endif
-            }
-            .lolitaCollectionRowInsets()
-            .listRowBackground(cardBackground)
+            EditPhotosSection(
+                title: "尺码／详情图", imageUrls: viewModel.detailImages, aspectRatio: 1,
+                onAddData: { data in if !isLeaving { viewModel.addDetailImageData(data) } },
+                onRemove: viewModel.removeDetailImage,
+                onImportingChanged: { isImportingSizeChart = $0 }
+            )
         }
         #if os(iOS)
         .contentMargins(.horizontal, 12, for: .scrollContent)
         #endif
+        .safeAreaInset(edge: .bottom) {
+            LolitaEditorSaveBar(title: "保存物品", enabled: canSave, identifier: "registration-save") { saveItem() }
+        }
         .disabled(viewModel.isSaving)
+        .onChange(of: viewModel.parentItemId) { _, id in
+            if id == nil { viewModel.includedInParentPrice = false }
+        }
         .scrollDismissesKeyboard(.interactively)
         .interactiveDismissDisabled(viewModel.isSaving || viewModel.hasChanges || isImportingPhotos || isImportingSizeChart)
-        .confirmationDialog("放弃未保存的更改？", isPresented: $showDiscard, titleVisibility: .visible) {
+        .confirmationDialog("保留这次编辑吗？", isPresented: $showDiscard, titleVisibility: .visible) {
             Button("放弃更改", role: .destructive) {
                 guard !viewModel.isSaving else { return }
-                discardAndDismiss()
+                Task {
+                    do { try await viewModel.discardDraft(); discardAndDismiss() }
+                    catch { saveError = userFacingError(error) }
+                }
             }
             .disabled(viewModel.isSaving)
+            Button("保存草稿并退出") {
+                Task {
+                    do { try await viewModel.persistDraft(); isLeaving = true; dismiss() }
+                    catch { saveError = userFacingError(error) }
+                }
+            }
             Button("继续编辑", role: .cancel) {}
         }
+        .task(id: viewModel.draftState) {
+            do { try await Task.sleep(for: .milliseconds(350)); try Task.checkCancellation(); if !isLeaving { await viewModel.autosaveDraft() } }
+            catch { }
+        }
+        .alert("发现未完成的物品草稿", isPresented: Binding(get: { viewModel.pendingDraft != nil }, set: { _ in })) {
+            Button("继续草稿") { do { try viewModel.resumeDraft() } catch { saveError = userFacingError(error) } }
+            Button("删除草稿", role: .destructive) { Task { do { try await viewModel.rejectPendingDraft() } catch { saveError = userFacingError(error) } } }
+        } message: { Text("可恢复上次的文字和图片；保存前请核对物品及收纳位置。") }
         .onDisappear {
             #if os(iOS)
             chartImportTask?.cancel()
@@ -180,26 +188,46 @@ struct ItemEditScreen: View {
         .lolitaNavBar(title: itemId == 0 ? "新增服饰" : "编辑服饰", showBack: true, onBack: {
             guard !viewModel.isSaving else { return }
             if viewModel.hasChanges || isImportingPhotos || isImportingSizeChart { showDiscard = true }
-            else { discardAndDismiss() }
+            else { Task { do { try await viewModel.discardDraft(); discardAndDismiss() } catch { saveError = userFacingError(error) } } }
         })
         #if os(iOS)
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("收起键盘") { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
+                    .accessibilityIdentifier("dismiss-registration-keyboard")
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("保存") {
-                    guard !viewModel.isSaving, !isImportingPhotos, !isImportingSizeChart else { return }
-                    Task {
-                        do {
-                            try await viewModel.save()
-                            dismiss()
-                        } catch { saveError = userFacingError(error) }
-                    }
-                }
-                .disabled(viewModel.name.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isSaving || isImportingPhotos || isImportingSizeChart)
+                Button("保存", action: saveItem).disabled(!canSave)
             }
         }
         #endif
         .task { await viewModel.load(itemId: itemId, defaultStatus: defaultStatus) }
+    }
+
+    private var canSave: Bool { !viewModel.name.trimmingCharacters(in: .whitespaces).isEmpty && !viewModel.isSaving && !isImportingPhotos && !isImportingSizeChart }
+    private func saveItem() {
+        guard canSave else { return }
+        Task { do { try await viewModel.save(); isLeaving = true; dismiss() } catch { saveError = userFacingError(error) } }
+    }
+    private var registrationSection: some View {
+        Section("物品规格") {
+            LabeledContent("稳定品类", value: viewModel.semantic.label)
+            Picker("组合", selection: $viewModel.composition) {
+                ForEach(ItemComposition.allCases, id: \.self) { Text($0.label).tag($0) }
+            }.accessibilityIdentifier("item-composition")
+            TextField("图案／纹样", text: $viewModel.specifications.pattern)
+            ForEach(WardrobeSpecifications.fields[viewModel.semantic.profile] ?? [], id: \.0) { field in
+                TextField(field.1, text: Binding(get: { viewModel.specifications.profiles[viewModel.semantic.profile]?[field.0] ?? "" },
+                                                set: { viewModel.specifications.profiles[viewModel.semantic.profile, default: [:]][field.0] = $0 }))
+                    .accessibilityIdentifier("spec-" + field.0)
+            }
+            if viewModel.semantic == .unconfirmed { Text("请在分类管理中确认稳定品类，再填写专属规格。改分类名称不会改变类型。").font(.caption).foregroundStyle(.secondary) }
+            if let message = viewModel.draftMessage { Text(message).font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("draft-status") }
+        }
+        .lolitaCollectionRowInsets()
+        .listRowBackground(cardBackground)
     }
 
     private func discardAndDismiss() {
@@ -218,6 +246,7 @@ struct ItemEditScreen: View {
 }
 
 struct EditColorSelection: View {
+    @ScaledMetric(relativeTo: .subheadline) private var colorMinimumWidth: CGFloat = 92
     @EnvironmentObject private var skinManager: SkinManager
     @Environment(\.colorScheme) private var colorScheme
 
@@ -236,7 +265,7 @@ struct EditColorSelection: View {
     }
 
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 72))], spacing: 10) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: colorMinimumWidth))], spacing: 10) {
             ForEach(visibleColors, id: \.self) { color in
                 let selected = selectedColors.contains(color)
                 Button {
@@ -376,12 +405,15 @@ struct EditImageStrip: View {
     let imageUrls: [String]
     var showsCoverLabel = false
     var aspectRatio: CGFloat = 0.75
+    var identifierPrefix = ""
     let onRemove: (Int) -> Void
+    var onSetCover: ((Int) -> Void)? = nil
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: skinManager.current.spacingM) {
                 ForEach(Array(imageUrls.enumerated()), id: \.offset) { index, path in
+                    VStack(spacing: 4) {
                     ImageFrame {
                         LolitaShimmerImage(url: ImageFileHelper.fileURL(for: path))
                             .frame(width: 96, height: 96 / aspectRatio)
@@ -408,7 +440,13 @@ struct EditImageStrip: View {
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityLabel("移除第 \(index + 1) 张照片")
+                                .accessibilityIdentifier("photo-remove-\(identifierPrefix)-\(index)")
                             }
+                    }
+                    if let onSetCover, index > 0 {
+                        Button("设为封面") { onSetCover(index) }.font(.caption).buttonStyle(.bordered)
+                            .accessibilityIdentifier("set-cover-\(index)")
+                    }
                     }
                 }
             }
@@ -428,6 +466,7 @@ struct EditPhotosSection: View {
     let onAddData: (Data) -> Void
     let onRemove: (Int) -> Void
     var onImportingChanged: (Bool) -> Void = { _ in }
+    var onSetCover: ((Int) -> Void)? = nil
 
     #if os(iOS)
     @State private var selectedPhotos: [PhotosPickerItem] = []
@@ -442,8 +481,8 @@ struct EditPhotosSection: View {
                 EditImageStrip(
                     imageUrls: imageUrls,
                     showsCoverLabel: showsCoverLabel,
-                    aspectRatio: aspectRatio,
-                    onRemove: onRemove
+                    aspectRatio: aspectRatio, identifierPrefix: title,
+                    onRemove: onRemove, onSetCover: onSetCover
                 )
             }
             #if os(iOS)
@@ -456,6 +495,7 @@ struct EditPhotosSection: View {
                 }
             }
             .disabled(isImporting)
+            .accessibilityIdentifier("add-photos-" + title)
             .onChange(of: selectedPhotos) { _, photos in
                 guard !photos.isEmpty else { return }
                 importTask?.cancel()

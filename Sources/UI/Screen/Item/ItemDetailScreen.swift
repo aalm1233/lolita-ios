@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ItemDetailScreen: View {
+    @AppStorage("showTotalPrice") private var showAmount = true
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var skinManager: SkinManager
     @Environment(\.colorScheme) private var colorScheme
@@ -15,7 +16,9 @@ struct ItemDetailScreen: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: skinManager.current.spacingL) {
+            // This detail has a bounded number of sections. Eager layout keeps the
+            // image pager and wrapping metadata at stable heights while scrolling.
+            VStack(spacing: skinManager.current.spacingL) {
                 if let item = viewModel.item {
                     if !viewModel.imageUrls.isEmpty { ImageGalleryPager(urls: viewModel.imageUrls) }
                     DetailTitleCard(title: item.name, subtitle: [viewModel.brandName, viewModel.categoryName].joined(separator: " · ")) {
@@ -30,15 +33,16 @@ struct ItemDetailScreen: View {
                             Text(item.description).font(.body).fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    if item.size?.isEmpty == false || item.sizeChartImageUrl?.isEmpty == false {
+                    if item.size?.isEmpty == false || !item.detailImagePaths.isEmpty {
                         LolitaSection(title: "尺码信息") {
                             if let size = item.size, !size.isEmpty { DetailRow(label: "尺码", value: size) }
-                            if let path = item.sizeChartImageUrl, !path.isEmpty {
-                                ImageGalleryPager(urls: [ImageFileHelper.fileURL(for: path)], emptyTitle: "暂无尺码表")
-                                Text("点击尺码表查看原图").font(.caption).foregroundStyle(.secondary)
+                            if !item.detailImagePaths.isEmpty {
+                                ImageGalleryPager(urls: item.detailImagePaths.map { ImageFileHelper.fileURL(for: $0) }, emptyTitle: "暂无尺码／详情图")
+                                Text("点击尺码／详情图查看原图").font(.caption).foregroundStyle(.secondary)
                             }
                         }
                     }
+                    registrationInformation(item)
                     priceInformation
                     if item.status == .owned {
                         NavigationLink(destination: ItemRecommendationScreen(itemId: item.id)) {
@@ -78,7 +82,7 @@ struct ItemDetailScreen: View {
                     catch { operationError = userFacingError(error) }
                 }
             }
-        } message: { Text("这件服饰的价格、付款和关联记录将一并删除。") }
+        } message: { Text("这件服饰的订单、付款、退款、参考价和关联记录将一并删除。") }
         .alert("操作失败", isPresented: Binding(get: { operationError != nil }, set: { if !$0 { operationError = nil } })) {
             Button("确定") { operationError = nil }
         } message: { Text(operationError ?? "") }
@@ -132,20 +136,47 @@ struct ItemDetailScreen: View {
         }
     }
 
-    private var priceInformation: some View {
-        LolitaSection(title: "价格信息") {
-            if viewModel.prices.isEmpty {
-                Text("暂无价格记录").font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 8)
-            } else {
-                DetailMoneySummary(total: viewModel.totalPrice, paid: viewModel.paidAmount, unpaid: viewModel.unpaidAmount)
-                ForEach(viewModel.prices) { summary in
-                    NavigationLink(destination: PaymentManageScreen(priceId: summary.id)) {
-                        DetailPriceCard(summary: summary)
-                    }.buttonStyle(.plain)
+    private func registrationInformation(_ item: Item) -> some View {
+        LolitaSection(title: "物品规格") {
+            DetailRow(label: "稳定品类", value: viewModel.semantic.label)
+            DetailRow(label: "组合", value: item.composition.label)
+            if let specs = try? WardrobeSpecifications.decode(item.specificationsJson) {
+                if !specs.pattern.isEmpty { DetailRow(label: "图案／纹样", value: specs.pattern) }
+                ForEach(WardrobeSpecifications.fields[viewModel.semantic.profile] ?? [], id: \.0) { field in
+                    if let value = specs.profiles[viewModel.semantic.profile]?[field.0], !value.isEmpty { DetailRow(label: field.1, value: value) }
                 }
             }
+        }
+    }
+
+    private var priceInformation: some View {
+        LolitaSection(title: "购买订单") {
+            if viewModel.item?.includedInParentPrice == true {
+                Text("价格包含在主件中，付款只记录一次。").font(.caption).foregroundStyle(.secondary)
+            }
+            if viewModel.prices.isEmpty {
+                Text("暂无价格记录").font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 8)
+            } else if let summary = viewModel.prices.first(where: \.isCurrent) {
+                    NavigationLink(destination: PaymentManageScreen(priceId: summary.id)) {
+                        if showAmount { DetailPriceCard(summary: summary) }
+                        else { Text("当前订单 · 金额已隐藏") }
+                    }.buttonStyle(.plain)
+            } else {
+                Text("原账本保留，请核对当前购买关系。").font(.subheadline).foregroundStyle(.secondary)
+            }
+            if let current = viewModel.prices.first(where: \.isCurrent), current.price.purchaseRecordStatus == .tracked {
+                NavigationLink("快捷记录实付", destination: PaymentEditScreen(priceId: current.id))
+                    .accessibilityIdentifier("quick-record-payment")
+                NavigationLink("退款与取消购买", destination: AfterSaleScreen(priceId: current.id))
+            }
+            if let reference = viewModel.reference {
+                FinanceValueRow(title: "独立参考价", amount: reference.amount)
+                if showAmount && !reference.note.isEmpty { Text(reference.note).font(.caption).foregroundStyle(.secondary) }
+            }
+            NavigationLink(viewModel.reference == nil ? "记录独立参考价" : "编辑独立参考价", destination: FinanceEditorScreen(mode: .reference(viewModel.ownerId)))
+                .accessibilityIdentifier("edit-reference")
             NavigationLink(destination: PriceManageScreen(itemId: viewModel.itemId)) {
-                DetailActionLabel(title: "管理价格与付款", systemImage: "yensign.circle")
+                DetailActionLabel(title: "管理购买订单与账本", systemImage: "yensign.circle")
             }.buttonStyle(.plain)
         }
     }
@@ -220,7 +251,7 @@ struct DetailTitleCard<Badges: View>: View {
 struct DetailStatusBadge: View {
     let status: ItemStatus
     var body: some View {
-        LolitaBadge(text: status == .wished ? "想要" : status == .pendingBalance ? "待尾款" : "已拥有",
+        LolitaBadge(text: status.displayName,
                     color: status == .wished ? .pink : status == .pendingBalance ? .orange : .green)
     }
 }
@@ -265,7 +296,7 @@ struct DetailPriceCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(summary.price.type == .full ? "全价" : "定金 + 尾款").font(.subheadline.weight(.medium))
+                Text(summary.price.type.displayName).font(.subheadline.weight(.medium))
                 Spacer(minLength: 8)
                 Text(detailMoney(summary.price.totalPrice)).font(.headline).monospacedDigit()
                 Image(systemName: "chevron.right").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
@@ -274,7 +305,9 @@ struct DetailPriceCard: View {
                 DetailRow(label: "定金", value: detailMoney(summary.price.deposit ?? 0))
                 DetailRow(label: "尾款", value: detailMoney(summary.price.balance ?? 0))
             }
-            if !summary.payments.isEmpty {
+            if summary.isCurrent && summary.price.purchaseRecordStatus != .tracked {
+                Text("历史购买资料待核对，余额未知").font(.caption).foregroundStyle(.secondary)
+            } else if summary.isCurrent || !summary.payments.isEmpty {
                 DetailRow(label: "已付", value: detailMoney(summary.paidAmount))
                 DetailRow(label: "待付", value: detailMoney(summary.unpaidAmount))
             }

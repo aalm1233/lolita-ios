@@ -2,10 +2,11 @@ import SwiftUI
 import Charts
 
 private enum StatsTab: String, CaseIterable {
-    case overview = "总览", calendar = "付款年历", distribution = "消费分布", trend = "消费趋势", wishlist = "愿望单"
+    case overview = "总览", calendar = "付款年历", distribution = "实付分布", trend = "实付趋势", wishlist = "愿望单"
 }
 
 struct StatsPageScreen: View {
+    @State private var finance = FinanceSnapshot()
     @StateObject private var viewModel = StatsPageViewModel()
     @EnvironmentObject var skinManager: SkinManager
     @Environment(\.colorScheme) private var colorScheme
@@ -55,11 +56,19 @@ struct StatsPageScreen: View {
         .lolitaNavBar(title: "", isHidden: true)
         .navigationDestination(item: $drilldown) { StatsFilteredItemsScreen(filter: $0) }
         .onAppear { viewModel.load() }
+        .task { for await value in AppModule.shared.financeRepository.observe() { finance = value } }
         .onDisappear { viewModel.stopObserving() }
     }
 
     private var overview: some View {
         Group {
+            LolitaSection(title: "资金汇总") {
+                FinanceValueRow(title: "全部原实付", amount: finance.totalPaid)
+                FinanceValueRow(title: "全部到账退款", amount: finance.totalRefunded)
+                FinanceValueRow(title: "全部净支出", amount: finance.totalNet)
+                NavigationLink("月预算与年度付款", destination: FinanceOverviewScreen())
+                Text("分布与趋势按原实付展示；月预算按真实付款与退款到账日期计算净支出。").font(.caption).foregroundStyle(.secondary)
+            }
             StatsSummaryView(
                 ownedCount: viewModel.ownedCount,
                 pendingCount: viewModel.pendingCount,
@@ -67,7 +76,9 @@ struct StatsPageScreen: View {
                 coordinateCount: viewModel.totalCoordinates,
                 outfitCount: viewModel.totalOutfits,
                 totalSpending: viewModel.totalSpending,
-                onSelectStatus: { drilldown = .status($0) }
+                onSelectStatus: { drilldown = .status($0) },
+                pendingPaymentCount: viewModel.pendingPaymentCount,
+                pendingReviewCount: viewModel.pendingReviewCount
             )
             NavigationLink { CoordinateListScreen() } label: {
                 HStack {
@@ -314,6 +325,8 @@ struct StatsSummaryView: View {
     let outfitCount: Int
     let totalSpending: Double
     var onSelectStatus: ((ItemStatus) -> Void)? = nil
+    var pendingPaymentCount = 0
+    var pendingReviewCount = 0
 
     private var primaryColor: Color {
         colorScheme == .dark ? skinManager.current.primaryColorDark : skinManager.current.primaryColor
@@ -324,7 +337,7 @@ struct StatsSummaryView: View {
             LolitaCard(variant: .compact) {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Label("总消费", systemImage: "yensign.circle")
+                        Label("已录实付", systemImage: "yensign.circle")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Label("\(outfitCount) 次穿搭", systemImage: "calendar")
@@ -346,6 +359,8 @@ struct StatsSummaryView: View {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: skinManager.current.spacingM + skinManager.current.spacingS) {
                 statusCard(.owned, title: "已拥有", count: ownedCount, icon: "hanger")
                 statusCard(.pendingBalance, title: "待尾款", count: pendingCount, icon: "clock")
+                if pendingPaymentCount > 0 { statusCard(.pendingPayment, title: "待付款", count: pendingPaymentCount, icon: "creditcard") }
+                if pendingReviewCount > 0 { statusCard(.pendingReview, title: "待核对", count: pendingReviewCount, icon: "questionmark.circle") }
                 statusCard(.wished, title: "心愿", count: wishedCount, icon: "heart")
                 StatCard(title: "套装", value: "\(coordinateCount)", color: primaryColor, systemImage: "square.stack")
             }
@@ -742,6 +757,7 @@ struct PaymentYearSummaryScreen: View {
     var body: some View {
         ScrollView {
             VStack(spacing: skinManager.current.spacingL) {
+                NavigationLink("年度退款、净支出与预算", destination: FinanceOverviewScreen(month: date(month: 1), annual: true))
                 HStack {
                     Button { year -= 1 } label: {
                         Image(systemName: "chevron.left").frame(width: 40, height: 40)

@@ -43,9 +43,8 @@ final class LocationRepository: Sendable {
         }
     }
 
-    func delete(_ location: Location) async throws {
-        try await db.write { db in try location.delete(db) }
-        try? ImageFileHelper.deleteUnreferenced(paths: [location.imageUrl].compactMap { $0 }, db: db)
+    func delete(_ location: Location, clearContents: Bool = false) async throws {
+        try await StorageRepository(db: db).deleteRoom(location, clearContents: clearContents)
     }
 }
 

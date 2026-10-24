@@ -137,7 +137,12 @@ extension PresetData {
             }
             for cat in PresetData.categories {
                 var c = Category(name: cat.name, group: cat.group, isPreset: true)
-                try c.insert(db, onConflict: .ignore)
+                c.categorySemantic = CategorySemantic.historical(cat.name)
+                if try db.columns(in: "categories").contains(where: { $0.name == "categorySemantic" }) {
+                    try c.insert(db, onConflict: .ignore)
+                } else {
+                    try db.execute(sql: "INSERT OR IGNORE INTO categories(name, \"group\", isPreset, createdAt) VALUES (?, ?, 1, ?)", arguments: [c.name, c.group.rawValue, c.createdAt])
+                }
             }
             for style in PresetData.styles {
                 var s = Style(name: style, isPreset: true)
