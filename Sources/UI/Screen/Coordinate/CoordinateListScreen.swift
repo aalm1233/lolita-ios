@@ -22,7 +22,7 @@ struct CoordinateListScreen: View {
                                      message: search.isEmpty ? "把喜欢的服饰组合在一起，收藏你的搭配灵感。" : "试试其他名称或关键词。",
                                      systemImage: search.isEmpty ? "photo.on.rectangle.angled" : "magnifyingglass", fillsAvailableSpace: false)
                     if search.isEmpty {
-                        NavigationLink(destination: CoordinateEditScreen()) { Label("创建套装", systemImage: "plus") }.buttonStyle(.borderedProminent)
+                        NavigationLink(destination: CoordinateEditScreen()) { SkinLabel("创建套装", systemImage: "plus") }.buttonStyle(.borderedProminent)
                     } else { Button("清除搜索") { search = "" }.buttonStyle(.bordered) }
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -45,7 +45,7 @@ struct CoordinateListScreen: View {
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 LolitaCollectionSortMenu(selection: $sort)
-                NavigationLink(destination: CoordinateEditScreen()) { Image(systemName: "plus") }.accessibilityLabel("创建套装")
+                NavigationLink(destination: CoordinateEditScreen()) { SkinIcon(systemName: "plus") }.accessibilityLabel("创建套装")
             }
         }
         .alert("删除失败", isPresented: Binding(get: { deleteError != nil }, set: { if !$0 { deleteError = nil } })) {
@@ -61,7 +61,7 @@ struct CoordinateListScreen: View {
             CoordinateCollectionCard(coordinate: coordinate, items: items, price: showTotalPrice ? viewModel.totalPrice(of: items) : nil, mode: viewMode)
         }.buttonStyle(.plain)
         .contextMenu {
-            NavigationLink(destination: CoordinateEditScreen(coordinateId: coordinate.id)) { Label("编辑", systemImage: "pencil") }
+            NavigationLink(destination: CoordinateEditScreen(coordinateId: coordinate.id)) { SkinLabel("编辑", systemImage: "pencil") }
             Button("删除", role: .destructive) { delete(coordinate) }
         }
     }

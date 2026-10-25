@@ -119,6 +119,21 @@ final class StorageRepository: Sendable {
             }
         }
     }
+    func placeImported(ids: Set<Int64>, roomId: Int64?, nodeId: Int64?) async throws {
+        try await db.write { db in
+            for id in ids {
+                guard var item = try Item.fetchOne(db, key: id), try Self.isOwned(db, item: item) else { throw ValidationError.invalid("仅已拥有物品可安排收纳，请重新读取") }
+                let previous = item; item.locationId = roomId; item.storageNodeId = nodeId
+                try Self.validatePlacement(db, item: item, previous: previous); try item.update(db)
+            }
+            for draft in try ItemDraft.fetchAll(db) where draft.targetItemId.map(ids.contains) == true {
+                var item = try draft.item(); item.locationId = roomId; item.storageNodeId = nodeId
+                var next = try ItemDraft.make(id: draft.id, item: item, baseline: draft.baselineUpdatedAt)
+                next.updatedAt = draft.updatedAt; try next.update(db)
+            }
+        }
+    }
+
     static func isOwned(_ db: Database, item: Item) throws -> Bool {
         guard item.status == .owned else { return false }
         if item.includedInParentPrice, let parent = item.parentItemId { return try Item.fetchOne(db, key: parent)?.status == .owned }

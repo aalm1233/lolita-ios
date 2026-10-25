@@ -54,7 +54,7 @@ struct PaymentEditScreen: View {
                         }
                     }
                     if let warning = viewModel.reminderWarning {
-                        Label(warning, systemImage: "exclamationmark.bubble")
+                        SkinLabel(warning, systemImage: "exclamationmark.bubble")
                             .font(.caption).foregroundStyle(.orange)
                     }
                 } header: { Text("提醒设置") } footer: {
@@ -62,7 +62,7 @@ struct PaymentEditScreen: View {
                 }
             }
             if let error = viewModel.loadError {
-                Section { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red) }
+                Section { SkinLabel(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red) }
             }
         }
         .disabled(viewModel.isSaving || !viewModel.isLoaded)

@@ -3,7 +3,7 @@ import Foundation
 import FoundationXML
 #endif
 
-struct TaobaoOrder: Identifiable, Sendable {
+struct TaobaoOrder: Identifiable, Codable, Equatable, Sendable {
     var id: String { orderId }
     let orderId: String
     let orderTime: String
@@ -12,10 +12,12 @@ struct TaobaoOrder: Identifiable, Sendable {
     let totalPaid: Double
     let shipping: Double
     var items: [TaobaoOrderItem]
+    var rawPaid: String? = nil
+    var rawShipping: String? = nil
 }
 
-struct TaobaoOrderItem: Identifiable, Sendable {
-    var id: String { "\(orderId):\(lineIndex)" }
+struct TaobaoOrderItem: Identifiable, Codable, Equatable, Sendable {
+    var id: String { sourceKey ?? "\(orderId):\(lineIndex)" }
     let orderId: String
     let lineIndex: Int
     let orderTime: String
@@ -28,6 +30,9 @@ struct TaobaoOrderItem: Identifiable, Sendable {
     let parsedType: String?
     let parsedSize: String?
     let parsedColor: String?
+    var sourceKey: String? = nil
+    var unitOrdinal = 0
+    var rawPrice: String? = nil
     var importMarker: String { "淘宝订单：\(orderId) / 商品 \(lineIndex + 1)" }
 }
 
@@ -105,13 +110,13 @@ enum TaobaoOrderParser {
             else {
                 index = orders.count
                 indices[currentOrderID] = index
-                orders.append(TaobaoOrder(orderId: currentOrderID, orderTime: cell(1), orderStatus: cell(2), shopName: cell(3), totalPaid: try price(cell(9)), shipping: try price(cell(10)), items: []))
+                orders.append(TaobaoOrder(orderId: currentOrderID, orderTime: cell(1), orderStatus: cell(2), shopName: cell(3), totalPaid: try price(cell(9)), shipping: try price(cell(10)), items: [], rawPaid: cell(9), rawShipping: cell(10)))
             }
             let order = orders[index]
             let style = parseStyleSpec(cell(6))
             let quantity = cell(7).isEmpty ? 1 : Int(cell(7))
             guard let quantity, quantity > 0, quantity <= 10000 else { throw ValidationError.invalid("商品“\(cell(4))”的数量无效") }
-            let item = TaobaoOrderItem(orderId: currentOrderID, lineIndex: order.items.count, orderTime: order.orderTime, shopName: order.shopName, name: cell(4), productURL: cell(5), styleSpec: cell(6), quantity: quantity, price: try price(cell(8)), parsedType: style.type, parsedSize: style.size, parsedColor: style.color)
+            let item = TaobaoOrderItem(orderId: currentOrderID, lineIndex: order.items.count, orderTime: order.orderTime, shopName: order.shopName, name: cell(4), productURL: cell(5), styleSpec: cell(6), quantity: quantity, price: try price(cell(8)), parsedType: style.type, parsedSize: style.size, parsedColor: style.color, rawPrice: cell(8))
             orders[index].items.append(item)
         }
         return orders

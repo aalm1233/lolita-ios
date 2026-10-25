@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct QuickOutfitLogScreen: View {
+    @FocusState private var noteFocused: Bool
     @State private var saveError: String?
     @State private var loadError: String?
     @State private var showDiscard = false
@@ -29,7 +30,7 @@ struct QuickOutfitLogScreen: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     TextField("场合、心情、穿着感受（选填）", text: $viewModel.note, axis: .vertical)
-                        .lineLimit(2...5)
+                        .lineLimit(2...5).focused($noteFocused).accessibilityIdentifier("quick-outfit-note")
                 }
             } header: { Text("今日穿搭") }
             .lolitaCollectionRowInsets()
@@ -57,7 +58,7 @@ struct QuickOutfitLogScreen: View {
                     }
                 }
                 Button { showItemPicker = true } label: {
-                    Label("选择服饰", systemImage: "plus.circle")
+                    SkinLabel("选择服饰", systemImage: "plus.circle")
                 }
                 .disabled(!viewModel.hasLoaded)
             } header: { Text("关联服饰 · \(viewModel.selectedItemIds.count) 件") }
@@ -94,8 +95,14 @@ struct QuickOutfitLogScreen: View {
         #if os(iOS)
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("保存") {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("完成输入") { noteFocused = false }.accessibilityIdentifier("quick-dismiss-keyboard")
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            HStack {
+                Button("保存今日穿搭（\(viewModel.selectedItemIds.count) 件）") {
                     guard !isBusy, !isImportingPhotos else { return }
                     Task {
                         do {
@@ -104,8 +111,11 @@ struct QuickOutfitLogScreen: View {
                         } catch { saveError = userFacingError(error) }
                     }
                 }
+                .buttonStyle(.borderedProminent)
+                .frame(maxWidth: .infinity)
+                .accessibilityIdentifier("quick-outfit-save")
                 .disabled(isBusy || isImportingPhotos || !viewModel.hasLoaded)
-            }
+            }.padding(12).frame(maxWidth: .infinity).background(.regularMaterial)
         }
         #endif
         .task { await load() }

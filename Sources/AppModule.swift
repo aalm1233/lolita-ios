@@ -45,6 +45,8 @@ final class AppModule: @unchecked Sendable {
         SeasonRepository(db: db.dbQueue)
     }()
 
+    lazy var lookRepository = LookRepository(db: db.dbQueue)
+
     lazy var coordinateRepository: CoordinateRepository = {
         CoordinateRepository(db: db.dbQueue)
     }()

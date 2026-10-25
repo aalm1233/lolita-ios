@@ -79,6 +79,15 @@ final class PriceEditViewModel: ObservableObject {
         changeType(.full); totalPriceText = String(format: "%.2f", reference.amount)
     }
 
+    /// SwiftUI may read an outgoing row during array replacement/removal.
+    /// Resolve by identity, never by an index captured before the async load.
+    func stageBinding(_ snapshot: PaymentStageInput) -> Binding<PaymentStageInput> {
+        Binding(get: { self.stages.first { $0.id == snapshot.id } ?? snapshot }, set: { value in
+            guard let index = self.stages.firstIndex(where: { $0.id == snapshot.id }) else { return }
+            self.stages[index] = value
+        })
+    }
+
     func changeType(_ type: PriceType) {
         self.type = type
         let count = type == .depositBalance ? 2 : type == .full ? 1 : max(1, stages.count)

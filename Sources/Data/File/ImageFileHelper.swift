@@ -69,6 +69,8 @@ enum ImageFileHelper {
             }
             for node in try StorageNode.fetchAll(db) { if let image = node.imageUrl { paths.insert(image) } }
             for draft in try ItemDraft.fetchAll(db) { paths.formUnion(draft.allImagePaths) }
+            for row in try OrderImportRow.fetchAll(db) { paths.formUnion(row.allImagePaths) }
+            for source in try ItemSourceRecord.fetchAll(db) { paths.formUnion(source.imagePaths.values) }
             for coordinate in try Coordinate.fetchAll(db) { paths.formUnion(coordinate.imageUrls.values) }
             for log in try OutfitLog.fetchAll(db) { paths.formUnion(log.imageUrls.values) }
             for location in try Location.fetchAll(db) { if let image = location.imageUrl { paths.insert(image) } }
@@ -136,6 +138,14 @@ enum ImageFileHelper {
                 if photos.values != draft.imagePaths.values || charts.values != draft.detailImagePaths.values {
                     draft.imagePaths = photos; draft.detailImagePaths = charts; try draft.update(db); updated += 1
                 }
+            }
+            for var row in try OrderImportRow.fetchAll(db) {
+                let photos = images(row.imagePaths), details = images(row.detailImagePaths)
+                if photos != row.imagePaths || details != row.detailImagePaths { row.imagePaths = photos; row.detailImagePaths = details; try row.update(db); updated += 1 }
+            }
+            for var source in try ItemSourceRecord.fetchAll(db) {
+                let photos = images(source.imagePaths)
+                if photos != source.imagePaths { source.imagePaths = photos; try source.update(db); updated += 1 }
             }
             for var coordinate in try Coordinate.fetchAll(db) {
                 let urls = images(coordinate.imageUrls)

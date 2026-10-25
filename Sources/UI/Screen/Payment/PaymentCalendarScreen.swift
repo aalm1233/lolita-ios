@@ -56,7 +56,7 @@ struct PaymentCalendarScreen: View {
     private var monthPicker: some View {
         HStack {
             Button { viewModel.goToPreviousMonth() } label: {
-                Image(systemName: "chevron.left")
+                SkinIcon(systemName: "chevron.left")
                     .frame(width: 44, height: 44)
             }
             .accessibilityLabel("上个月")
@@ -65,7 +65,7 @@ struct PaymentCalendarScreen: View {
                 .font(.headline)
             Spacer()
             Button { viewModel.goToNextMonth() } label: {
-                Image(systemName: "chevron.right")
+                SkinIcon(systemName: "chevron.right")
                     .frame(width: 44, height: 44)
             }
             .accessibilityLabel("下个月")
@@ -84,7 +84,7 @@ struct PaymentCalendarScreen: View {
     private func summaryCard(_ title: String, amount: Double, symbol: String, color: Color) -> some View {
         LolitaCard(variant: .compact) {
             VStack(alignment: .leading, spacing: 8) {
-                Label(title, systemImage: symbol)
+                SkinLabel(title, systemImage: symbol)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text(String(format: "¥%.2f", amount))
@@ -167,7 +167,7 @@ struct PaymentCalendarScreen: View {
                         }
                         HStack(spacing: 16) {
                             NavigationLink { PaymentEditScreen(priceId: payment.priceId, paymentId: payment.paymentId) } label: {
-                                Label(payment.isPaid ? "更正付款" : "记录真实付款", systemImage: "pencil")
+                                SkinLabel(payment.isPaid ? "更正付款" : "记录真实付款", systemImage: "pencil")
                             }
                             Spacer()
                             if !payment.isPaid && payment.stageId == nil {
@@ -180,7 +180,7 @@ struct PaymentCalendarScreen: View {
                                     }
                                 } label: {
                                     if mutationId == payment.paymentId { ProgressView() }
-                                    else { Label("标记已付", systemImage: "checkmark.circle") }
+                                    else { SkinLabel("标记已付", systemImage: "checkmark.circle") }
                                 }.disabled(mutationId != nil)
                             }
                         }.font(.caption.weight(.medium)).buttonStyle(.plain).foregroundStyle(accent)

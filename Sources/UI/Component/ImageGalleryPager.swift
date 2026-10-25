@@ -20,7 +20,7 @@ struct ImageGalleryPager: View {
             ImageFrame {
                 if urls.isEmpty {
                     HStack(spacing: 10) {
-                        Image(systemName: "photo").font(.title2)
+                        SkinIcon(systemName: "photo", size: 22)
                         Text(emptyTitle).font(.subheadline)
                     }
                     .foregroundStyle(.secondary)

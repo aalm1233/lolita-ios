@@ -7,7 +7,7 @@ import ZIPFoundation
 final class TaobaoImportRegressionTests: XCTestCase {
     private static let header = ["订单号", "订单提交时间", "订单状态", "店铺名称", "商品名称", "商品链接", "型号款式", "商品数量", "商品金额", "实付金额", "运费"]
 
-    private static func xlsx(rows: [[String]], sharedStrings: Bool = false, numericDate: Bool = false, date1904: Bool = false, declaration: String = "") throws -> Data {
+    static func xlsx(rows: [[String]], sharedStrings: Bool = false, numericDate: Bool = false, date1904: Bool = false, declaration: String = "") throws -> Data {
         let archive = try Archive(data: Data(), accessMode: .create)
         func escape(_ value: String) -> String { value.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;").replacingOccurrences(of: ">", with: "&gt;") }
         let strings = rows.flatMap { $0 }
@@ -184,4 +184,19 @@ final class TaobaoImportRegressionTests: XCTestCase {
         let count = try await database.dbQueue.read { @Sendable db in try Item.fetchCount(db) }
         XCTAssertEqual(count, 0)
     }
+    @MainActor func testPartialFileReadPersistsUsefulFileAndIndividualFailureAcrossViewModels() async throws {
+        let q = try LolitaDatabase(path:":memory:").dbQueue
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true); defer { try? FileManager.default.removeItem(at:directory) }
+        let good = directory.appendingPathComponent("valid.xlsx"), bad = directory.appendingPathComponent("broken.xlsx")
+        let data = try Self.xlsx(rows:[Self.header,Self.order()]); try data.write(to:good); try Data([1,2,3]).write(to:bad)
+        let model = TaobaoImportViewModel(db:q); await model.loadAttributes(); await model.loadFiles([good,bad])
+        XCTAssertNil(model.error); XCTAssertEqual(model.orders.count,1); XCTAssertEqual(model.files.count,2)
+        XCTAssertEqual(model.files.filter { $0.problem != nil }.count,1); XCTAssertEqual(model.files.first?.sha256,OrderImportSource.fileHash(data))
+        let session = try XCTUnwrap(model.session)
+        try FileManager.default.removeItem(at:good); try FileManager.default.removeItem(at:bad)
+        let restored = TaobaoImportViewModel(db:q); await restored.loadAttributes(); await restored.restore(session.id)
+        XCTAssertEqual(restored.files.count,2); XCTAssertEqual(restored.orders.count,1); XCTAssertEqual(restored.selectedKeys.count,1)
+    }
+
 }

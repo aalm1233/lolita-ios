@@ -65,8 +65,7 @@ struct LolitaThumbnail: View {
             if let path, !path.isEmpty {
                 LolitaShimmerImage(url: ImageFileHelper.fileURL(for: path))
             } else {
-                Image(systemName: symbol)
-                    .font(.title3)
+                SkinIcon(systemName: symbol)
                     .foregroundStyle(accent.opacity(0.6))
             }
         }
@@ -133,8 +132,7 @@ struct LolitaEmptyState: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            Image(systemName: systemImage)
-                .font(.system(size: 32, weight: .light))
+            SkinIcon(systemName: systemImage, size: 32)
                 .foregroundStyle(accent)
                 .frame(width: 76, height: 76)
                 .background(accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 24))
@@ -237,6 +235,7 @@ extension View {
 struct LolitaPageTabs<Selection: Hashable>: View {
     @EnvironmentObject private var skinManager: SkinManager
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let options: [Selection]
     @Binding var selection: Selection
     let label: (Selection) -> String
@@ -246,19 +245,36 @@ struct LolitaPageTabs<Selection: Hashable>: View {
     private var accent: Color { colorScheme == .dark ? skinManager.current.accentColorDark : skinManager.current.accentColor }
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: compact ? 0 : 16) {
-                ForEach(options, id: \.self) { option in tab(option).frame(maxWidth: .infinity) }
-            }.padding(.horizontal, compact ? 0 : 12)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: compact ? 4 : 24) { ForEach(options, id: \.self) { tab($0) } }
-                    .padding(.horizontal, compact ? 0 : 16)
-                    .fixedSize(horizontal: true, vertical: false)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                scrollingTabs
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: compact ? 0 : 16) {
+                        ForEach(options, id: \.self) { option in tab(option).frame(maxWidth: .infinity) }
+                    }.padding(.horizontal, compact ? 0 : 12)
+                    scrollingTabs
+                }
             }
-            .frame(maxWidth: .infinity)
         }
         .frame(height: compact ? max(44, tabHeight * 44 / 52) : max(52, tabHeight))
         .overlay(alignment: .bottom) { Rectangle().fill(accent.opacity(compact ? 0 : 0.1)).frame(height: 0.5) }
+    }
+
+    private var scrollingTabs: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: compact ? 4 : 24) {
+                    ForEach(options, id: \.self) { option in tab(option).id(option) }
+                }
+                .padding(.horizontal, compact ? 0 : 16)
+                .fixedSize(horizontal: true, vertical: false)
+            }
+            .accessibilityIdentifier("compact-page-tabs")
+            .onAppear { proxy.scrollTo(selection, anchor: .center) }
+            .onChange(of: selection) { _, value in proxy.scrollTo(value, anchor: .center) }
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func tab(_ option: Selection) -> some View {
@@ -336,7 +352,7 @@ struct LolitaHomeToolbar<Tabs: View, Actions: View, SearchField: View>: View {
             } else {
                 HStack(spacing: 2) {
                     Button(action: onSearch) {
-                        Image(systemName: "magnifyingglass")
+                        SkinIcon(systemName: "magnifyingglass")
                             .frame(width: 40, height: 44)
                             .contentShape(Rectangle())
                     }
@@ -356,14 +372,14 @@ struct LolitaHomeToolbar<Tabs: View, Actions: View, SearchField: View>: View {
 
     private var searchInput: some View {
         HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
+            SkinIcon(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
             searchField
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let clearSearch {
                 Button(action: clearSearch) {
-                    Image(systemName: "xmark.circle.fill")
+                    SkinIcon(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
                         .frame(width: 28, height: 44)
                         .contentShape(Rectangle())
@@ -383,6 +399,7 @@ struct LolitaHomeToolbar<Tabs: View, Actions: View, SearchField: View>: View {
 struct LolitaCollectionControls: View {
     @EnvironmentObject private var skinManager: SkinManager
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     var count: Int
     var unit: String = "件"
     var detail: String = ""
@@ -390,29 +407,39 @@ struct LolitaCollectionControls: View {
     @Binding var mode: LolitaCollectionViewMode
 
     var body: some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("\(count) \(unit)").font(.subheadline.weight(.semibold)).monospacedDigit()
-                if !detail.isEmpty { Text(detail).font(.caption2).foregroundStyle(.secondary) }
-            }
-            Spacer(minLength: 4)
-            if let totalPrice, totalPrice > 0 {
-                Text("合计 \(lolitaPriceLabel(totalPrice))")
-                    .font(.caption.weight(.semibold)).monospacedDigit()
-                    .foregroundStyle(colorScheme == .dark ? skinManager.current.accentColorDark : skinManager.current.accentColor)
-            }
-            Menu {
-                Picker("展示方式", selection: $mode) {
-                    ForEach(LolitaCollectionViewMode.allCases, id: \.self) { Label($0.title, systemImage: $0.symbol).tag($0) }
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("\(count) \(unit)").font(.subheadline.weight(.semibold)).monospacedDigit()
+                    if !detail.isEmpty { Text(detail).font(.caption2).foregroundStyle(.secondary) }
                 }
-            } label: {
-                Image(systemName: mode.symbol).font(.system(size: 17)).frame(width: 44, height: 44)
+                Spacer(minLength: 4)
+                if !dynamicTypeSize.isAccessibilitySize { priceLabel }
+                Menu {
+                    Picker("展示方式", selection: $mode) {
+                        ForEach(LolitaCollectionViewMode.allCases, id: \.self) { SkinLabel($0.title, systemImage: $0.symbol).tag($0) }
+                    }
+                } label: {
+                    SkinIcon(systemName: mode.symbol, size: 17).frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("展示方式：\(mode.title)")
             }
-            .accessibilityLabel("展示方式：\(mode.title)")
+            if dynamicTypeSize.isAccessibilitySize {
+                priceLabel.lineLimit(1).minimumScaleFactor(0.7)
+            }
         }
         .padding(.leading, 12)
         .padding(.trailing, 4)
     }
+
+    @ViewBuilder private var priceLabel: some View {
+        if let totalPrice, totalPrice > 0 {
+            Text("合计 \(lolitaPriceLabel(totalPrice))")
+                .font(.caption.weight(.semibold)).monospacedDigit()
+                .foregroundStyle(colorScheme == .dark ? skinManager.current.accentColorDark : skinManager.current.accentColor)
+        }
+    }
+
 }
 
 func lolitaPriceLabel(_ amount: Double) -> String {
@@ -458,7 +485,7 @@ struct LolitaCollectionImage: View {
                                 .frame(width: geometry.size.width, height: geometry.size.height)
                         } else {
                             VStack(spacing: 8) {
-                                Image(systemName: symbol).font(.system(size: 30, weight: .light))
+                                SkinIcon(systemName: symbol, size: 30)
                                 Text(String(title.prefix(1))).font(.title.weight(.medium))
                             }
                             .foregroundStyle(accent.opacity(0.65))
@@ -636,8 +663,8 @@ struct OutfitLogCollectionCard: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(log.note.isEmpty ? "今天的搭配" : log.note).font(.subheadline).foregroundStyle(.primary).lineLimit(3)
                     HStack(spacing: 12) {
-                        Label("\(log.imageUrls.values.count) 张", systemImage: "photo").font(.caption2).foregroundStyle(.secondary)
-                        Label("\(items.count) 件", systemImage: "tshirt").font(.caption2).foregroundStyle(.secondary)
+                        SkinLabel("\(log.imageUrls.values.count) 张", systemImage: "photo").font(.caption2).foregroundStyle(.secondary)
+                        SkinLabel("\(items.count) 件", systemImage: "tshirt").font(.caption2).foregroundStyle(.secondary)
                         Spacer(minLength: 0)
                         if !items.isEmpty { LolitaLinkedItemImages(items: items) }
                     }
@@ -737,7 +764,7 @@ struct LolitaCollectionSortMenu: View {
                 }
             }
         } label: {
-            Image(systemName: "arrow.up.arrow.down")
+            SkinIcon(systemName: "arrow.up.arrow.down")
                 .frame(width: buttonSize, height: buttonSize)
                 .contentShape(Rectangle())
         }

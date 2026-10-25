@@ -1,12 +1,12 @@
 import Foundation
 @preconcurrency import GRDB
 
-enum TaobaoPaymentRole: String, CaseIterable, Identifiable, Sendable {
+enum TaobaoPaymentRole: String, Codable, CaseIterable, Identifiable, Sendable {
     case full = "全款", deposit = "定金", balance = "尾款"
     var id: String { rawValue }
 }
 
-struct TaobaoImportDraft: Identifiable, Sendable {
+struct TaobaoImportDraft: Identifiable, Codable, Equatable, Sendable {
     var id: String { original.id }
     let original: TaobaoOrderItem
     var name: String
@@ -22,6 +22,13 @@ struct TaobaoImportDraft: Identifiable, Sendable {
     var manualBalanceText = ""
     var balanceDueDate = Date()
     var included = true
+    var shippingText = "0.00"
+    var paidText = ""
+    var financialConfirmed = false
+    var sourceSnapshotHash = ""
+    var identityConfirmed = false
+    var allowDeletedReimport = false
+    var linkedItemId: Int64? = nil
 
     init(original: TaobaoOrderItem) {
         self.original = original
@@ -35,8 +42,8 @@ struct TaobaoImportDraft: Identifiable, Sendable {
     }
 }
 
-enum TaobaoMissingKind: String, Sendable { case brand = "品牌", category = "分类" }
-struct TaobaoMissingAttribute: Identifiable, Sendable {
+enum TaobaoMissingKind: String, Codable, Sendable { case brand = "品牌", category = "分类" }
+struct TaobaoMissingAttribute: Identifiable, Codable, Equatable, Sendable {
     var id: String { kind.rawValue + ":" + name }
     let name: String
     let kind: TaobaoMissingKind
@@ -50,11 +57,14 @@ struct TaobaoImportAttributes: Sendable {
     var importedKeys: Set<String>
 }
 
-struct TaobaoImportResult: Sendable {
+struct TaobaoImportResult: Codable, Equatable, Sendable {
     var importedCount = 0
     var mergedCount = 0
     var duplicateCount = 0
     var omittedCount = 0
+    var itemIds: [Int64] = []
+    var linkedCount = 0
+    var commitId: String? = nil
 }
 
 final class TaobaoImportRepository: Sendable {
@@ -89,7 +99,10 @@ final class TaobaoImportRepository: Sendable {
     /// Validate and commit the complete submitted snapshot in one transaction.
     /// Import identifiers are checked again inside the write, so retrying cannot duplicate records.
     func save(_ drafts: [TaobaoImportDraft]) async throws -> TaobaoImportResult {
-        try await db.write { @Sendable db in
+        try await db.write { @Sendable db in try Self.save(drafts, in: db) }
+    }
+
+    static func save(_ drafts: [TaobaoImportDraft], in db: Database, reviewed: Bool = false) throws -> TaobaoImportResult {
             let selected = drafts.filter(\.included)
             guard !selected.isEmpty else { throw ValidationError.invalid("请至少选择一件商品") }
             guard Set(drafts.map(\.id)).count == drafts.count else { throw ValidationError.invalid("导入列表包含重复订单商品") }
@@ -125,8 +138,11 @@ final class TaobaoImportRepository: Sendable {
                     throw ValidationError.invalid("请为“\(main.name)”选择品牌和分类")
                 }
                 let name = try InputValidation.name(main.name)
-                let amount = try InputValidation.amount(main.priceText, label: "\(name)金额")
-                let purchaseDate = try TaobaoImportMatching.date(main.purchaseDate)
+                let merchandise = reviewed ? Double(try OrderImportSource.money(main.priceText)) / 100 : try InputValidation.amount(main.priceText, label: "\(name)金额")
+                let shipping = reviewed ? try OrderImportSource.money(main.shippingText) : 0
+                let amount = merchandise + Double(shipping) / 100
+                let paidAmount = reviewed ? Double(try OrderImportSource.money(main.paidText)) / 100 : amount
+                let purchaseDate = main.purchaseDate.isEmpty && reviewed ? nil : try TaobaoImportMatching.date(main.purchaseDate)
                 var item = Item(name: name, brandId: main.brandId, categoryId: main.categoryId,
                                 description: "淘宝订单：\(keys.joined(separator: "、"))\n型号款式：\(main.original.styleSpec)",
                                 colors: StringList(main.color.isEmpty ? [] : [main.color]), size: main.size.isEmpty ? nil : main.size,
@@ -138,9 +154,9 @@ final class TaobaoImportRepository: Sendable {
                 if depositDraft != nil {
                     let balance: Double
                     if let balanceDraft {
-                        balance = try InputValidation.amount(balanceDraft.priceText, label: "\(name)尾款")
+                        balance = try InputValidation.amount(balanceDraft.priceText, label: "\(name)尾款") + (reviewed ? Double(try OrderImportSource.money(balanceDraft.shippingText)) / 100 : 0)
                         guard balance > 0 else { throw ValidationError.invalid("“\(name)”的尾款必须大于 0") }
-                        due = try TaobaoImportMatching.date(balanceDraft.purchaseDate)
+                        due = reviewed && balanceDraft.purchaseDate.isEmpty ? nil : try TaobaoImportMatching.date(balanceDraft.purchaseDate)
                     } else {
                         balance = try InputValidation.amount(main.manualBalanceText, label: "\(name)待付尾款")
                         guard balance > 0 else { throw ValidationError.invalid("请为“\(name)”填写大于 0 的待付尾款") }
@@ -150,31 +166,51 @@ final class TaobaoImportRepository: Sendable {
                     guard (amount + balance).isFinite else { throw ValidationError.invalid("“\(name)”的总金额过大") }
                     price = Price(itemId: item.id, type: .depositBalance, totalPrice: amount + balance, deposit: amount, balance: balance)
                 } else { price = Price(itemId: item.id, type: .full, totalPrice: amount); due = nil }
+                price.shipping = Double(shipping + (reviewed ? try partner.map { try OrderImportSource.money($0.shippingText) } ?? 0 : 0)) / 100
                 try price.insert(db)
-                var paid = Payment(priceId: price.id, amount: amount, dueDate: purchaseDate, isPaid: true, paidDate: purchaseDate)
-                try paid.insert(db)
+                var paid = Payment(priceId: price.id, amount: paidAmount, dueDate: purchaseDate ?? 0, isPaid: true, paidDate: purchaseDate)
+                if !reviewed || paidAmount > 0 { try paid.insert(db) }
                 if let due {
                     var balancePayment = Payment(priceId: price.id, amount: price.balance ?? 0, dueDate: due, isPaid: balanceDraft != nil, paidDate: balanceDraft != nil ? due : nil)
                     try balancePayment.insert(db)
                 }
                 // Import into the same ledger in this transaction. Unpaid legacy rows are
                 // retained as source records; the active schedule is projected from stages.
-                let records = try Payment.filter(Payment.Columns.priceId == price.id).order(Payment.Columns.id).fetchAll(db)
-                for record in records {
-                    var stage = PaymentStage(priceId: price.id, name: price.type == .full ? "全款" : record.id == paid.id ? "定金" : "尾款",
-                                             amount: record.amount, dueDate: record.dueDate)
-                    try stage.insert(db)
-                    try db.execute(sql: "UPDATE payments SET stageId = ? WHERE id = ?", arguments: [stage.id, record.id])
+                if reviewed {
+                    var first = PaymentStage(priceId: price.id, name: price.type == .full ? "全款" : "定金", amount: amount, dueDate: nil)
+                    try first.insert(db)
+                    if paid.id != 0 { try db.execute(sql: "UPDATE payments SET stageId = ? WHERE id = ?", arguments: [first.id, paid.id]) }
+                    // A known purchase time is never inferred from the exported order-submission time.
+                    if price.type == .depositBalance {
+                        var last = PaymentStage(priceId: price.id, name: "尾款", amount: price.balance ?? 0, dueDate: balanceDraft == nil ? due : nil)
+                        try last.insert(db)
+                        // Remove only new temporary legacy schedule rows; actual records use reviewed cash.
+                        try db.execute(sql: "DELETE FROM payments WHERE priceId = ? AND id != ?", arguments: [price.id, paid.id])
+                        if let balanceDraft {
+                            let cash = Double(try OrderImportSource.money(balanceDraft.paidText)) / 100
+                            if cash > 0 {
+                                let date = balanceDraft.purchaseDate.isEmpty ? nil : try TaobaoImportMatching.date(balanceDraft.purchaseDate)
+                                var payment = Payment(priceId: price.id, amount: cash, dueDate: date ?? 0, isPaid: true, paidDate: date)
+                                payment.stageId = last.id; try payment.insert(db)
+                            }
+                        }
+                    }
+                } else {
+                    let records = try Payment.filter(Payment.Columns.priceId == price.id).order(Payment.Columns.id).fetchAll(db)
+                    for record in records {
+                        var stage = PaymentStage(priceId: price.id, name: price.type == .full ? "全款" : record.id == paid.id ? "定金" : "尾款", amount: record.amount, dueDate: record.dueDate)
+                        try stage.insert(db)
+                        try db.execute(sql: "UPDATE payments SET stageId = ? WHERE id = ?", arguments: [stage.id, record.id])
+                    }
                 }
                 price.purchaseRecordStatus = .tracked; try price.update(db)
                 try OrderBinding(itemId: item.id, priceId: price.id).insert(db)
                 try OrderRepository.refreshStatuses(db, itemId: item.id)
                 importedKeys.formUnion(keys); processed.formUnion(keys)
-                result.importedCount += 1
+                result.importedCount += 1; result.itemIds.append(item.id)
                 if partner != nil { result.mergedCount += 1 }
             }
             return result
-        }
     }
 }
 

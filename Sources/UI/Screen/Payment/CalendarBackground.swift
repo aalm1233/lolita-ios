@@ -38,8 +38,8 @@ struct CalendarBackgroundPicker: View {
     var body: some View {
         Menu {
             #if os(iOS)
-            Button("从相册选择", systemImage: "photo") { showPhotos = true }
-            Button("拍摄背景", systemImage: "camera") {
+            SkinButton("从相册选择", systemImage: "photo") { showPhotos = true }
+            SkinButton("拍摄背景", systemImage: "camera") {
                 Task {
                     guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
                         error = "当前设备没有可用相机，请从相册选择。"
@@ -54,10 +54,10 @@ struct CalendarBackgroundPicker: View {
             }
             #endif
             if !path.isEmpty {
-                Button("查看背景", systemImage: "arrow.up.left.and.arrow.down.right") { showPreview = true }
-                Button("恢复默认", systemImage: "arrow.counterclockwise", role: .destructive) { replaceBackground(with: "") }
+                SkinButton("查看背景", systemImage: "arrow.up.left.and.arrow.down.right") { showPreview = true }
+                SkinButton("恢复默认", systemImage: "arrow.counterclockwise", role: .destructive) { replaceBackground(with: "") }
             }
-        } label: { Image(systemName: "photo.on.rectangle.angled") }
+        } label: { SkinIcon(systemName: "photo.on.rectangle.angled") }
         .accessibilityLabel("设置日历背景")
         .alert("日历背景", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
             Button("确定") { error = nil }

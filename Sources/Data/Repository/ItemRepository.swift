@@ -80,7 +80,7 @@ final class ItemRepository: Sendable {
     }
 
     func delete(_ item: Item) async throws {
-        let draftImages = try await db.read { db in try ItemDraft.filter(Column("targetItemId") == item.id).fetchAll(db).flatMap(\.allImagePaths) }
+        let draftImages = try await db.read { db in try ItemDraft.filter(Column("targetItemId") == item.id).fetchAll(db).flatMap(\.allImagePaths) + ItemSourceRecord.filter(Column("itemId") == item.id).fetchAll(db).flatMap { $0.imagePaths.values } }
         try await db.write { @Sendable db in
             try db.execute(sql: "DELETE FROM orderBindings WHERE itemId = ?", arguments: [item.id])
             try item.delete(db)

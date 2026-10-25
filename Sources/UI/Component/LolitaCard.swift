@@ -9,6 +9,7 @@ enum CardVariant {
 
 struct LolitaCard<Content: View>: View {
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @EnvironmentObject var skinManager: SkinManager
 
     let variant: CardVariant
@@ -58,6 +59,12 @@ struct LolitaCard<Content: View>: View {
                 RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusM)
                     .fill(cardBackground)
             )
+            .background {
+                if reduceTransparency {
+                    RoundedRectangle(cornerRadius: skinManager.current.cornerRadiusM)
+                        .fill(isDark ? skinManager.current.backgroundColorDark : skinManager.current.backgroundColor)
+                }
+            }
             .overlay(
                 Group {
                     if let border = currentBorder {

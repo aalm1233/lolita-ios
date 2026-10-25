@@ -14,9 +14,9 @@ struct FinanceOverviewScreen: View {
             VStack(spacing: 16) {
                 Picker("查看范围", selection: $annual) { Text("月预算").tag(false); Text("年度付款").tag(true) }.pickerStyle(.segmented)
                 HStack {
-                    Button { move(-1) } label: { Image(systemName: "chevron.left").frame(width: 44, height: 44) }.accessibilityLabel(annual ? "上一年" : "上个月")
+                    Button { move(-1) } label: { SkinIcon(systemName: "chevron.left").frame(width: 44, height: 44) }.accessibilityLabel(annual ? "上一年" : "上个月")
                     Spacer(); Text(annual ? String(Calendar.current.component(.year, from: month)) + "年" : FinanceSnapshot.monthKey(month)).font(.headline); Spacer()
-                    Button { move(1) } label: { Image(systemName: "chevron.right").frame(width: 44, height: 44) }.accessibilityLabel(annual ? "下一年" : "下个月")
+                    Button { move(1) } label: { SkinIcon(systemName: "chevron.right").frame(width: 44, height: 44) }.accessibilityLabel(annual ? "下一年" : "下个月")
                 }
                 if annual { yearContent } else { monthContent }
                 if let error { Text(error).foregroundStyle(.red) }

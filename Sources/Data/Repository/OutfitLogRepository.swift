@@ -64,10 +64,12 @@ final class OutfitLogRepository: Sendable {
 
     func setItems(outfitLogId: Int64, itemIds: [Int64]) async throws {
         try await db.write { db in
+            guard try OutfitLog.fetchOne(db, key: outfitLogId) != nil else { throw ValidationError.invalid("穿搭记录已不存在") }
+            try Self.validateNewLinks(in: db, logId: outfitLogId, itemIds: itemIds)
             try OutfitItemCrossRef
                 .filter(OutfitItemCrossRef.Columns.outfitLogId == outfitLogId)
                 .deleteAll(db)
-            for itemId in itemIds {
+            for itemId in Set(itemIds) {
                 var crossRef = OutfitItemCrossRef(outfitLogId: outfitLogId, itemId: itemId)
                 try crossRef.insert(db)
             }
@@ -93,6 +95,13 @@ final class OutfitLogRepository: Sendable {
 }
 
 extension OutfitLogRepository {
+    private static func validateNewLinks(in db: Database, logId: Int64?, itemIds: [Int64]) throws {
+        let historical = try logId.map { id in Set(try OutfitItemCrossRef.filter(OutfitItemCrossRef.Columns.outfitLogId == id).fetchAll(db).map(\.itemId)) } ?? []
+        for id in Set(itemIds) {
+            guard let item = try Item.fetchOne(db, key: id) else { throw ValidationError.invalid("选中的服饰已删除，请重新选择") }
+            guard historical.contains(id) || item.status == .owned else { throw ValidationError.invalid("只能新增已拥有的穿搭服饰，请核对服饰状态") }
+        }
+    }
     /// A quick record always targets the local day, including its existing item selection.
     func getForDay(containing date: Date, calendar: Calendar = .current) async throws -> (log: OutfitLog, itemIds: [Int64])? {
         let range = try Self.dayRange(containing: date, calendar: calendar)
@@ -122,6 +131,7 @@ extension OutfitLogRepository {
             } else {
                 existing = try Self.dayLog(in: db, start: range.start, end: range.end)
             }
+            try Self.validateNewLinks(in: db, logId: existing?.id, itemIds: itemIds)
             var value = existing ?? OutfitLog(date: range.recordDate, note: "", createdAt: now, updatedAt: now)
             value.date = range.recordDate
             value.note = note
@@ -159,6 +169,7 @@ extension OutfitLogRepository {
 
     func save(_ log: OutfitLog, itemIds: [Int64]) async throws -> OutfitLog {
         try await db.write { db in
+            try Self.validateNewLinks(in: db, logId: log.id > 0 ? log.id : nil, itemIds: itemIds)
             var value = log
             value.updatedAt = Int64(Date().timeIntervalSince1970 * 1000)
             if value.id == 0 { try value.insert(db) } else { try value.update(db) }

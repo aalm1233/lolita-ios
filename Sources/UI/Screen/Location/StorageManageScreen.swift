@@ -174,7 +174,7 @@ private struct StorageMembershipScreen: View {
                     Button {
                         if !selected.insert(item.id).inserted { selected.remove(item.id) }
                     } label: {
-                        HStack { Text(item.name).foregroundStyle(.primary); Spacer(); Image(systemName: selected.contains(item.id) ? "checkmark.circle.fill" : "circle") }
+                        HStack { Text(item.name).foregroundStyle(.primary); Spacer(); SkinIcon(systemName: selected.contains(item.id) ? "checkmark.circle.fill" : "circle") }
                     }.accessibilityIdentifier("storage-item-\(item.id)")
                     .accessibilityValue(selected.contains(item.id) ? "已选择" : "未选择")
                 }

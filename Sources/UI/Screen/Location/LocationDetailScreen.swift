@@ -35,13 +35,13 @@ struct LocationDetailScreen: View {
                         Text(viewModel.isUnassigned ? "待分配服饰" : "存放服饰").font(.headline)
                         Spacer()
                         Button { showPicker = true } label: {
-                            Label(viewModel.isUnassigned ? "分配位置" : "管理", systemImage: viewModel.isUnassigned ? "archivebox" : "plus")
+                            SkinLabel(viewModel.isUnassigned ? "分配位置" : "管理", systemImage: viewModel.isUnassigned ? "archivebox" : "plus")
                         }.font(.subheadline)
                         .disabled(viewModel.isUnassigned && viewModel.items.isEmpty)
                     }.padding(.horizontal, 4)
                     if viewModel.items.isEmpty {
                         LolitaCard {
-                            Label(viewModel.isUnassigned ? "所有服饰都已分配位置" : "这里还没有存放服饰", systemImage: "archivebox")
+                            SkinLabel(viewModel.isUnassigned ? "所有服饰都已分配位置" : "这里还没有存放服饰", systemImage: "archivebox")
                                 .font(.subheadline).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
                         }
                     } else {
@@ -85,12 +85,12 @@ struct LocationDetailScreen: View {
     @ViewBuilder private var toolbarActions: some View {
         if !viewModel.isUnassigned, viewModel.location != nil {
             NavigationLink(destination: LocationEditScreen(locationId: viewModel.locationId, onSave: { await viewModel.load() })) {
-                Image(systemName: "pencil")
+                SkinIcon(systemName: "pencil")
             }.accessibilityLabel("编辑位置")
             Menu {
-                Button("管理存放服饰", systemImage: "hanger") { showPicker = true }
-                Button("删除位置", systemImage: "trash", role: .destructive) { showDelete = true }
-            } label: { Image(systemName: "ellipsis") }
+                SkinButton("管理存放服饰", systemImage: "hanger") { showPicker = true }
+                SkinButton("删除位置", systemImage: "trash", role: .destructive) { showDelete = true }
+            } label: { SkinIcon(systemName: "ellipsis") }
         }
     }
 }
@@ -122,7 +122,7 @@ private struct LocationDetailItemPicker: View {
                     Section("放入位置") {
                         if viewModel.locations.isEmpty {
                             NavigationLink(destination: LocationEditScreen(onSave: { await viewModel.load() })) {
-                                Label("先创建收纳位置", systemImage: "plus.circle")
+                                SkinLabel("先创建收纳位置", systemImage: "plus.circle")
                             }
                         } else {
                             Picker("收纳位置", selection: $destinationId) {
@@ -144,7 +144,7 @@ private struct LocationDetailItemPicker: View {
                                     Text("当前：\(item.locationId.flatMap { viewModel.locationNames[$0] } ?? "未分配")")
                                         .font(.caption).foregroundStyle(.secondary)
                                 }.frame(maxWidth: .infinity, alignment: .leading)
-                                Image(systemName: selectedIds.contains(item.id) ? "checkmark.circle.fill" : "circle")
+                                SkinIcon(systemName: selectedIds.contains(item.id) ? "checkmark.circle.fill" : "circle")
                             }
                         }.accessibilityAddTraits(selectedIds.contains(item.id) ? .isSelected : [])
                     }

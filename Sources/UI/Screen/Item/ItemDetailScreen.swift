@@ -43,8 +43,13 @@ struct ItemDetailScreen: View {
                         }
                     }
                     registrationInformation(item)
+                    NavigationLink("从商品链接补资料") { ProductImportScreen(targetItemId: item.id) }.buttonStyle(.bordered)
+                    ItemSourceHistoryView(itemId: item.id)
                     priceInformation
                     if item.status == .owned {
+                        NavigationLink(destination: LookBuilderScreen(itemId: item.id)) {
+                            LolitaCard { DetailActionLabel(title: "整套搭配", subtitle: "锁定喜欢的单品，替换或跳过其他类型", systemImage: "wand.and.stars") }
+                        }.buttonStyle(.plain).accessibilityIdentifier("full-look")
                         NavigationLink(destination: ItemRecommendationScreen(itemId: item.id)) {
                             LolitaCard {
                                 DetailActionLabel(title: "推荐搭配", subtitle: "按服饰分类寻找适合的搭配", systemImage: "sparkles")
@@ -90,11 +95,11 @@ struct ItemDetailScreen: View {
 
     @ViewBuilder private var editAndDeleteActions: some View {
         if viewModel.item != nil {
-            NavigationLink(destination: ItemEditScreen(itemId: viewModel.itemId)) { Image(systemName: "pencil") }
+            NavigationLink(destination: ItemEditScreen(itemId: viewModel.itemId)) { SkinIcon(systemName: "pencil") }
                 .accessibilityLabel("编辑服饰")
             Menu {
-                Button("删除服饰", systemImage: "trash", role: .destructive) { showDeleteConfirmation = true }
-            } label: { Image(systemName: "ellipsis") }
+                SkinButton("删除服饰", systemImage: "trash", role: .destructive) { showDeleteConfirmation = true }
+            } label: { SkinIcon(systemName: "ellipsis") }
             .accessibilityLabel("更多服饰操作")
         }
     }
@@ -234,13 +239,14 @@ struct ItemRecommendationScreen: View {
 }
 
 struct DetailTitleCard<Badges: View>: View {
+    @EnvironmentObject private var skinManager: SkinManager
     let title: String
     var subtitle = ""
     @ViewBuilder let badges: () -> Badges
     var body: some View {
         LolitaCard {
             VStack(alignment: .leading, spacing: 10) {
-                Text(title).font(.title2.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+                Text(title).font(skinManager.headingFont(size: 22, relativeTo: .title2)).fixedSize(horizontal: false, vertical: true)
                 if !subtitle.isEmpty { Text(subtitle).font(.subheadline).foregroundStyle(.secondary) }
                 DetailFlowLayout(spacing: 6) { badges() }
             }.frame(maxWidth: .infinity, alignment: .leading)
@@ -257,6 +263,7 @@ struct DetailStatusBadge: View {
 }
 
 struct DetailRelatedItemCard: View {
+    @AppStorage("showTotalPrice") private var showAmount = true
     @EnvironmentObject private var skinManager: SkinManager
     @Environment(\.colorScheme) private var colorScheme
     let item: Item
@@ -275,13 +282,13 @@ struct DetailRelatedItemCard: View {
                     if !metadata.isEmpty { Text(metadata).font(.caption).foregroundStyle(.secondary).lineLimit(2) }
                     DetailFlowLayout(spacing: 6) {
                         DetailStatusBadge(status: item.status)
-                        if let price { Text(detailMoney(price)).font(.caption.weight(.medium)).foregroundStyle(.secondary).padding(.vertical, 4) }
+                        if let price, showAmount { Text(detailMoney(price)).font(.caption.weight(.medium)).foregroundStyle(.secondary).padding(.vertical, 4) }
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 if let score {
                     LolitaBadge(text: "\(Int(score * 100))%", color: detailAccent(skinManager.current, colorScheme: colorScheme))
                 } else {
-                    Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                    SkinIcon(systemName: "chevron.right", size: 12).foregroundStyle(.tertiary)
                 }
             }
         }
@@ -289,6 +296,7 @@ struct DetailRelatedItemCard: View {
 }
 
 struct DetailPriceCard: View {
+    @AppStorage("showTotalPrice") private var showAmount = true
     @EnvironmentObject private var skinManager: SkinManager
     @Environment(\.colorScheme) private var colorScheme
     let summary: DetailPriceSummary
@@ -298,18 +306,18 @@ struct DetailPriceCard: View {
             HStack {
                 Text(summary.price.type.displayName).font(.subheadline.weight(.medium))
                 Spacer(minLength: 8)
-                Text(detailMoney(summary.price.totalPrice)).font(.headline).monospacedDigit()
-                Image(systemName: "chevron.right").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                Text((showAmount ? detailMoney(summary.price.totalPrice) : "金额已隐藏")).font(.headline).monospacedDigit()
+                SkinIcon(systemName: "chevron.right", size: 11).foregroundStyle(.secondary)
             }.foregroundStyle(accent)
             if summary.price.type == .depositBalance {
-                DetailRow(label: "定金", value: detailMoney(summary.price.deposit ?? 0))
-                DetailRow(label: "尾款", value: detailMoney(summary.price.balance ?? 0))
+                DetailRow(label: "定金", value: (showAmount ? detailMoney(summary.price.deposit ?? 0) : "金额已隐藏"))
+                DetailRow(label: "尾款", value: (showAmount ? detailMoney(summary.price.balance ?? 0) : "金额已隐藏"))
             }
             if summary.isCurrent && summary.price.purchaseRecordStatus != .tracked {
                 Text("历史购买资料待核对，余额未知").font(.caption).foregroundStyle(.secondary)
             } else if summary.isCurrent || !summary.payments.isEmpty {
-                DetailRow(label: "已付", value: detailMoney(summary.paidAmount))
-                DetailRow(label: "待付", value: detailMoney(summary.unpaidAmount))
+                DetailRow(label: "已付", value: (showAmount ? detailMoney(summary.paidAmount) : "金额已隐藏"))
+                DetailRow(label: "待付", value: (showAmount ? detailMoney(summary.unpaidAmount) : "金额已隐藏"))
             }
             if let date = summary.firstPaidDate { Text("首次付款 · \(detailDate(date))").font(.caption).foregroundStyle(.secondary) }
         }
@@ -320,6 +328,7 @@ struct DetailPriceCard: View {
 }
 
 struct DetailMoneySummary: View {
+    @AppStorage("showTotalPrice") private var showAmount = true
     @EnvironmentObject private var skinManager: SkinManager
     @Environment(\.colorScheme) private var colorScheme
     let total: Double
@@ -327,12 +336,12 @@ struct DetailMoneySummary: View {
     let unpaid: Double
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(detailMoney(total)).font(.title2.weight(.semibold)).monospacedDigit()
+            Text((showAmount ? detailMoney(total) : "金额已隐藏")).font(.title2.weight(.semibold)).monospacedDigit()
                 .foregroundStyle(colorScheme == .dark ? skinManager.current.primaryColorDark : skinManager.current.primaryColor)
                 .lineLimit(1).minimumScaleFactor(0.7)
             DetailFlowLayout(spacing: 12) {
-                Text("已付 \(detailMoney(paid))").font(.caption).foregroundStyle(.secondary)
-                Text("待付 \(detailMoney(unpaid))").font(.caption).foregroundStyle(unpaid > 0 ? .orange : .secondary)
+                Text("已付 \((showAmount ? detailMoney(paid) : "金额已隐藏"))").font(.caption).foregroundStyle(.secondary)
+                Text("待付 \((showAmount ? detailMoney(unpaid) : "金额已隐藏"))").font(.caption).foregroundStyle(unpaid > 0 ? .orange : .secondary)
             }
         }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 4)
     }
@@ -346,12 +355,12 @@ struct DetailActionLabel: View {
     let systemImage: String
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: systemImage).font(.title3).foregroundStyle(colorScheme == .dark ? skinManager.current.primaryColorDark : skinManager.current.primaryColor)
+            SkinIcon(systemName: systemImage).foregroundStyle(colorScheme == .dark ? skinManager.current.primaryColorDark : skinManager.current.primaryColor)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
                 if !subtitle.isEmpty { Text(subtitle).font(.caption).foregroundStyle(.secondary) }
             }.frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+            SkinIcon(systemName: "chevron.right", size: 12).foregroundStyle(.tertiary)
         }.padding(.vertical, 6)
     }
 }
@@ -362,7 +371,7 @@ struct DetailDisclosureRow: View {
     var body: some View {
         HStack(spacing: 8) {
             DetailRow(label: label, value: value)
-            Image(systemName: "chevron.right").font(.caption2.weight(.semibold)).foregroundStyle(.tertiary)
+            SkinIcon(systemName: "chevron.right", size: 11).foregroundStyle(.tertiary)
         }.foregroundStyle(.primary)
     }
 }
@@ -386,7 +395,7 @@ struct DetailLoadState: View {
     var body: some View {
         VStack(spacing: 12) {
             if isLoading { ProgressView() }
-            else { Image(systemName: "exclamationmark.circle").font(.title2).foregroundStyle(.secondary) }
+            else { SkinIcon(systemName: "exclamationmark.circle", size: 22).foregroundStyle(.secondary) }
             Text(isLoading ? "正在加载" : message).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
             if !isLoading { Button("重新加载", action: retry).buttonStyle(.bordered) }
         }.frame(maxWidth: .infinity).padding(.vertical, 48)

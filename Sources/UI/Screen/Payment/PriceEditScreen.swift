@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct PriceEditScreen: View {
+    @AppStorage("showTotalPrice") private var showAmount = true
     @State private var saveError: String?
     @State private var adoptReference = false
     @State private var showDiscard = false
@@ -14,6 +15,7 @@ struct PriceEditScreen: View {
 
     var body: some View {
         Form {
+            if !showAmount { Text("本页为金额编辑，会临时显示金额；返回后仍按隐私设置隐藏。").font(.caption).foregroundStyle(.secondary) }
             if let error = viewModel.loadError { Section { Text(error).foregroundStyle(.red) } }
             if viewModel.priceId == nil, viewModel.reference != nil {
                 Button("采用独立参考价到草稿") { adoptReference = true }
@@ -33,25 +35,26 @@ struct PriceEditScreen: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
-            ForEach($viewModel.stages) { $stage in
-                Section(stageTitle(stage)) {
+            ForEach(viewModel.stages) { snapshot in
+                let stage = viewModel.stageBinding(snapshot)
+                Section(stageTitle(snapshot)) {
                     if viewModel.type == .multiStage {
-                        TextField("阶段名称", text: $stage.name)
-                        moneyField("阶段金额", text: $stage.amountText)
+                        TextField("阶段名称", text: stage.name)
+                        moneyField("阶段金额", text: stage.amountText)
                     }
-                    Toggle("指定应付日期", isOn: $stage.hasDueDate)
-                    if stage.hasDueDate {
-                        DatePicker("应付日期", selection: $stage.dueDate, displayedComponents: .date)
-                        Toggle("提醒我付款", isOn: $stage.reminderSet)
-                        if stage.reminderSet { Stepper("提前 \(stage.reminderDays) 天", value: $stage.reminderDays, in: 0...365) }
+                    Toggle("指定应付日期", isOn: stage.hasDueDate)
+                    if stage.wrappedValue.hasDueDate {
+                        DatePicker("应付日期", selection: stage.dueDate, displayedComponents: .date)
+                        Toggle("提醒我付款", isOn: stage.reminderSet)
+                        if stage.wrappedValue.reminderSet { Stepper("提前 \(stage.wrappedValue.reminderDays) 天", value: stage.reminderDays, in: 0...365) }
                     } else { Text("日期待定，不会自动生成到期日或提醒。").font(.caption).foregroundStyle(.secondary) }
                     if viewModel.type == .multiStage, viewModel.stages.count > 1 {
-                        Button("移除本阶段", role: .destructive) { viewModel.stages.removeAll { $0.id == stage.id } }
+                        Button("移除本阶段", role: .destructive) { viewModel.stages.removeAll { $0.id == snapshot.id } }
                     }
                 }
             }
             if viewModel.type == .multiStage {
-                Button("添加阶段", systemImage: "plus") { viewModel.stages.append(PaymentStageInput()) }
+                SkinButton("添加阶段", systemImage: "plus") { viewModel.stages.append(PaymentStageInput()) }
             }
         }
         .disabled(viewModel.isSaving || !viewModel.isLoaded)

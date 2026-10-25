@@ -45,7 +45,7 @@ struct PriceManageScreen: View {
                 HStack {
                     Text(order.price.type.displayName).font(.headline)
                     Spacer()
-                    Image(systemName: "chevron.right").foregroundStyle(.secondary)
+                    SkinIcon(systemName: "chevron.right").foregroundStyle(.secondary)
                 }
                 Text(money(order.price.totalPrice)).font(.title3).monospacedDigit()
                 Text("已录实付 \(money(order.paidAmount))").font(.subheadline)

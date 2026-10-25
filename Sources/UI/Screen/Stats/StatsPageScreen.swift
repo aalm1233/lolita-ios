@@ -33,6 +33,7 @@ struct StatsPageScreen: View {
                 }
             }
             .padding(.horizontal, 12)
+            .background { SkinTopBarBackground() }
 
             if selectedTab == .calendar {
                 PaymentYearSummaryScreen()
@@ -40,7 +41,7 @@ struct StatsPageScreen: View {
                 ScrollView {
                     VStack(spacing: skinManager.current.spacingL) {
                         switch selectedTab {
-                        case .overview: overview
+                        case .overview: PurchaseReviewShortcut(); overview
                         case .distribution: distribution
                         case .trend: trend
                         case .wishlist: wishlist
@@ -82,10 +83,10 @@ struct StatsPageScreen: View {
             )
             NavigationLink { CoordinateListScreen() } label: {
                 HStack {
-                    Label("查看全部套装", systemImage: "square.stack")
+                    SkinLabel("查看全部套装", systemImage: "square.stack")
                     Spacer()
                     Text("\(viewModel.totalCoordinates) 套").foregroundStyle(.secondary)
-                    Image(systemName: "chevron.right").font(.caption)
+                    SkinIcon(systemName: "chevron.right", size: 12)
                 }.font(.subheadline).padding(12)
             }.buttonStyle(.plain)
 
@@ -102,8 +103,7 @@ struct StatsPageScreen: View {
                                 .font(.subheadline.weight(.semibold))
                                 .monospacedDigit()
                                 .foregroundStyle(primaryColor)
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
+                            SkinIcon(systemName: "chevron.right", size: 12)
                                 .foregroundStyle(.tertiary)
                         }
                         .padding(.vertical, skinManager.current.spacingS)
@@ -229,7 +229,7 @@ struct StatsPageScreen: View {
         Group {
             LolitaCard(variant: .compact) {
                 HStack(spacing: 12) {
-                    Label("愿望单预算", systemImage: "heart")
+                    SkinLabel("愿望单预算", systemImage: "heart")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 4)
@@ -300,7 +300,7 @@ struct StatsPageScreen: View {
         Button { drilldown = filter } label: {
             HStack(spacing: 10) {
                 content().frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: "chevron.right").font(.caption.weight(.medium)).foregroundStyle(.tertiary)
+                SkinIcon(systemName: "chevron.right", size: 12).foregroundStyle(.tertiary)
             }.contentShape(Rectangle())
         }.buttonStyle(.plain)
     }
@@ -337,10 +337,10 @@ struct StatsSummaryView: View {
             LolitaCard(variant: .compact) {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Label("已录实付", systemImage: "yensign.circle")
+                        SkinLabel("已录实付", systemImage: "yensign.circle")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        Label("\(outfitCount) 次穿搭", systemImage: "calendar")
+                        SkinLabel("\(outfitCount) 次穿搭", systemImage: "calendar")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -427,8 +427,7 @@ struct StatCard: View {
         LolitaCard(variant: .compact) {
             VStack(alignment: .leading, spacing: skinManager.current.spacingM) {
                 HStack(spacing: 6) {
-                    Image(systemName: systemImage)
-                        .font(.caption.weight(.semibold))
+                    SkinIcon(systemName: systemImage, size: 12)
                         .foregroundStyle(color)
                     Text(title)
                         .font(.caption)
@@ -546,7 +545,7 @@ struct StatsDonutCard: View {
                 Text(title).font(.subheadline.weight(.semibold))
                 if positiveRows.isEmpty {
                     VStack(spacing: skinManager.current.spacingM) {
-                        Image(systemName: "chart.pie").font(.title2).foregroundStyle(.tertiary)
+                        SkinIcon(systemName: "chart.pie", size: 22).foregroundStyle(.tertiary)
                         Text(valuesAreMoney ? "暂无金额数据" : "暂无件数数据")
                             .font(.subheadline).foregroundStyle(.secondary)
                     }
@@ -729,8 +728,7 @@ struct StatsEmptyState: View {
 
     var body: some View {
         VStack(spacing: skinManager.current.spacingM) {
-            Image(systemName: systemImage)
-                .font(.title2)
+            SkinIcon(systemName: systemImage, size: 22)
                 .foregroundStyle(colorScheme == .dark ? skinManager.current.primaryColorDark : skinManager.current.primaryColor)
                 .padding(.bottom, skinManager.current.spacingS)
             Text(title).font(.subheadline.weight(.medium))
@@ -760,14 +758,14 @@ struct PaymentYearSummaryScreen: View {
                 NavigationLink("年度退款、净支出与预算", destination: FinanceOverviewScreen(month: date(month: 1), annual: true))
                 HStack {
                     Button { year -= 1 } label: {
-                        Image(systemName: "chevron.left").frame(width: 40, height: 40)
+                        SkinIcon(systemName: "chevron.left").frame(width: 40, height: 40)
                     }
                     .accessibilityLabel("上一年")
                     Spacer()
                     Text("\(String(year)) 年").font(.title3.weight(.semibold)).monospacedDigit()
                     Spacer()
                     Button { year += 1 } label: {
-                        Image(systemName: "chevron.right").frame(width: 40, height: 40)
+                        SkinIcon(systemName: "chevron.right").frame(width: 40, height: 40)
                     }
                     .accessibilityLabel("下一年")
                 }
@@ -878,8 +876,7 @@ struct PaymentMonthSummaryCard: View {
                 .background(primaryColor.opacity(0.12), in: Capsule())
                 .fixedSize(horizontal: true, vertical: false)
         } else {
-            Image(systemName: "chevron.right")
-                .font(.system(size: 10, weight: .semibold))
+            SkinIcon(systemName: "chevron.right", size: 10)
                 .foregroundStyle(.tertiary)
         }
     }

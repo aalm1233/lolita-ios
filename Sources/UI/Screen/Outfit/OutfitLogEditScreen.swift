@@ -51,7 +51,7 @@ struct OutfitLogEditScreen: View {
                     }
                 }
                 Button { showItemPicker = true } label: {
-                    Label("选择服饰", systemImage: "plus.circle")
+                    SkinLabel("选择服饰", systemImage: "plus.circle")
                 }
             } header: {
                 Text("关联服饰 · \(viewModel.selectedItemIds.count) 件")

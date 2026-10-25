@@ -77,6 +77,12 @@ struct BackupRestoreScreen: View {
                     LabeledContent("应用版本", value: prepared.backup.appVersion)
                 }
                 Section("数据预览") {
+                    countRow("导入会话", prepared.backup.orderImportSessions.count)
+                    countRow("导入文件", prepared.backup.orderImportFiles.count)
+                    countRow("导入商品草稿", prepared.backup.orderImportRows.count)
+                    countRow("提交回执", prepared.backup.orderImportCommits.count)
+                    countRow("来源回执", prepared.backup.orderImportReceipts.count)
+                    countRow("物品来源", prepared.backup.itemSourceRecords.count)
                     countRow("品牌", prepared.backup.brands.count)
                     countRow("分类", prepared.backup.categories.count)
                     countRow("服饰", prepared.backup.items.count)

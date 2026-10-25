@@ -11,7 +11,9 @@ final class ItemDraftRepository: Sendable {
         let previous = try await db.write { db -> [String] in
             if let target = draft.targetItemId, try Item.fetchOne(db, key: target) == nil { throw ValidationError.invalid("原物品已删除，无法保存编辑草稿") }
             let paths = try ItemDraft.fetchOne(db, key: draft.id)?.allImagePaths ?? []
-            try draft.save(db)
+            var next = draft
+            if let old = try ItemDraft.fetchOne(db, key: draft.id) { next.updatedAt = max(old.updatedAt + 1, draft.updatedAt) }
+            try next.save(db)
             return paths
         }
         try? ImageFileHelper.deleteUnreferenced(paths: previous, db: db)

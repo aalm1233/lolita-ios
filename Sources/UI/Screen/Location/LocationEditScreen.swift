@@ -55,8 +55,7 @@ struct LocationEditScreen: View {
                             .fill(Color.gray.opacity(0.1))
                             .frame(height: 200)
                             .overlay {
-                                Image(systemName: "photo.badge.plus")
-                                    .font(.largeTitle)
+                                SkinIcon(systemName: "photo.badge.plus", size: 34)
                                     .foregroundStyle(.secondary)
                             }
                     }
@@ -65,7 +64,7 @@ struct LocationEditScreen: View {
                     let showsImportProgress = isImportingImage
                     PhotosPicker(selection: $selectedItem, matching: .images) {
                         HStack {
-                            Label("选择图片", systemImage: "photo.on.rectangle")
+                            SkinLabel("选择图片", systemImage: "photo.on.rectangle")
                                 .font(.subheadline)
                             if showsImportProgress { ProgressView() }
                         }

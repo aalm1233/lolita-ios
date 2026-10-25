@@ -199,8 +199,8 @@ final class QuickOutfitRegressionTests: XCTestCase {
         vm.imageUrls = [added]
         vm.selectedItemIds = [999_999]
 
-        do { try await vm.save(); XCTFail("无效外键应使整个保存事务失败") }
-        catch { XCTAssertEqual((error as? DatabaseError)?.extendedResultCode, .SQLITE_CONSTRAINT_FOREIGNKEY) }
+        do { try await vm.save(); XCTFail("已删除服饰应拒绝整次保存") }
+        catch { XCTAssertTrue(error is ValidationError); XCTAssertEqual(error.localizedDescription, "选中的服饰已删除，请重新选择") }
         let stored = try await repo.getById(log.id)
         let linked = try await repo.getItemIds(for: log.id)
         XCTAssertEqual(stored?.note, "数据库原记录")

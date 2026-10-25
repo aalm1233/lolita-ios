@@ -273,7 +273,7 @@ struct EditColorSelection: View {
                     else { selectedColors.insert(color) }
                 } label: {
                     HStack(spacing: 4) {
-                        if selected { Image(systemName: "checkmark").font(.caption.weight(.semibold)) }
+                        if selected { SkinIcon(systemName: "checkmark", size: 12) }
                         Text(color).font(.subheadline)
                     }
                     .frame(maxWidth: .infinity, minHeight: 36)
@@ -285,7 +285,7 @@ struct EditColorSelection: View {
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
             if allowsCustomColor { Button { customColor = ""; showCustomColor = true } label: {
-                Label("自定义", systemImage: "plus")
+                SkinLabel("自定义", systemImage: "plus")
                     .font(.subheadline).frame(maxWidth: .infinity, minHeight: 36)
                     .foregroundStyle(accent)
                     .background(accent.opacity(0.04), in: Capsule())
@@ -357,8 +357,7 @@ struct SearchableRecordPicker: View {
                 Text(options.first { $0.id == selection }?.name ?? "请选择")
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
+                SkinIcon(systemName: "chevron.right", size: 12)
                     .foregroundStyle(.tertiary)
             }
             .contentShape(Rectangle())
@@ -379,8 +378,7 @@ struct SearchableRecordPicker: View {
                                     Text(option.name).foregroundStyle(.primary)
                                     Spacer()
                                     if option.id == selection {
-                                        Image(systemName: "checkmark")
-                                            .font(.body.weight(.semibold))
+                                        SkinIcon(systemName: "checkmark", size: 17)
                                     }
                                 }
                                 .padding(.vertical, 4)
@@ -431,8 +429,7 @@ struct EditImageStrip: View {
                             }
                             .overlay(alignment: .topTrailing) {
                                 Button { onRemove(index) } label: {
-                                    Image(systemName: "xmark")
-                                        .font(.caption.weight(.bold))
+                                    SkinIcon(systemName: "xmark", size: 12)
                                         .foregroundStyle(.white)
                                         .frame(width: 28, height: 28)
                                         .background(.black.opacity(0.6), in: Circle())
@@ -489,7 +486,7 @@ struct EditPhotosSection: View {
             let showsPhotoImportProgress = isImporting
             PhotosPicker(selection: $selectedPhotos, maxSelectionCount: 10, matching: .images) {
                 HStack {
-                    Label("添加照片", systemImage: "photo.badge.plus")
+                    SkinLabel("添加照片", systemImage: "photo.badge.plus")
                     Spacer()
                     if showsPhotoImportProgress { ProgressView() }
                 }
@@ -521,7 +518,7 @@ struct EditPhotosSection: View {
                 }
             }
             #else
-            Label("macOS 暂不支持添加照片", systemImage: "photo.badge.plus")
+            SkinLabel("macOS 暂不支持添加照片", systemImage: "photo.badge.plus")
                 .foregroundStyle(.secondary)
             #endif
         } header: {
@@ -563,8 +560,7 @@ struct EditSelectedItemRow: View {
             LolitaThumbnail(path: item.imageUrls.values.first, symbol: "hanger", width: 40, height: 52)
             EditItemSummary(item: item)
             Button(action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.body)
+                SkinIcon(systemName: "xmark.circle.fill", size: 17)
                     .foregroundStyle(.secondary)
                     .frame(width: 44, height: 44)
             }
@@ -638,8 +634,7 @@ struct EditItemSelectionSheet: View {
                                 HStack(spacing: 12) {
                                     LolitaThumbnail(path: item.imageUrls.values.first, symbol: "hanger", width: 40, height: 52)
                                     EditItemSummary(item: item)
-                                    Image(systemName: selectedIds.contains(item.id) ? "checkmark.circle.fill" : "circle")
-                                        .font(.title3)
+                                    SkinIcon(systemName: selectedIds.contains(item.id) ? "checkmark.circle.fill" : "circle")
                                         .foregroundStyle(selectedIds.contains(item.id) ? accent : .secondary)
                                 }
                                 .padding(.vertical, 3)
@@ -659,6 +654,12 @@ struct EditItemSelectionSheet: View {
             }
             .searchable(text: $search, prompt: "搜索服饰名称")
             .lolitaNavBar(title: title)
+            .safeAreaInset(edge: .bottom) {
+                HStack {
+                    Button("完成选择（\(selectedIds.count) 件）") { dismiss() }
+                        .buttonStyle(.borderedProminent).accessibilityIdentifier("item-selection-done")
+                }.padding(12).frame(maxWidth: .infinity).background(.regularMaterial)
+            }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("完成") { dismiss() }

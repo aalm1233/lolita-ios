@@ -50,6 +50,7 @@ final class GothicSkin: SkinProtocol {
 
     // Section
     var sectionAccentColor: Color { accentColor }
+    var sectionAccentColorDark: Color { accentColorDark }
     let sectionAccentWidth: CGFloat = 2
     let sectionDividerColor = Color(red: 0.35, green: 0.10, blue: 0.35)
 

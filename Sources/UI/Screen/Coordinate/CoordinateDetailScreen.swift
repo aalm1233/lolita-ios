@@ -6,6 +6,7 @@ struct CoordinateDetailScreen: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = CoordinateDetailViewModel()
     @State private var showDelete = false
+    @State private var showShare = false
     @State private var showItemPicker = false
     @State private var operationError: String?
     @State private var reloadToken = 0
@@ -32,7 +33,7 @@ struct CoordinateDetailScreen: View {
                     HStack {
                         Text("包含服饰 · \(viewModel.items.count) 件").font(.headline)
                         Spacer()
-                        Button { showItemPicker = true } label: { Label("管理", systemImage: "plus") }.font(.subheadline)
+                        Button { showItemPicker = true } label: { SkinLabel("管理", systemImage: "plus") }.font(.subheadline)
                     }.padding(.horizontal, 4)
                     if viewModel.items.isEmpty {
                         LolitaCard { Text("选择服饰，组合成完整的搭配。").font(.subheadline).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading) }
@@ -79,6 +80,9 @@ struct CoordinateDetailScreen: View {
                 }
             }
         } message: { Text("套装将被删除，包含的服饰会保留并解除套装关联。") }
+        .sheet(isPresented: $showShare) {
+            ShareCardScreen(title: viewModel.coordinate?.name ?? "套装", images: viewModel.coordinate?.imageUrls.values ?? [], items: viewModel.items, brands: viewModel.brandNames)
+        }
         .alert("操作失败", isPresented: Binding(get: { operationError != nil }, set: { if !$0 { operationError = nil } })) {
             Button("确定") { operationError = nil }
         } message: { Text(operationError ?? "") }
@@ -86,12 +90,14 @@ struct CoordinateDetailScreen: View {
 
     @ViewBuilder private var toolbarActions: some View {
         if viewModel.coordinate != nil {
-            NavigationLink(destination: CoordinateEditScreen(coordinateId: coordinateId)) { Image(systemName: "pencil") }
+            Button { showShare = true } label: { SkinIcon(systemName: "square.and.arrow.up") }
+                .accessibilityLabel("分享图片").accessibilityIdentifier("share-card")
+            NavigationLink(destination: CoordinateEditScreen(coordinateId: coordinateId)) { SkinIcon(systemName: "pencil") }
                 .accessibilityLabel("编辑套装")
             Menu {
-                Button("管理服饰与顺序", systemImage: "list.bullet") { showItemPicker = true }
-                Button("删除套装", systemImage: "trash", role: .destructive) { showDelete = true }
-            } label: { Image(systemName: "ellipsis") }
+                SkinButton("管理服饰与顺序", systemImage: "list.bullet") { showItemPicker = true }
+                SkinButton("删除套装", systemImage: "trash", role: .destructive) { showDelete = true }
+            } label: { SkinIcon(systemName: "ellipsis") }
         }
     }
 }
@@ -136,7 +142,7 @@ private struct CoordinateDetailItemPicker: View {
                             HStack(spacing: 10) {
                                 LolitaThumbnail(path: item.imageUrls.values.first, symbol: "hanger", width: 40, height: 50)
                                 Text(item.name).font(.subheadline).foregroundStyle(.primary).frame(maxWidth: .infinity, alignment: .leading)
-                                Image(systemName: "plus.circle")
+                                SkinIcon(systemName: "plus.circle")
                             }
                         }
                         .deleteDisabled(true)

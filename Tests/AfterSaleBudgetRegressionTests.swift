@@ -202,7 +202,7 @@ final class AfterSaleBudgetRegressionTests: XCTestCase {
         for path in zipped.imagePaths { XCTAssertEqual(try Data(contentsOf:ImageFileHelper.fileURL(for:path)),bytes) }
         defer { for path in zipped.imagePaths { ImageFileHelper.delete(path:path) } }
         let csv=String(decoding:try await manager.exportCSV(),as:UTF8.self)
-        XCTAssertEqual(csv.components(separatedBy:"=== ").count-1,20)
+        XCTAssertEqual(csv.components(separatedBy:"=== ").count-1,26)
         var broken=preview; broken.orderRefunds[0].amount=201
         await fails { try await restore.restore(broken) }
         expectEqual(try await restore.snapshot().orderRefunds,original.orderRefunds)

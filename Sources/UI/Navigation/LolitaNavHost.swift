@@ -20,7 +20,7 @@ struct LolitaNavHost: View {
                 ItemListScreen()
             }
             .tabItem {
-                Image(systemName: selectedTab == .items ? "tshirt.fill" : "tshirt")
+                SkinImages.image(key: "Home", skin: skinManager.currentSkinType)
                 Text(Tab.items.rawValue)
             }
             .tag(Tab.items)
@@ -29,7 +29,7 @@ struct LolitaNavHost: View {
                 OutfitLogListScreen()
             }
             .tabItem {
-                Image(systemName: "figure.stand")
+                SkinImages.image(key: "Outfit", skin: skinManager.currentSkinType)
                 Text(Tab.outfits.rawValue)
             }
             .tag(Tab.outfits)
@@ -38,7 +38,7 @@ struct LolitaNavHost: View {
                 StatsPageScreen()
             }
             .tabItem {
-                Image(systemName: selectedTab == .stats ? "chart.bar.fill" : "chart.bar")
+                SkinImages.image(key: "Stats", skin: skinManager.currentSkinType)
                 Text(Tab.stats.rawValue)
             }
             .tag(Tab.stats)
@@ -47,13 +47,13 @@ struct LolitaNavHost: View {
                 SettingsScreen()
             }
             .tabItem {
-                Image(systemName: selectedTab == .settings ? "gearshape.fill" : "gearshape")
+                SkinImages.image(key: "Settings", skin: skinManager.currentSkinType)
                 Text(Tab.settings.rawValue)
             }
             .tag(Tab.settings)
         }
         .tint(colorScheme == .dark ? skinManager.current.primaryColorDark : skinManager.current.primaryColor)
-        .font(skinManager.customFont ?? .body)
+        .font(.body)
         .sheet(item: $routeState.route) { route in
             NavigationStack {
                 switch route {

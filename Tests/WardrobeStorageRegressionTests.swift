@@ -294,4 +294,18 @@ final class WardrobeStorageRegressionTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath:shared)); XCTAssertFalse(FileManager.default.fileExists(atPath:draftOnly))
         eq(try await ItemDraftRepository(db:q).get("draft")?.id,nil)
     }
+    func testImportPlacementIsAtomicAndDoesNotRewriteUnrelatedEditorDrafts() async throws {
+        let (q,item,a,b) = try await Self.fixture(); let repo = StorageRepository(db:q)
+        let other = try await q.write { db in var i = Item(name:"另一个草稿物品",brandId:item.brandId,categoryId:item.categoryId,status:.wished); try i.insert(db); return i }
+        try await ItemDraftRepository(db:q).save(ItemDraft.make(id:"selected-import",item:item,baseline:item.updatedAt))
+        try await ItemDraftRepository(db:q).save(ItemDraft.make(id:"unrelated-editor",item:other,baseline:other.updatedAt))
+        let untouched = try unwrap(try await ItemDraftRepository(db:q).get("unrelated-editor"))
+        try await repo.placeImported(ids:[item.id],roomId:b.id,nodeId:nil)
+        let moved = try unwrap(try await ItemRepository(db:q).getById(item.id)); eq(moved.locationId,b.id); eq(moved.updatedAt,item.updatedAt)
+        let draft = try unwrap(try await ItemDraftRepository(db:q).get("selected-import")); eq(try draft.item().locationId,b.id)
+        let after = try unwrap(try await ItemDraftRepository(db:q).get("unrelated-editor")); eq(after.dataJson,untouched.dataJson); eq(after.updatedAt,untouched.updatedAt)
+        await fails { try await repo.placeImported(ids:[item.id,other.id],roomId:a.id,nodeId:nil) }
+        eq(try await ItemRepository(db:q).getById(item.id)?.locationId,b.id)
+    }
+
 }

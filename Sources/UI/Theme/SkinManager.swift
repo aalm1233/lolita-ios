@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreText
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -10,6 +11,7 @@ final class SkinManager: ObservableObject {
     private let preferences = AppPreferences()
 
     init() {
+        _ = Self.fontsRegistered
         let storedType = SkinType(rawValue: preferences.skinType) ?? .default
         self.currentSkinType = storedType
         self.current = SkinManager.create(storedType)
@@ -21,15 +23,22 @@ final class SkinManager: ObservableObject {
         preferences.skinType = type.rawValue
     }
 
-    var customFont: Font? {
-        guard let name = current.fontName else { return nil }
-        #if canImport(UIKit)
-        let size = UIFont.preferredFont(forTextStyle: .body).pointSize
-        #else
-        let size: CGFloat = 17
-        #endif
-        return Font.custom(name, size: size)
+    /// Decorative faces are scoped to headings. Controls and money inherit the system face.
+    func headingFont(size: CGFloat, relativeTo style: Font.TextStyle = .headline) -> Font {
+        guard let name = current.fontName else { return .system(style, design: .default).weight(.semibold) }
+        return .custom(name, size: size, relativeTo: style)
     }
+
+    private static let fontsRegistered: Void = {
+        #if SWIFT_PACKAGE
+        let bundle = Bundle.module
+        for name in ["cinzel_regular", "noto_serif_sc_regular", "playfair_display_regular", "pacifico_regular", "cormorant_garamond"] {
+            if let url = bundle.url(forResource: name, withExtension: "ttf") {
+                CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+            }
+        }
+        #endif
+    }()
 
     static func create(_ type: SkinType) -> any SkinProtocol {
         switch type {

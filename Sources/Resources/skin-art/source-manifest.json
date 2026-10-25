@@ -1,0 +1,23 @@
+{
+  "android_source_sha256": {
+    "PolishedActionDrawings.kt": "9cc868211ace1da2744b0394bf891fdf8728c63a82ad7c3d0c74dfd511cc545d",
+    "PolishedContentIcons.kt": "234bf41ae21ef2446806689fe7cce6e90f227c3dced043a3072e6c98ad4109dc",
+    "PolishedDirectionStatusDrawings.kt": "0952117dc87b00cf978ffa2981e8fce00f83279999c14bc34bea4f56e0b6dc3f",
+    "PolishedNavigationIcons.kt": "6b6d5f74877e8d174ffff5ea6172d35fe41fbe29edbe86a1a8d4ece7d90c5b5c",
+    "PolishedControlIcons.kt": "03e64d91bd08a22d4732997d886b16b66ccba87d7c05ecbe2098819ce31015c7",
+    "PolishedLaboratoryIcon.kt": "33b438fbff1da57301f846c4042a0fce7a76c7d5cbd2087ab96f7ce0ad1cd21f",
+    "IconKey.kt": "f8ba1b72b8f0b793c7d0aeb91e246c357c9d974630c2f32f3ca82cba484377e2"
+  },
+  "background_sha256": {
+    "bg_art_chinese.png": "674f3e855ef2fb41c3de0cc9effc3f16d86b62d0d78ed20c570e45d9a3e29d5f",
+    "bg_art_classic.png": "f857f10ab35869d44bd3f3c1f4588f57267fb222a39308d7b14e618cd75cb3d2",
+    "bg_art_country.png": "c0c8ea4ce05bf94d7ea801caa503d0b7c6f5a37b518402c827bbd3f81089ef5c",
+    "bg_art_gothic.png": "96abdf66a1557780f2e710fa6377baad8c9635f60541fe14d59eb55b35004e07",
+    "bg_art_navy.png": "65d89475ff49a617d22e4828a7478237922c3fcccdc8c7165692c3e8e3f0b9c0",
+    "bg_art_sweet.png": "12cc1554b489a5e43f73349326e9517be0e8fa1ddbcdd5a8c685b9a9d26728f3",
+    "bg_art_victorian.png": "327b2e17df32697b379c54bcbffdcc6e176eb7032def333c958961bea68a5de2"
+  },
+  "exporter": "scripts/visual/export_android_icons.py",
+  "styles": 7,
+  "icons_per_style": 52
+}

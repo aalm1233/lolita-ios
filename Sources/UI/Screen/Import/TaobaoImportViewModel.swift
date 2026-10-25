@@ -4,7 +4,7 @@ import SwiftUI
 import UIKit
 #endif
 
-enum TaobaoImportStep: String { case select = "选择商品", prepare = "补全资料", detail = "确认商品", result = "导入完成" }
+enum TaobaoImportStep: String, Codable { case select = "选择商品", prepare = "补全资料", detail = "确认商品", result = "导入完成" }
 
 @MainActor
 final class TaobaoImportViewModel: ObservableObject {
@@ -25,19 +25,94 @@ final class TaobaoImportViewModel: ObservableObject {
     private let db: DatabaseQueue
     private var temporaryImages = Set<String>()
     private var committed = false
+    @Published private(set) var sessions: [OrderImportSession] = []
+    @Published private(set) var files: [OrderImportFile] = []
+    @Published private(set) var conflicts: [ImportSourceConflict] = []
+    @Published private(set) var session: OrderImportSession?
+    @Published private(set) var draftError: String?
+    private var choices: [String: String] = [:]
+    private var saveTail: Task<Void, Error>?
+    private var ready = false
+    private var loaded = false
+    private var sessionRepository: OrderImportSessionRepository { OrderImportSessionRepository(db: db) }
+    var persistenceKey: String { (try? OrderImportSource.json(snapshot) + OrderImportSource.json(drafts) + OrderImportSource.json(files)) ?? "" }
+    private var snapshot: OrderImportSnapshot { OrderImportSnapshot(orders: orders, selectedKeys: selectedKeys, choices: choices, step: step, missingAttributes: missingAttributes, result: result) }
+    func saveDraft() async -> Bool {
+        guard ready, session != nil else { return true }
+        let previous = saveTail
+        let task = Task { @MainActor in
+            if let previous { _ = try? await previous.value }
+            guard let current = self.session else { return }
+            let snapshot = self.snapshot, rows = self.drafts, files = self.files
+            self.session = try await self.sessionRepository.save(current, snapshot: snapshot, drafts: rows, files: files)
+            try? ImageFileHelper.deleteUnreferenced(paths: Array(self.temporaryImages), db: self.db)
+            self.temporaryImages = []
+        }
+        saveTail = task
+        do { try await task.value; draftError = nil; return true }
+        catch { draftError = userFacingError(error); return false }
+    }
+    func refreshSessions() async {
+        do { sessions = try await sessionRepository.sessions() } catch { self.error = userFacingError(error) }
+    }
+    func restore(_ id: String) async {
+        guard !isWorking else { return }; isWorking = true; ready = false
+        if let saveTail { _ = try? await saveTail.value }
+        defer { isWorking = false }
+        do {
+            let value = try await sessionRepository.load(id)
+            session = value.session; orders = value.snapshot.orders; selectedKeys = value.snapshot.selectedKeys
+            choices = value.snapshot.choices; step = value.snapshot.step; result = value.snapshot.result
+            missingAttributes = value.snapshot.missingAttributes; drafts = value.drafts; files = value.files
+            fileCount = files.count; committed = step == .result; draftError = nil
+            conflicts = OrderImportSessionRepository.merge(files, choices: choices).conflicts
+            ready = true
+        } catch { self.error = userFacingError(error) }
+    }
+    func newSession() async {
+        if !(await saveDraft()) { return }
+        ready = false; session = OrderImportSession(dataJson: "{}")
+        orders = []; selectedKeys = []; drafts = []; files = []; conflicts = []; choices = [:]
+        result = nil; step = .select; committed = false; fileCount = 0; duplicateOrders = 0; missingAttributes = []; temporaryImages = []
+        ready = true; _ = await saveDraft(); await refreshSessions()
+    }
+    @discardableResult func discardSession(_ id: String) async -> Bool {
+        guard !isWorking else { return false }
+        isWorking = true; defer { isWorking = false }
+        if let saveTail { _ = try? await saveTail.value }
+        let current = session?.id == id, wasReady = ready
+        if current { ready = false }
+        do {
+            let temporary = current ? Array(temporaryImages) : []
+            try await sessionRepository.discard(id)
+            if current { session = nil; orders = []; drafts = []; files = []; conflicts = []; selectedKeys = []; temporaryImages = []; step = .select }
+            try? ImageFileHelper.deleteUnreferenced(paths: temporary, db: db)
+            await refreshSessions(); return true
+        } catch { ready = wasReady; self.error = userFacingError(error); return false }
+    }
+    func chooseSource(orderId: String, hash: String) {
+        choices[orderId] = hash; mergeFiles()
+    }
+    func removeFile(_ id: String) { files.removeAll { $0.id == id }; mergeFiles() }
+    private func mergeFiles() {
+        let merged = OrderImportSessionRepository.merge(files, choices: choices)
+        orders = merged.orders; conflicts = merged.conflicts; duplicateOrders = merged.duplicates; fileCount = files.count
+        let available = Set(orders.flatMap(\.items).map(\.id))
+        selectedKeys.formIntersection(available)
+        let units = Set(orders.flatMap { (try? OrderImportSource.units($0)) ?? [] }.map(\.id))
+        let hashes = Dictionary(uniqueKeysWithValues: orders.map { ($0.orderId, OrderImportSource.snapshot($0)) })
+        drafts.removeAll { !units.contains($0.id) || hashes[$0.original.orderId] != $0.sourceSnapshotHash }
+        step = .select; committed = false; result = nil
+    }
+    func resumeRemaining() { step = .detail; result = nil; committed = false; session?.pendingOperationId = nil; for i in drafts.indices { drafts[i].included = false } }
+
 
     init(db: DatabaseQueue = AppModule.shared.db.dbQueue) {
         self.db = db
         repository = TaobaoImportRepository(db: db)
     }
 
-    deinit {
-        // A tab change keeps the view model alive and must keep its edited photos.
-        // When the import is actually released, only uncommitted, unreferenced files are removed.
-        try? ImageFileHelper.deleteUnreferenced(paths: Array(temporaryImages), db: db)
-    }
-
-    var hasUnsavedInput: Bool { !orders.isEmpty && !committed }
+    var hasUnsavedInput: Bool { session != nil && !committed }
     var includedCount: Int { drafts.filter(\.included).count }
     var importItemCount: Int {
         let included = drafts.filter(\.included)
@@ -46,7 +121,10 @@ final class TaobaoImportViewModel: ObservableObject {
     }
 
     func loadAttributes() async {
-        do { apply(try await repository.attributes()) }
+        do {
+            apply(try await repository.attributes())
+            if !loaded { loaded = true; await refreshSessions(); ready = true }
+        }
         catch { if !Task.isCancelled { self.error = userFacingError(error) } }
     }
 
@@ -55,36 +133,38 @@ final class TaobaoImportViewModel: ObservableObject {
         isWorking = true
         defer { isWorking = false }
         do {
+            if session == nil { session = OrderImportSession(dataJson: "{}"); ready = true }
+            let sessionID = session!.id
             let worker = Task.detached(priority: .userInitiated) {
                 guard !urls.isEmpty, urls.count <= 50 else { throw ValidationError.invalid("请选择 1 至 50 个文件") }
-                var files: [Data] = []
-                var totalBytes = 0
+                var results: [OrderImportFile] = []; var total = 0
                 for url in urls {
                     try Task.checkCancellation()
-                    guard url.pathExtension.lowercased() == "xlsx" else { throw ValidationError.invalid("仅支持 .xlsx 格式的淘宝订单文件") }
                     let accessed = url.startAccessingSecurityScopedResource()
                     defer { if accessed { url.stopAccessingSecurityScopedResource() } }
-                    let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-                    guard size <= TaobaoOrderParser.maximumFileSize else { throw ValidationError.invalid("订单文件超过 32 MB，请分批导入") }
-                    totalBytes += size
-                    guard totalBytes <= 64 * 1024 * 1024 else { throw ValidationError.invalid("所选文件合计超过 64 MB，请分批导入") }
-                    files.append(try Data(contentsOf: url))
+                    var file = OrderImportFile(sessionId: sessionID, name: url.lastPathComponent, sha256: "unread:" + UUID().uuidString)
+                    do {
+                        guard url.pathExtension.lowercased() == "xlsx" else { throw ValidationError.invalid("仅支持 .xlsx 文件") }
+                        let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+                        total += size
+                        guard size <= TaobaoOrderParser.maximumFileSize, total <= 64 * 1024 * 1024 else { throw ValidationError.invalid("订单文件过大，请分批选择") }
+                        let data = try Data(contentsOf: url)
+                        file.sha256 = OrderImportSource.fileHash(data)
+                        file.dataJson = try OrderImportSource.json(TaobaoOrderParser.parse(data))
+                    } catch { file.problem = userFacingError(error) }
+                    results.append(file)
                 }
-                return try TaobaoOrderParser.parseMultipleFiles(files)
+                return results
             }
             let parsed = try await withTaskCancellationHandler(operation: { try await worker.value }, onCancel: { worker.cancel() })
-            let attributes = try await repository.attributes()
             guard !Task.isCancelled else { return }
-            discardImages()
-            apply(attributes)
-            orders = parsed.orders
-            fileCount = parsed.fileCount
-            duplicateOrders = parsed.duplicateCount
-            selectedKeys = Set(parsed.orders.filter { $0.orderStatus == "交易成功" }.flatMap(\.items).filter { !$0.styleSpec.contains("意向金") && !alreadyImported.contains($0.id) }.map(\.id))
-            drafts = []; missingAttributes = []; step = .select; result = nil; committed = false
-        } catch {
-            if !Task.isCancelled { self.error = "读取订单失败：" + userFacingError(error) }
-        }
+            apply(try await repository.attributes())
+            var hashes = Set(files.map(\.sha256))
+            files += parsed.filter { hashes.insert($0.sha256).inserted }
+            mergeFiles()
+            selectedKeys.formUnion(orders.filter { $0.orderStatus == "交易成功" }.flatMap(\.items).filter { !$0.styleSpec.contains("意向金") && !alreadyImported.contains($0.id) }.map(\.id))
+            _ = await saveDraft(); await refreshSessions()
+        } catch { if !Task.isCancelled { self.error = "读取订单失败：" + userFacingError(error) } }
     }
 
     func selectAll(_ selected: Bool) {
@@ -93,7 +173,7 @@ final class TaobaoImportViewModel: ObservableObject {
     }
 
     func prepare() {
-        guard !isWorking, !selectedKeys.isEmpty else { return }
+        guard !isWorking, conflicts.isEmpty, !selectedKeys.isEmpty else { return }
         let items = orders.flatMap(\.items).filter { selectedKeys.contains($0.id) }
         var missing: [TaobaoMissingAttribute] = []
         for item in items {
@@ -138,11 +218,14 @@ final class TaobaoImportViewModel: ObservableObject {
 
     private func buildDrafts() {
         let existing = Dictionary(uniqueKeysWithValues: drafts.map { ($0.id, $0) })
-        let built = orders.flatMap(\.items).filter { selectedKeys.contains($0.id) }.map { original -> TaobaoImportDraft in
-            var draft = existing[original.id] ?? TaobaoImportDraft(original: original)
-            if draft.brandId == 0 { draft.brandId = TaobaoImportMatching.brand(original.shopName, in: brands)?.id ?? 0 }
-            if draft.categoryId == 0 { draft.categoryId = TaobaoImportMatching.category(original.parsedType, in: categories)?.id ?? 0 }
-            return draft
+        let built = orders.flatMap { order -> [TaobaoImportDraft] in
+            let rows = (try? OrderImportSource.drafts(order)) ?? []
+            return rows.filter { selectedKeys.contains("\($0.original.orderId):\($0.original.lineIndex)") }.map { value in
+                var draft = existing[value.id] ?? value
+                if draft.brandId == 0 { draft.brandId = TaobaoImportMatching.brand(draft.original.shopName, in: brands)?.id ?? 0 }
+                if draft.categoryId == 0 { draft.categoryId = TaobaoImportMatching.category(draft.original.parsedType, in: categories)?.id ?? 0 }
+                return draft
+            }
         }
         let keys = Set(built.map(\.id))
         drafts = TaobaoImportMatching.autoPair(built.map { draft in
@@ -185,35 +268,31 @@ final class TaobaoImportViewModel: ObservableObject {
         #else
         guard let path = ImageFileHelper.save(imageData: data) else { error = "无法保存这张图片"; return }
         #endif
-        if let old = drafts[index].imagePath, temporaryImages.contains(old) { ImageFileHelper.delete(path: old); temporaryImages.remove(old) }
+
         temporaryImages.insert(path); drafts[index].imagePath = path
     }
 
     func removeImage(from id: String) {
         guard !isWorking, let index = drafts.firstIndex(where: { $0.id == id }) else { return }
-        if let old = drafts[index].imagePath, temporaryImages.contains(old) { ImageFileHelper.delete(path: old); temporaryImages.remove(old) }
+
         drafts[index].imagePath = nil
     }
 
     func executeImport() async {
-        guard !isWorking else { return }
-        isWorking = true
-        let snapshot = drafts
+        guard !isWorking else { return }; isWorking = true
         defer { isWorking = false }
+        session?.pendingOperationId = session?.pendingOperationId ?? UUID().uuidString
+        guard await saveDraft(), let current = session else { error = draftError ?? "请先保存导入会话"; return }
+        let frozen = snapshot, rows = drafts
         do {
-            result = try await repository.save(snapshot)
-            // Committed images are protected by reference checks; paired/omitted images are removed.
-            try? ImageFileHelper.deleteUnreferenced(paths: Array(temporaryImages), db: db)
-            temporaryImages = []; committed = true; step = .result
+            result = try await sessionRepository.commit(session: current, snapshot: frozen, drafts: rows)
+            let saved = try await sessionRepository.load(current.id); session = saved.session
+            committed = true; step = .result; temporaryImages = []; await refreshSessions()
         } catch { self.error = "导入失败，输入已保留：" + userFacingError(error) }
     }
-
-    func discardImages() {
-        guard !committed else { return }
-        try? ImageFileHelper.deleteUnreferenced(paths: Array(temporaryImages), db: db)
-        temporaryImages = []
-    }
-
+    func discardImages() { if let id = session?.id { Task { await discardSession(id) } } }
+    func priorReceipts(_ key: String) async throws -> [OrderImportReceipt] { try await db.read { try OrderImportReceipt.filter(sql: "sourceKey = ?", arguments: [key]).order(sql: "generation DESC").fetchAll($0) } }
+    func existingItems() async throws -> [Item] { try await db.read { try Item.order(Item.Columns.name).fetchAll($0) } }
     private func apply(_ attributes: TaobaoImportAttributes) {
         brands = attributes.brands; categories = attributes.categories; alreadyImported = attributes.importedKeys
     }

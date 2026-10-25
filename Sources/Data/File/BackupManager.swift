@@ -30,11 +30,21 @@ struct BackupData: Codable, Sendable {
     var storageNodes: [StorageNode] = []
     var itemDrafts: [ItemDraft] = []
 
+    var iosImportVersion: Int? = nil
+    var orderImportSessions: [OrderImportSession] = []
+    var orderImportFiles: [OrderImportFile] = []
+    var orderImportRows: [OrderImportRow] = []
+    var orderImportCommits: [OrderImportCommit] = []
+    var orderImportReceipts: [OrderImportReceipt] = []
+    var itemSourceRecords: [ItemSourceRecord] = []
+
     var imagePaths: Set<String> {
         var paths = Set(items.flatMap { $0.imageUrls.values })
         paths.formUnion(items.flatMap(\.detailImagePaths))
         paths.formUnion(storageNodes.compactMap(\.imageUrl))
         paths.formUnion(itemDrafts.flatMap(\.allImagePaths))
+        paths.formUnion(orderImportRows.flatMap(\.allImagePaths))
+        paths.formUnion(itemSourceRecords.flatMap { $0.imagePaths.values })
         paths.formUnion(coordinates.flatMap { $0.imageUrls.values })
         paths.formUnion(outfitLogs.flatMap { $0.imageUrls.values })
         paths.formUnion(locations.compactMap(\.imageUrl))
@@ -93,7 +103,10 @@ final class BackupManager: Sendable {
                        orderBindings: try OrderBinding.fetchAll(db), paymentStages: try PaymentStage.fetchAll(db), iosLedgerVersion: 2,
                        itemReferencePrices: try ItemReferencePrice.fetchAll(db), orderRefunds: try OrderRefund.fetchAll(db),
                        orderCancellations: try OrderCancellation.fetchAll(db), monthlyBudgets: try MonthlyBudget.fetchAll(db),
-                       iosWardrobeVersion: 1, storageNodes: try StorageNode.fetchAll(db), itemDrafts: try ItemDraft.fetchAll(db))
+                       iosWardrobeVersion: 1, storageNodes: try StorageNode.fetchAll(db), itemDrafts: try ItemDraft.fetchAll(db), iosImportVersion: 1,
+                       orderImportSessions: try OrderImportSession.fetchAll(db), orderImportFiles: try OrderImportFile.fetchAll(db),
+                       orderImportRows: try OrderImportRow.fetchAll(db), orderImportCommits: try OrderImportCommit.fetchAll(db),
+                       orderImportReceipts: try OrderImportReceipt.fetchAll(db), itemSourceRecords: try ItemSourceRecord.fetchAll(db))
         }
     }
 
@@ -125,7 +138,7 @@ final class BackupManager: Sendable {
         let unsupportedTables = ["legacyCatalogArchives", "syncStates", "remoteBrands", "remoteCategories", "remoteStyles", "remoteSeasons",
                                  "remoteSources", "remoteCoordinates", "remoteItems", "remotePricePlans"]
         let financeTables = ["itemReferencePrices", "orderRefunds", "orderCancellations", "monthlyBudgets"]
-        let allowed = Set(tables + unsupportedTables + ["backupDate", "appVersion", "formatVersion", "schemaVersion", "imageData", "orderBindings", "paymentStages", "iosLedgerVersion"] + financeTables + ["iosWardrobeVersion", "storageNodes", "itemDrafts"])
+        let allowed = Set(tables + unsupportedTables + ["backupDate", "appVersion", "formatVersion", "schemaVersion", "imageData", "orderBindings", "paymentStages", "iosLedgerVersion"] + financeTables + ["iosWardrobeVersion", "storageNodes", "itemDrafts", "iosImportVersion"] + OrderImportMigration.tables)
         guard Set(json.keys).isSubset(of: allowed) else {
             throw ValidationError.invalid("备份包含未支持的数据类型，暂时无法完整恢复")
         }
@@ -145,6 +158,13 @@ final class BackupManager: Sendable {
         } else {
             guard financeTables.allSatisfy({ json[$0] == nil }) else { throw ValidationError.invalid("售后预算备份缺少版本标识") }
             for table in financeTables { json[table] = [[String: Any]]() }
+        }
+        if let marker = json["iosImportVersion"] {
+            guard let number = marker as? NSNumber, String(cString: number.objCType) != "c", number == 1,
+                  OrderImportMigration.tables.allSatisfy({ json[$0] is [[String: Any]] }) else { throw ValidationError.invalid("导入会话备份版本无效或缺少数据表") }
+        } else {
+            guard OrderImportMigration.tables.allSatisfy({ json[$0] == nil }) else { throw ValidationError.invalid("导入会话备份缺少版本标识") }
+            for table in OrderImportMigration.tables { json[table] = [[String: Any]]() }
         }
         if let wardrobe = json["iosWardrobeVersion"] {
             guard let number = wardrobe as? NSNumber, String(cString: number.objCType) != "c", number == 1,
@@ -234,6 +254,7 @@ final class BackupManager: Sendable {
         }
         guard backup.iosWardrobeVersion == nil || backup.iosWardrobeVersion == 1 else { throw ValidationError.invalid("物品收纳备份版本不受支持") }
         guard backup.iosWardrobeVersion != nil || (backup.storageNodes.isEmpty && backup.itemDrafts.isEmpty && backup.items.allSatisfy({ $0.storageNodeId == nil && $0.sizeChartImageUrls.values.isEmpty && $0.composition == .unconfirmed && $0.specificationsJson.isEmpty })) else { throw ValidationError.invalid("物品收纳备份缺少版本标识") }
+        try ImportBackupValidation.validate(backup)
         try StorageTree.validate(backup.storageNodes, rooms: Set(backup.locations.map(\.id)))
         let storage = Dictionary(uniqueKeysWithValues: backup.storageNodes.map { ($0.id, $0) })
         for item in backup.items {
@@ -397,7 +418,7 @@ final class BackupManager: Sendable {
             try await queue.write { db in
                 try db.execute(sql: "UPDATE items SET parentItemId = NULL, includedInParentPrice = 0, storageNodeId = NULL")
                 try db.execute(sql: "UPDATE storageNodes SET parentNodeId = NULL")
-                for table in ["itemDrafts", "orderRefunds", "orderCancellations", "itemReferencePrices", "monthlyBudgets", "orderBindings", "outfitItemCrossRef", "payments", "paymentStages", "prices", "items", "outfitLogs", "coordinates", "storageNodes", "locations", "brands", "categories", "styles", "seasons", "sources"] {
+                for table in ["itemSourceRecords", "orderImportReceipts", "orderImportCommits", "orderImportRows", "orderImportFiles", "orderImportSessions", "itemDrafts", "orderRefunds", "orderCancellations", "itemReferencePrices", "monthlyBudgets", "orderBindings", "outfitItemCrossRef", "payments", "paymentStages", "prices", "items", "outfitLogs", "coordinates", "storageNodes", "locations", "brands", "categories", "styles", "seasons", "sources"] {
                     try db.execute(sql: "DELETE FROM \(table)")
                 }
                 func image(_ path: String?) -> String? {
@@ -418,6 +439,12 @@ final class BackupManager: Sendable {
                 for var value in backup.coordinates { value.imageUrls = images(value.imageUrls); try value.insert(db) }
                 for var value in backup.items.sorted(by: { ($0.parentItemId == nil ? 0 : 1, $0.id) < ($1.parentItemId == nil ? 0 : 1, $1.id) }) { value.imageUrls = images(value.imageUrls); value.sizeChartImageUrl = image(value.sizeChartImageUrl); value.sizeChartImageUrls = images(value.sizeChartImageUrls); try value.insert(db) }
                 for var value in backup.itemDrafts { value.imagePaths = images(value.imagePaths); value.detailImagePaths = images(value.detailImagePaths); try value.insert(db) }
+                for value in backup.orderImportSessions { try value.insert(db) }
+                for value in backup.orderImportFiles { try value.insert(db) }
+                for var value in backup.orderImportRows { value.imagePaths = images(value.imagePaths); value.detailImagePaths = images(value.detailImagePaths); try value.insert(db) }
+                for value in backup.orderImportCommits { try value.insert(db) }
+                for value in backup.orderImportReceipts { try value.insert(db) }
+                for var value in backup.itemSourceRecords { value.imagePaths = images(value.imagePaths); try value.insert(db) }
                 for var value in backup.prices { try value.insert(db) }
                 for var value in backup.paymentStages { value.reminderSet = false; try value.insert(db) }
                 for var value in backup.payments {
@@ -557,6 +584,11 @@ final class BackupManager: Sendable {
         for index in mapped.brands.indices { mapped.brands[index].logoUrl = image(mapped.brands[index].logoUrl) }
         for index in mapped.locations.indices { mapped.locations[index].imageUrl = image(mapped.locations[index].imageUrl) }
         for index in mapped.storageNodes.indices { mapped.storageNodes[index].imageUrl = image(mapped.storageNodes[index].imageUrl) }
+        for index in mapped.orderImportRows.indices {
+            mapped.orderImportRows[index].imagePaths = images(mapped.orderImportRows[index].imagePaths)
+            mapped.orderImportRows[index].detailImagePaths = images(mapped.orderImportRows[index].detailImagePaths)
+        }
+        for index in mapped.itemSourceRecords.indices { mapped.itemSourceRecords[index].imagePaths = images(mapped.itemSourceRecords[index].imagePaths) }
         for index in mapped.itemDrafts.indices {
             mapped.itemDrafts[index].imagePaths = images(mapped.itemDrafts[index].imagePaths)
             mapped.itemDrafts[index].detailImagePaths = images(mapped.itemDrafts[index].detailImagePaths)
@@ -652,6 +684,12 @@ final class BackupManager: Sendable {
         section("ITEM_DRAFTS", "id,target_item_id,data_json,image_paths,detail_image_paths,baseline_updated_at,updated_at", b.itemDrafts.map {
             [$0.id, number($0.targetItemId), $0.dataJson, $0.imagePaths.values.joined(separator: ";"), $0.detailImagePaths.values.joined(separator: ";"), number($0.baselineUpdatedAt), number($0.updatedAt)]
         })
+        section("ORDER_IMPORT_SESSIONS", "id,revision,kind,data_json,pending_operation_id,created_at,updated_at", b.orderImportSessions.map { [$0.id, number($0.revision), $0.kind, $0.dataJson, text($0.pendingOperationId), number($0.createdAt), number($0.updatedAt)] })
+        section("ORDER_IMPORT_FILES", "id,session_id,name,sha256,data_json,problem", b.orderImportFiles.map { [$0.id, $0.sessionId, $0.name, $0.sha256, $0.dataJson, text($0.problem)] })
+        section("ORDER_IMPORT_ROWS", "id,session_id,position,source_key,data_json,image_paths,detail_image_paths", b.orderImportRows.map { [$0.id, $0.sessionId, number($0.position), $0.sourceKey, $0.dataJson, $0.imagePaths.values.joined(separator: ";"), $0.detailImagePaths.values.joined(separator: ";")] })
+        section("ORDER_IMPORT_COMMITS", "id,session_id,revision,snapshot_hash,result_json,created_at", b.orderImportCommits.map { [$0.id, text($0.sessionId), number($0.revision), $0.snapshotHash, $0.resultJson, number($0.createdAt)] })
+        section("ORDER_IMPORT_RECEIPTS", "id,source_key,generation,order_id,source_snapshot,commit_id,item_id,paid_cents,shipping_cents,created_at", b.orderImportReceipts.map { [$0.id, $0.sourceKey, number($0.generation), $0.orderId, $0.sourceSnapshot, $0.commitId, number($0.itemId), number($0.paidCents), number($0.shippingCents), number($0.createdAt)] })
+        section("ITEM_SOURCE_RECORDS", "id,item_id,kind,public_url,snapshot_json,applied_fields,image_paths,created_at", b.itemSourceRecords.map { [$0.id, number($0.itemId), $0.kind, text($0.publicUrl), $0.snapshotJson, $0.appliedFields.values.joined(separator: ";"), $0.imagePaths.values.joined(separator: ";"), number($0.createdAt)] })
         return Data(("\u{feff}" + sections.joined(separator: "\r\n\r\n") + "\r\n").utf8)
     }
 }

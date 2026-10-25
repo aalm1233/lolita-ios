@@ -224,6 +224,8 @@ final class LolitaDatabase {
             try WardrobeMigration.install(db)
         }
 
+        migrator.registerMigration("v8-import-sessions") { @Sendable db in try OrderImportMigration.install(db) }
+
         return migrator
     }
 }

@@ -6,7 +6,7 @@ struct ThemeSelectScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("选择喜欢的配色，衣橱会立即更新。")
+                Text("七套背景与专属图标，随系统切换明暗。")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 SkinPreviewGrid(selectedType: skinManager.currentSkinType) { type in
@@ -68,20 +68,20 @@ struct SkinPreviewCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             ZStack(alignment: .topLeading) {
-                LinearGradient(colors: colorScheme == .dark ? skin.gradientColorsDark : skin.gradientColors,
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                SkinArtBackground(type: type)
                 VStack(alignment: .leading, spacing: 9) {
                     HStack {
-                        Text(skin.topBarDecoration)
+                        SkinIcon(systemName: "tshirt", size: 18, type: type)
                         Spacer()
-                        Image(systemName: "sparkles")
+                        SkinIcon(systemName: "heart", size: 18, type: type)
                     }
                     .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(primary)
                     HStack(spacing: 8) {
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(primary.opacity(0.2))
+                            .fill(primary.opacity(0.12))
                             .frame(width: 28, height: 36)
+                            .overlay { SkinIcon(systemName: "photo", size: 18, type: type).foregroundStyle(primary) }
                         VStack(alignment: .leading, spacing: 6) {
                             Capsule().fill(primary.opacity(0.35)).frame(width: 60, height: 5)
                             Capsule().fill(primary.opacity(0.16)).frame(width: 40, height: 4)
@@ -116,8 +116,7 @@ struct SkinPreviewCard: View {
                     .foregroundStyle(isSelected ? primary : .secondary)
                     .lineLimit(1)
                 if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.caption)
+                    SkinIcon(systemName: "checkmark.circle.fill", size: 12, type: type)
                         .foregroundStyle(primary)
                 }
             }

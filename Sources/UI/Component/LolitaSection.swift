@@ -7,6 +7,7 @@ struct LolitaSection<Content: View>: View {
     let title: String
     var actionLabel: String? = nil
     var onAction: (() -> Void)? = nil
+    var actionIdentifier: String? = nil
     @ViewBuilder let content: () -> Content
 
     private var isDark: Bool { colorScheme == .dark }
@@ -29,13 +30,14 @@ struct LolitaSection<Content: View>: View {
                         .cornerRadius(skinManager.current.sectionAccentWidth / 2)
 
                     Text(title)
-                        .font(.subheadline.weight(.semibold))
+                        .font(skinManager.headingFont(size: 15, relativeTo: .subheadline))
                         .foregroundColor(.primary)
 
                     Spacer()
 
                     if let label = actionLabel {
                         Button(label) { onAction?() }
+                            .accessibilityIdentifier(actionIdentifier ?? label)
                             .font(.subheadline)
                             .foregroundColor(accentColorResolved)
                     }

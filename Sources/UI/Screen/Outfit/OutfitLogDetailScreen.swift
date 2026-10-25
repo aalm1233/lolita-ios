@@ -7,6 +7,7 @@ struct OutfitLogDetailScreen: View {
     @StateObject private var viewModel = OutfitLogDetailViewModel()
     @State private var removeItem: Item?
     @State private var showDelete = false
+    @State private var showShare = false
     @State private var operationError: String?
     @State private var reloadToken = 0
     let logId: Int64
@@ -26,7 +27,7 @@ struct OutfitLogDetailScreen: View {
                     HStack {
                         Text("关联服饰 · \(viewModel.items.count) 件").font(.headline)
                         Spacer()
-                        NavigationLink(destination: OutfitLogEditScreen(logId: logId)) { Label("管理", systemImage: "plus") }.font(.subheadline)
+                        NavigationLink(destination: OutfitLogEditScreen(logId: logId)) { SkinLabel("管理", systemImage: "plus") }.font(.subheadline)
                     }.padding(.horizontal, 4)
                     if viewModel.items.isEmpty {
                         LolitaCard { Text("还没有关联服饰，可以从编辑页添加。").font(.subheadline).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading) }
@@ -73,6 +74,9 @@ struct OutfitLogDetailScreen: View {
                 }
             }
         } message: { Text("穿搭笔记和照片记录将被删除，关联服饰会保留。") }
+        .sheet(isPresented: $showShare) {
+            ShareCardScreen(title: "穿搭 · " + (viewModel.log.map { detailDate($0.date) } ?? ""), images: viewModel.log?.imageUrls.values ?? [], items: viewModel.items, brands: viewModel.brandNames)
+        }
         .alert("操作失败", isPresented: Binding(get: { operationError != nil }, set: { if !$0 { operationError = nil } })) {
             Button("确定") { operationError = nil }
         } message: { Text(operationError ?? "") }
@@ -80,10 +84,12 @@ struct OutfitLogDetailScreen: View {
 
     @ViewBuilder private var toolbarActions: some View {
         if viewModel.log != nil {
-            NavigationLink(destination: OutfitLogEditScreen(logId: logId)) { Image(systemName: "pencil") }.accessibilityLabel("编辑穿搭")
+            Button { showShare = true } label: { SkinIcon(systemName: "square.and.arrow.up") }
+                .accessibilityLabel("分享图片").accessibilityIdentifier("share-card")
+            NavigationLink(destination: OutfitLogEditScreen(logId: logId)) { SkinIcon(systemName: "pencil") }.accessibilityLabel("编辑穿搭")
             Menu {
-                Button("删除穿搭", systemImage: "trash", role: .destructive) { showDelete = true }
-            } label: { Image(systemName: "ellipsis") }
+                SkinButton("删除穿搭", systemImage: "trash", role: .destructive) { showDelete = true }
+            } label: { SkinIcon(systemName: "ellipsis") }
         }
     }
 }
@@ -109,7 +115,7 @@ private struct OutfitDetailItemCard: View {
                     .contentShape(Rectangle())
                 }.buttonStyle(.plain)
                 Button(role: .destructive, action: onRemove) {
-                    Image(systemName: "minus.circle").frame(width: 44, height: 44)
+                    SkinIcon(systemName: "minus.circle").frame(width: 44, height: 44)
                 }.accessibilityLabel("移除关联服饰\(item.name)")
             }
         }

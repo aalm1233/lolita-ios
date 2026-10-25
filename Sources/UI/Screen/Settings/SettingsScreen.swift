@@ -52,9 +52,10 @@ struct SettingsScreen: View {
                     NavigationLink { BackupRestoreScreen() } label: {
                         SettingsMenuCard(title: "数据备份与恢复", subtitle: "ZIP 图片备份、安卓备份恢复与全表 CSV", symbol: "externaldrive", color: .blue)
                     }
+                    NavigationLink { ProductImportScreen() } label: { SettingsMenuCard(title: "商品链接登记", subtitle: "读取商品资料，核对后登记心愿", symbol: "link", color: .orange) }.accessibilityIdentifier("商品链接登记")
                     NavigationLink { TaobaoImportScreen() } label: {
                         SettingsMenuCard(title: "淘宝订单导入", subtitle: "选择订单 Excel，核对定金尾款后导入", symbol: "cart", color: .orange)
-                    }
+                    }.accessibilityIdentifier("淘宝订单导入")
                     NavigationLink { FinanceOverviewScreen() } label: {
                         SettingsMenuCard(title: "预算与资金", subtitle: "月预算、退款、净支出与年度付款", symbol: "yensign.circle", color: .mint)
                     }.accessibilityIdentifier("finance-overview")
@@ -63,16 +64,18 @@ struct SettingsScreen: View {
                     }
                     NavigationLink { ThemeSelectScreen() } label: {
                         SettingsMenuCard(title: "皮肤选择", subtitle: skinManager.currentSkinType.displayName, symbol: "paintpalette", color: accent)
-                    }
+                    }.accessibilityIdentifier("theme-settings")
                     LolitaSection(title: "显示设置") {
                         Toggle(isOn: $showTotalPrice) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("显示总价").font(.subheadline.weight(.medium))
-                                Text("在衣橱、统计和个人页显示金额汇总")
+                                Text("显示金额").font(.subheadline.weight(.medium))
+                                Text("在列表、详情、账本和统计显示金额；主动编辑或核对时临时显示")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                         }
-                        .tint(accent)
+                        .tint(accent).accessibilityIdentifier("显示总价")
+                        Text("皮肤字体用于标题；正文、输入框和金额使用系统字体，字号跟随系统设置。")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
                 }
                 .buttonStyle(.plain)
@@ -140,13 +143,13 @@ struct PersonalAvatarView: View {
             if !path.isEmpty {
                 LolitaShimmerImage(url: ImageFileHelper.fileURL(for: path))
             } else {
-                Image(systemName: "heart.fill").font(.system(size: 28)).foregroundStyle(color)
+                SkinIcon(systemName: "heart.fill", size: 28).foregroundStyle(color)
             }
         }
         .frame(width: 56, height: 56)
         .clipShape(Circle())
         .overlay(alignment: .bottomTrailing) {
-            Image(systemName: "camera.fill").font(.system(size: 10))
+            SkinIcon(systemName: "camera.fill", size: 10)
                 .foregroundStyle(.white).padding(5).background(color, in: Circle())
         }
     }
@@ -172,7 +175,7 @@ struct PersonalProfileCard<Avatar: View>: View {
                     Button(action: onEditNickname) {
                         HStack(spacing: 5) {
                             Text(nickname.isEmpty ? "点击设置昵称" : nickname).font(.headline).lineLimit(1)
-                            Image(systemName: "pencil").font(.caption)
+                            SkinIcon(systemName: "pencil", size: 12)
                         }
                         .foregroundStyle(.primary)
                     }
@@ -202,14 +205,14 @@ struct SettingsMenuCard: View {
     var body: some View {
         LolitaCard(variant: .compact) {
             HStack(spacing: 13) {
-                Image(systemName: symbol).font(.system(size: 20)).foregroundStyle(color)
+                SkinIcon(systemName: symbol).foregroundStyle(color)
                     .frame(width: 44, height: 44).background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 13))
                 VStack(alignment: .leading, spacing: 5) {
                     Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
                     Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(2)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                SkinIcon(systemName: "chevron.right", size: 12).foregroundStyle(.tertiary)
             }
             .padding(4)
         }
@@ -336,7 +339,7 @@ struct AttributeManageScreen: View {
                 Button {
                     editing = row; name = row.name; group = row.group ?? .clothing; semantic = row.semantic; showEditor = true
                 } label: {
-                    HStack { Text(row.name).foregroundStyle(.primary); Spacer(); Image(systemName: "pencil").foregroundStyle(.secondary) }
+                    HStack { Text(row.name).foregroundStyle(.primary); Spacer(); SkinIcon(systemName: "pencil").foregroundStyle(.secondary) }
                 }
                 .swipeActions {
                     Button("删除", role: .destructive) {
@@ -402,7 +405,7 @@ struct LocationManageScreen: View {
             }
         } message: { Text("物品、账本和照片都会保留，只清除存放位置。") }
         .lolitaNavBar(title: "位置管理", showBack: true)
-        .toolbar { ToolbarItem { NavigationLink(destination: LocationEditScreen()) { Image(systemName: "plus") } } }
+        .toolbar { ToolbarItem { NavigationLink(destination: LocationEditScreen()) { SkinIcon(systemName: "plus") } } }
         .task { for await value in AppModule.shared.locationRepository.observeAll() { locations = value } }
         .alert("操作失败", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) { Button("确定") { error = nil } } message: { Text(error ?? "") }
     }

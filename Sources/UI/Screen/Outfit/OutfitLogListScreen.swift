@@ -46,13 +46,13 @@ struct OutfitLogListScreen: View {
             } else {
                 LolitaRootToolbar(title: "穿搭日记", subtitle: groupedLogs.isEmpty ? nil : "\(groupedLogs.reduce(0) { $0 + $1.logs.count }) 篇 · \(groupedLogs.count) 天") {
                     Button { isSearching = true } label: {
-                        Image(systemName: "magnifyingglass").frame(width: 44, height: 44)
+                        SkinIcon(systemName: "magnifyingglass").frame(width: 44, height: 44)
                     }.accessibilityLabel("搜索穿搭日记")
                     NavigationLink(destination: QuickOutfitLogScreen()) {
-                        Image(systemName: "sun.max").frame(width: 44, height: 44)
+                        SkinIcon(systemName: "sun.max").frame(width: 44, height: 44)
                     }.accessibilityLabel("记录今日穿搭")
                     NavigationLink(destination: OutfitLogEditScreen(logId: 0)) {
-                        Image(systemName: "plus").frame(width: 44, height: 44)
+                        SkinIcon(systemName: "plus").frame(width: 44, height: 44)
                     }.accessibilityLabel("新增穿搭记录")
                 }
             }
@@ -62,7 +62,7 @@ struct OutfitLogListScreen: View {
                                      message: search.isEmpty ? "记录今天的搭配，让每次出门都有迹可循。" : "可搜索日记、日期或服饰名称。",
                                      systemImage: search.isEmpty ? "figure.stand" : "magnifyingglass", fillsAvailableSpace: false)
                     if search.isEmpty {
-                        NavigationLink(destination: OutfitLogEditScreen(logId: 0)) { Label("记录穿搭", systemImage: "plus") }.buttonStyle(.borderedProminent)
+                        NavigationLink(destination: OutfitLogEditScreen(logId: 0)) { SkinLabel("记录穿搭", systemImage: "plus") }.buttonStyle(.borderedProminent)
                     } else { Button("清除搜索") { search = "" }.buttonStyle(.bordered) }
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -75,7 +75,7 @@ struct OutfitLogListScreen: View {
                                 }.buttonStyle(.plain)
                                 .lolitaCardRow()
                                 .contextMenu {
-                                    NavigationLink(destination: OutfitLogEditScreen(logId: log.id)) { Label("编辑", systemImage: "pencil") }
+                                    NavigationLink(destination: OutfitLogEditScreen(logId: log.id)) { SkinLabel("编辑", systemImage: "pencil") }
                                     Button("删除", role: .destructive) { delete(log) }
                                 }
                                 .swipeActions { Button("删除", role: .destructive) { delete(log) } }

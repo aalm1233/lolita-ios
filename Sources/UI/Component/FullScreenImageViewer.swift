@@ -45,8 +45,7 @@ struct FullScreenImageViewer: View {
         }
         .overlay(alignment: .topTrailing) {
             Button { dismiss() } label: {
-                Image(systemName: "xmark")
-                    .font(.headline)
+                SkinIcon(systemName: "xmark", size: 17)
                     .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
                     .background(.black.opacity(0.5), in: Circle())

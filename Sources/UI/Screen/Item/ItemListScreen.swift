@@ -30,7 +30,11 @@ struct ItemListScreen: View {
     var body: some View {
         VStack(spacing: 0) {
             homeToolbar.padding(.horizontal, 12).padding(.top, 6).padding(.bottom, 2)
-            todayOutfitLink.padding(.horizontal, 12).padding(.top, 8).padding(.bottom, 4)
+                .background { SkinTopBarBackground() }
+            if viewModel.selectedSubTab == .location {
+                todayOutfitLink.padding(.horizontal, 12).padding(.top, 8).padding(.bottom, 4)
+            }
+            PurchaseReviewShortcut().padding(.horizontal, 12)
             if viewModel.selectedSubTab == .items { categoryGroupFilters }
             if showsItemFilters && viewModel.activeFilterCount > 0 {
                 HStack {
@@ -54,8 +58,7 @@ struct ItemListScreen: View {
         }
         .overlay(alignment: .bottomTrailing) {
             NavigationLink(destination: newRecord) {
-                Image(systemName: "plus")
-                    .font(.title2.weight(.medium))
+                SkinIcon(systemName: "plus", size: 22)
                     .foregroundStyle(.white)
                     .frame(width: 56, height: 56)
                     .background(colorScheme == .dark ? skinManager.current.primaryColorDark : skinManager.current.primaryColor,
@@ -110,7 +113,7 @@ struct ItemListScreen: View {
         } actions: {
             if showsItemFilters {
                 Button { showFilters = true } label: {
-                    Image(systemName: viewModel.activeFilterCount > 0 ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                    SkinIcon(systemName: viewModel.activeFilterCount > 0 ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                         .frame(width: 36, height: 44)
                         .contentShape(Rectangle())
                 }
@@ -123,7 +126,7 @@ struct ItemListScreen: View {
                     let index = modes.firstIndex(of: viewMode) ?? 0
                     viewMode = modes[(index + 1) % modes.count]
                 } label: {
-                    Image(systemName: viewMode.symbol)
+                    SkinIcon(systemName: viewMode.symbol)
                         .frame(width: 36, height: 44)
                         .contentShape(Rectangle())
                 }
@@ -145,26 +148,22 @@ struct ItemListScreen: View {
     }
 
     private var todayOutfitLink: some View {
-        NavigationLink(destination: todayOutfitDestination) {
+        NavigationLink(destination: QuickOutfitLogScreen()) {
             LolitaCard(variant: .compact) {
                 HStack(spacing: 8) {
                     if let log = viewModel.todayOutfit {
                         LolitaLinkedItemImages(items: viewModel.itemsByOutfit(log.id))
-                        Text("查看今日穿搭").font(.subheadline.weight(.medium))
+                        Text("编辑今日穿搭").font(.subheadline.weight(.medium))
                     } else {
-                        Image(systemName: "plus.circle").font(.title3)
+                        SkinIcon(systemName: "plus.circle")
                         Text("记录今日穿搭").font(.subheadline.weight(.medium))
                     }
                     Spacer(minLength: 4)
-                    Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    SkinIcon(systemName: "chevron.right", size: 12).foregroundStyle(.secondary)
                 }.foregroundStyle(colorScheme == .dark ? skinManager.current.accentColorDark : skinManager.current.accentColor)
             }
-        }.buttonStyle(.plain)
-    }
-
-    @ViewBuilder private var todayOutfitDestination: some View {
-        if let log = viewModel.todayOutfit { OutfitLogDetailScreen(logId: log.id) }
-        else { QuickOutfitLogScreen() }
+        }.buttonStyle(.plain).accessibilityIdentifier("home-today-outfit")
+            .accessibilityValue(viewModel.todayOutfit == nil ? "尚未记录" : "已记录")
     }
 
     private var categoryGroupFilters: some View {
@@ -309,9 +308,9 @@ struct ItemListScreen: View {
         let items = viewModel.itemsByCoordinate(coordinate.id)
         return NavigationLink(destination: CoordinateDetailScreen(coordinateId: coordinate.id)) {
             CoordinateCollectionCard(coordinate: coordinate, items: items, price: showTotalPrice ? viewModel.totalPrice(of: items) : nil, mode: viewMode)
-        }.buttonStyle(.plain)
+        }.buttonStyle(.plain).accessibilityIdentifier("coordinate-\(coordinate.id)")
         .contextMenu {
-            NavigationLink(destination: CoordinateEditScreen(coordinateId: coordinate.id)) { Label("编辑", systemImage: "pencil") }
+            NavigationLink(destination: CoordinateEditScreen(coordinateId: coordinate.id)) { SkinLabel("编辑", systemImage: "pencil") }
             Button("删除", role: .destructive) {
                 deleteRequest = LolitaDeleteRequest(name: coordinate.name) {
                     Task { do { try await AppModule.shared.coordinateRepository.delete(coordinate) } catch { deleteError = userFacingError(error) } }
@@ -352,8 +351,8 @@ struct ItemListScreen: View {
         }.buttonStyle(.plain)
         .accessibilityIdentifier("item-\(item.id)")
         .contextMenu {
-            NavigationLink(destination: ItemDetailScreen(itemId: item.id)) { Label("查看详情", systemImage: "info.circle") }
-            NavigationLink(destination: ItemEditScreen(itemId: item.id)) { Label("编辑", systemImage: "pencil") }
+            NavigationLink(destination: ItemDetailScreen(itemId: item.id)) { SkinLabel("查看详情", systemImage: "info.circle") }
+            NavigationLink(destination: ItemEditScreen(itemId: item.id)) { SkinLabel("编辑", systemImage: "pencil") }
             Button("删除", role: .destructive) { delete(item) }
         }
     }
@@ -402,7 +401,7 @@ struct ItemListScreen: View {
                              systemImage: searching ? "magnifyingglass" : symbol, fillsAvailableSpace: false)
             if searching { Button("清除搜索与筛选") { viewModel.searchText = ""; viewModel.resetFilters() }.buttonStyle(.bordered) }
             else {
-                NavigationLink(destination: newRecord) { Label("新增\(viewModel.selectedSubTab.rawValue)", systemImage: "plus") }.buttonStyle(.borderedProminent)
+                NavigationLink(destination: newRecord) { SkinLabel("新增\(viewModel.selectedSubTab.rawValue)", systemImage: "plus") }.buttonStyle(.borderedProminent)
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity).padding(.bottom, 24)
     }

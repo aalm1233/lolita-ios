@@ -12,11 +12,22 @@ struct TaobaoImportScreen: View {
     @State private var showDiscard = false
     @State private var showImportConfirmation = false
     @State private var editingItem: TaobaoEditingItem?
+    @State private var removal: OrderImportFile?
+    @State private var discardedSession: OrderImportSession?
     @State private var fileTask: Task<Void, Never>?
 
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
+                if let error = viewModel.draftError {
+                    LolitaCard {
+                        VStack(spacing: 8) {
+                            Text("草稿尚未保存：" + error).foregroundStyle(.red)
+                            Button("重试保存会话") { Task { _ = await viewModel.saveDraft() } }
+                            if let id = viewModel.session?.id { Button("重新读取已保存会话") { Task { await viewModel.restore(id) } } }
+                        }
+                    }
+                }
                 if viewModel.isWorking { ProgressView("正在处理，请稍候…").frame(maxWidth: .infinity).padding() }
                 switch viewModel.step {
                 case .select: selectionContent
@@ -30,6 +41,9 @@ struct TaobaoImportScreen: View {
         .disabled(viewModel.isWorking)
         .lolitaNavBar(title: "淘宝订单导入 · \(viewModel.step.rawValue)", showBack: true, onBack: back)
         .task { await viewModel.loadAttributes() }
+        .task(id: viewModel.persistenceKey) {
+            do { try await Task.sleep(for: .milliseconds(350)); guard !Task.isCancelled, !viewModel.isWorking else { return }; _ = await viewModel.saveDraft() } catch {}
+        }
         .fileImporter(isPresented: $showFilePicker, allowedContentTypes: [UTType(filenameExtension: "xlsx") ?? .data], allowsMultipleSelection: true) { result in
             switch result {
             case .success(let urls):
@@ -42,10 +56,19 @@ struct TaobaoImportScreen: View {
         .sheet(item: $editingItem) { item in
             NavigationStack { TaobaoImportItemEditor(viewModel: viewModel, id: item.id) }
         }
-        .confirmationDialog("放弃这次订单导入？", isPresented: $showDiscard, titleVisibility: .visible) {
-            Button("放弃导入", role: .destructive) { viewModel.discardImages(); dismiss() }
+        .confirmationDialog("保存或放弃这次订单导入？", isPresented: $showDiscard, titleVisibility: .visible) {
+            Button("保存会话并退出") { Task { if await viewModel.saveDraft() { dismiss() } } }
+            Button("放弃导入", role: .destructive) { Task { if let id = viewModel.session?.id { if await viewModel.discardSession(id) { dismiss() } } else { dismiss() } } }
             Button("继续编辑", role: .cancel) {}
-        } message: { Text("已选择的订单和本次补充的图片将被清理，现有衣橱会保留。") }
+        } message: { Text("保存后可从导入会话继续；放弃只清理本会话，已提交的物品、订单和图片会保留。") }
+        .confirmationDialog("移除文件及受影响的未提交编辑？", isPresented: Binding(get: { removal != nil }, set: { if !$0 { removal = nil } }), titleVisibility: .visible) {
+            Button("移除文件", role: .destructive) { if let id = removal?.id { viewModel.removeFile(id) }; removal = nil }
+            Button("取消", role: .cancel) { removal = nil }
+        } message: { Text("仅存在于此文件的商品编辑会被移除；已提交的物品和图片保留。") }
+        .confirmationDialog("删除导入会话？", isPresented: Binding(get: { discardedSession != nil }, set: { if !$0 { discardedSession = nil } }), titleVisibility: .visible) {
+            Button("删除会话", role: .destructive) { if let id = discardedSession?.id { Task { await viewModel.discardSession(id) } }; discardedSession = nil }
+            Button("取消", role: .cancel) { discardedSession = nil }
+        } message: { Text("已导入物品、付款、回执和图片都会保留。") }
         .confirmationDialog("确认导入 \(viewModel.importItemCount) 件服饰？", isPresented: $showImportConfirmation, titleVisibility: .visible) {
             Button("导入衣橱") { Task { await viewModel.executeImport() } }
             Button("继续检查", role: .cancel) {}
@@ -55,6 +78,7 @@ struct TaobaoImportScreen: View {
         } message: { Text(viewModel.error ?? "") }
         .onDisappear {
             fileTask?.cancel()
+            Task { _ = await viewModel.saveDraft() }
         }
     }
 
@@ -63,10 +87,11 @@ struct TaobaoImportScreen: View {
             LolitaCard {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("从淘宝订单批量建立衣橱").font(.headline)
+                    NavigationLink("通过商品链接登记心愿") { ProductImportScreen() }
                     Text("选择一个或多个 .xlsx 文件，检查商品、补全资料，再确认导入。默认勾选交易成功的商品，意向金和已导入订单不会自动勾选。")
                         .font(.subheadline).foregroundStyle(.secondary)
                     HStack {
-                        Button("选择 Excel 文件", systemImage: "doc.badge.plus") { showFilePicker = true }.buttonStyle(.borderedProminent)
+                        SkinButton("选择 Excel 文件", systemImage: "doc.badge.plus") { showFilePicker = true }.buttonStyle(.borderedProminent)
                         Button("导入指南") { showGuide = true }.buttonStyle(.bordered)
                     }
                     if viewModel.fileCount > 0 {
@@ -74,6 +99,37 @@ struct TaobaoImportScreen: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
+            }
+            if !viewModel.sessions.isEmpty {
+                LolitaCard { VStack(alignment: .leading, spacing: 12) {
+                    Text("已保存的导入会话").font(.headline)
+                    ForEach(viewModel.sessions) { session in
+                        HStack {
+                            Button("继续会话 " + Date(timeIntervalSince1970: Double(session.updatedAt) / 1000).formatted(date: .numeric, time: .shortened)) { Task { if await viewModel.saveDraft() { await viewModel.restore(session.id) } } }.accessibilityIdentifier("import-resume-" + session.id)
+                            Spacer()
+                            Button("删除", role: .destructive) { discardedSession = session }.accessibilityLabel("删除会话" + session.id)
+                        }
+                    }
+                    Button("新建独立会话") { Task { await viewModel.newSession() } }.accessibilityIdentifier("import-new-session")
+                } }
+            }
+            if !viewModel.files.isEmpty {
+                LolitaCard { VStack(alignment: .leading, spacing: 10) {
+                    Text("文件检查").font(.headline)
+                    ForEach(viewModel.files) { file in
+                        HStack { VStack(alignment: .leading) { Text(file.name); Text(file.problem ?? "已读取 \(file.orders.count) 个订单").font(.caption).foregroundStyle(file.problem == nil ? Color.secondary : Color.red) }; Spacer(); Button("移除") { removal = file } }
+                    }
+                } }
+            }
+            ForEach(viewModel.conflicts) { conflict in
+                LolitaCard { VStack(alignment: .leading, spacing: 12) {
+                    Text("来源冲突 · " + conflict.orderId).font(.headline)
+                    Text("同一订单存在不同来源，请明确选择。本次选择不会覆盖以前导入的物品。")
+                    ForEach(Array(conflict.versions.enumerated()), id: \.offset) { index, version in
+                        Button("使用来源 \(index + 1) · \(version.orderStatus) · 实付 \(version.rawPaid ?? "未知") · 邮费 \(version.rawShipping ?? "未知") · \(version.items.count) 行") { viewModel.chooseSource(orderId: conflict.orderId, hash: OrderImportSource.snapshot(version)) }.accessibilityIdentifier("import-source-\(index)")
+                        Text(version.items.map { $0.name + " ×" + String($0.quantity) }.joined(separator: "、")).font(.caption)
+                    }
+                } }
             }
             if !viewModel.orders.isEmpty {
                 HStack {
@@ -94,17 +150,17 @@ struct TaobaoImportScreen: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(item.name).font(.subheadline)
                                         Text("\(item.styleSpec) · 数量 \(item.quantity) · ¥\(item.price.formatted(.number.precision(.fractionLength(2))))").font(.caption).foregroundStyle(.secondary)
-                                        if viewModel.alreadyImported.contains(item.id) { Text("已导入").font(.caption).foregroundStyle(.secondary) }
+                                        if viewModel.alreadyImported.contains(item.id) { Text("旧版导入记录，请核对并关联现有物品").font(.caption).foregroundStyle(.secondary) }
                                     }
                                 }
                                 .toggleStyle(.checkboxCompatible)
-                                .disabled(viewModel.alreadyImported.contains(item.id))
+
                             }
                         }
                     }
                 }
                 Button("下一步：补全资料") { viewModel.prepare() }
-                    .buttonStyle(.borderedProminent).disabled(viewModel.selectedKeys.isEmpty)
+                    .buttonStyle(.borderedProminent).disabled(viewModel.selectedKeys.isEmpty || !viewModel.conflicts.isEmpty)
             }
         }
     }
@@ -148,7 +204,7 @@ struct TaobaoImportScreen: View {
                 LolitaCard(variant: .compact) {
                     HStack(alignment: .top, spacing: 10) {
                         Button { viewModel.setIncluded(!draft.included, for: draft.id) } label: {
-                            Image(systemName: draft.included ? "checkmark.circle.fill" : "circle").font(.title3).frame(width: 32, height: 44)
+                            SkinIcon(systemName: draft.included ? "checkmark.circle.fill" : "circle").frame(width: 32, height: 44)
                         }.buttonStyle(.plain).accessibilityLabel(draft.included ? "取消导入\(draft.name)" : "导入\(draft.name)")
                         Button { editingItem = TaobaoEditingItem(id: draft.id) } label: {
                             HStack(alignment: .top, spacing: 10) {
@@ -160,9 +216,9 @@ struct TaobaoImportScreen: View {
                                     if (draft.brandId == 0 || draft.categoryId == 0) && !(draft.role == .balance && draft.pairedWith != nil) { Text("请补全品牌和分类").font(.caption).foregroundStyle(.red) }
                                 }
                                 Spacer(minLength: 0)
-                                Image(systemName: "chevron.right").foregroundStyle(.secondary)
+                                SkinIcon(systemName: "chevron.right").foregroundStyle(.secondary)
                             }.contentShape(Rectangle())
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(.plain).accessibilityIdentifier(draft.name)
                     }
                 }
             }
@@ -177,10 +233,16 @@ struct TaobaoImportScreen: View {
     private var resultContent: some View {
         LolitaCard {
             VStack(spacing: 12) {
-                Image(systemName: "checkmark.circle.fill").font(.system(size: 56)).foregroundStyle(.tint)
+                SkinIcon(systemName: "checkmark.circle.fill", size: 56).foregroundStyle(.tint)
                 Text("成功导入 \(viewModel.result?.importedCount ?? 0) 件服饰").font(.title2.bold())
                 Text("定金尾款合并 \(viewModel.result?.mergedCount ?? 0) 件 · 已导入去重 \(viewModel.result?.duplicateCount ?? 0) 条 · 未勾选 \(viewModel.result?.omittedCount ?? 0) 条")
                     .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                Text("来源回执已与订单原子保存，重复提交会返回同一结果。").font(.caption)
+                if let commit = viewModel.result?.commitId { Text("回执：" + commit).font(.caption).textSelection(.enabled) }
+                Text("关联现有物品 \(viewModel.result?.linkedCount ?? 0) 件")
+                ForEach(viewModel.result?.itemIds ?? [], id: \.self) { id in NavigationLink("查看本次新增 #\(id)") { ItemDetailScreen(itemId: id) } }
+                NavigationLink("为本次已拥有物品安排收纳") { ImportedStorageScreen(itemIds: viewModel.result?.itemIds ?? []) }
+                Button("继续处理剩余商品") { viewModel.resumeRemaining() }
                 Button("完成") { dismiss() }.buttonStyle(.borderedProminent)
             }.frame(maxWidth: .infinity).padding(.vertical, 24)
         }
@@ -199,6 +261,8 @@ private struct TaobaoImportItemEditor: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var viewModel: TaobaoImportViewModel
     let id: String
+    @State private var existingItems: [Item] = []
+    @State private var priorReceipts: [OrderImportReceipt] = []
     @State private var addingAttribute = false
     @State private var attributeKind: TaobaoMissingKind = .brand
     @State private var attributeName = ""
@@ -229,11 +293,16 @@ private struct TaobaoImportItemEditor: View {
                     Picker("付款类型", selection: Binding(get: { self.draft?.role ?? .full }, set: { viewModel.setRole($0, for: id) })) {
                         ForEach(TaobaoPaymentRole.allCases) { Text($0.rawValue).tag($0) }
                     }
-                    TextField("已付金额", text: binding(\.priceText, fallback: ""))
+                    TextField("商品金额（不含邮费）", text: binding(\.priceText, fallback: ""))
                         #if os(iOS)
                         .keyboardType(.decimalPad)
                         #endif
-                    TextField("购买日期 yyyy-MM-dd HH:mm", text: binding(\.purchaseDate, fallback: ""))
+                    TextField("分摊邮费", text: binding(\.shippingText, fallback: ""))
+                    TextField("真实实付", text: binding(\.paidText, fallback: ""))
+                    TextField("实际付款日期（可留空）", text: binding(\.purchaseDate, fallback: ""))
+                    Text("下单时间：" + draft.original.orderTime + "；未填写实付日期会保留为未知日期。").font(.caption)
+                    Toggle("已核对商品金额、邮费和实付", isOn: binding(\.financialConfirmed, fallback: false))
+
                     if draft.role != .full {
                         if let pair = draft.pairedWith, let partner = viewModel.drafts.first(where: { $0.id == pair }) {
                             LabeledContent("已配对", value: "\(partner.name) · ¥\(partner.priceText)")
@@ -260,16 +329,31 @@ private struct TaobaoImportItemEditor: View {
                         Button("移除图片", role: .destructive) { viewModel.removeImage(from: id) }
                     }
                     #if os(iOS)
-                    PhotosPicker(selection: $photo, matching: .images) { Label(draft.imagePath == nil ? "补充图片" : "更换图片", systemImage: "photo.badge.plus") }
+                    PhotosPicker(selection: $photo, matching: .images) { SkinLabel(draft.imagePath == nil ? "补充图片" : "更换图片", systemImage: "photo.badge.plus") }
                     #else
                     Text("可在 iPhone 上选择照片补图").foregroundStyle(.secondary)
                     #endif
+                }
+                Section("来源身份核对") {
+                    Text("本次商品金额 \(draft.priceText)，实付 \(draft.paidText)，邮费 \(draft.shippingText)")
+                    ForEach(priorReceipts) { receipt in
+                        Text("历史来源 · 代次 \(receipt.generation) · 物品 \(receipt.itemId.map(String.init) ?? "已删除") · 实付 \(OrderImportSource.amount(receipt.paidCents)) · 邮费 \(OrderImportSource.amount(receipt.shippingCents))")
+                        Text(receipt.sourceSnapshot == draft.sourceSnapshotHash ? "来源与历史一致" : "来源内容与历史不同，请比较后确认").foregroundStyle(.orange)
+                    }
+                    Text("已导入的同一来源会返回原回执；来源变更必须确认，原物品不被覆盖。")
+                    Toggle("已比较并确认来源身份", isOn: binding(\.identityConfirmed, fallback: false))
+                    Toggle("原物品已删除，确认重新导入", isOn: binding(\.allowDeletedReimport, fallback: false))
+                    Text("关联已有物品不会新建或修改付款；核对的份额仅登记来源占用，避免后续重复分摊。").font(.caption)
+                    Picker("关联已有物品（不新建账本）", selection: binding(\.linkedItemId, fallback: nil)) {
+                        Text("新建物品").tag(Int64?.none)
+                        ForEach(existingItems, id: \.id) { item in Text(item.name).tag(Optional(item.id)) }
+                    }
                 }
                 Section("原订单") {
                     LabeledContent("订单号", value: draft.original.orderId)
                     LabeledContent("店铺", value: draft.original.shopName)
                     LabeledContent("数量", value: String(draft.original.quantity))
-                    Text("每条商品记录导入为一件服饰，金额取 Excel 中的商品金额；多数量订单请在确认金额时核对。").font(.caption).foregroundStyle(.secondary)
+                    Text("同一来源数量按件展开；金额按全部源商品分摊，未勾选商品保留其份额。").font(.caption).foregroundStyle(.secondary)
                     if let url = URL(string: draft.original.productURL), ["http", "https"].contains(url.scheme?.lowercased() ?? "") {
                         Link("查看商品链接", destination: url)
                     }
@@ -277,8 +361,12 @@ private struct TaobaoImportItemEditor: View {
             }
         }
         .disabled(viewModel.isWorking)
+        .task { existingItems = (try? await viewModel.existingItems()) ?? []; priorReceipts = (try? await viewModel.priorReceipts(id)) ?? [] }
         .lolitaNavBar(title: "确认商品")
-        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } } }
+        #if os(iOS)
+        .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("收起键盘") { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }.accessibilityIdentifier("import-dismiss-keyboard") } }
+        #endif
+        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { Task { if await viewModel.saveDraft() { dismiss() } } } } }
         .sheet(isPresented: $addingAttribute) {
             NavigationStack {
                 Form {
@@ -357,8 +445,8 @@ struct TaobaoImportGuideScreen: View {
                 LolitaCard {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("去重与付款").font(.headline)
-                        Text("重复文件按订单号去重，重复导入按订单中的商品序号去重。若修改过 Excel 商品顺序，请核对后再导入。")
-                        Text("交易成功的订单默认选中。文件中出现退款、关闭或未付款订单时，请核对后自行选择；导入的商品金额会记录为已付款。")
+                        Text("文件按摘要去重，同订单的不同内容需明确选择来源。商品按稳定来源和件号去重，删除物品后重新导入需单独确认。")
+                        Text("交易成功的订单默认选中。文件中出现退款、关闭或未付款订单时，请核对后自行选择；请逐件确认分摊邮费和真实实付，未知付款日期可留空，下单时间不会自动成为实付日期。")
                         Text("定金和已付尾款合并后为已拥有；只导入定金且仍有待付尾款的商品会显示待尾款。")
                     }
                 }
@@ -373,7 +461,7 @@ private struct TaobaoCheckboxToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
         Button { configuration.isOn.toggle() } label: {
             HStack(alignment: .top, spacing: 10) {
-                Image(systemName: configuration.isOn ? "checkmark.circle.fill" : "circle").font(.title3).foregroundStyle(.tint).frame(width: 28, height: 44)
+                SkinIcon(systemName: configuration.isOn ? "checkmark.circle.fill" : "circle").foregroundStyle(.tint).frame(width: 28, height: 44)
                 configuration.label.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             }.contentShape(Rectangle())
         }.buttonStyle(.plain).accessibilityAddTraits(configuration.isOn ? .isSelected : [])
