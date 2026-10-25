@@ -16,11 +16,8 @@ final class AppModule: @unchecked Sendable {
     }
 
     func seedIfNeeded() async throws {
-        let hasBrands = try await !brandRepository.getAll().isEmpty
-        if preferences.isFirstLaunch || !hasBrands {
-            try await seedPresetData()
-            preferences.isFirstLaunch = false
-        }
+        try BuiltInLibrary.initialize(db: db.dbQueue)
+        preferences.isFirstLaunch = false
     }
 
     // MARK: - Lazy repositories
@@ -84,11 +81,4 @@ final class AppModule: @unchecked Sendable {
 
     @MainActor lazy var paymentReminderService = PaymentReminderService(repository: paymentRepository)
 
-    // MARK: - Preset seeding
-
-    private func seedPresetData() async throws {
-        try await db.dbQueue.write { db in
-            try PresetData.seed(db)
-        }
-    }
 }

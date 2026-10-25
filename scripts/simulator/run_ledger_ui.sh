@@ -59,8 +59,9 @@ for _ in range(150):
 else:
     raise SystemExit('Upgrade migration did not complete')
 PY
+python3 scripts/simulator/wait_for_builtin.py "$container"
 python3 scripts/simulator/ledger_fixtures.py verify-upgrade "$container" "$output"
-xcodebuild -project Lolita.xcodeproj -scheme Lolita-Ledger-UI -configuration Debug -destination "$destination" -derivedDataPath .build/derivedData "${packages[@]}" "${signing[@]}" -parallel-testing-enabled NO -skip-testing:LolitaUITests/OrderLedgerUITests/test05DarkAccessibilityTextAndRealKeyboardSave -resultBundlePath "$output/native-ui.xcresult" test-without-building > "$output/native-ui.log" 2>&1
+xcodebuild -project Lolita.xcodeproj -scheme Lolita-Ledger-UI -configuration Debug -destination "$destination" -derivedDataPath .build/derivedData "${packages[@]}" "${signing[@]}" -parallel-testing-enabled NO -only-testing:LolitaUITests/OrderLedgerUITests -skip-testing:LolitaUITests/OrderLedgerUITests/test05DarkAccessibilityTextAndRealKeyboardSave -resultBundlePath "$output/native-ui.xcresult" test-without-building > "$output/native-ui.log" 2>&1
 xcrun simctl ui "$device_id" appearance dark
 xcrun simctl ui "$device_id" content_size accessibility-extra-large
 xcrun simctl ui "$device_id" content_size > "$output/system-text-size.txt"

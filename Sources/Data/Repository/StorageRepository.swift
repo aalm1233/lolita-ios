@@ -75,7 +75,7 @@ final class StorageRepository: Sendable {
             for var item in try Item.fetchAll(db) where item.storageNodeId.map(ids.contains) == true {
                 item.locationId = roomId; try item.update(db)
             }
-            try Self.rewriteDrafts(db) { item in if item.storageNodeId.map(ids.contains) == true { item.locationId = roomId } }
+            try Self.rewriteDrafts(db, nodeIds: ids) { item in if item.storageNodeId.map(ids.contains) == true { item.locationId = roomId } }
         }
     }
     func delete(nodeId: Int64, clearContents: Bool = false) async throws {
@@ -85,7 +85,7 @@ final class StorageRepository: Sendable {
             let items = try Item.fetchAll(db).filter { $0.storageNodeId.map(ids.contains) == true }
             guard clearContents || (ids.count == 1 && items.isEmpty) else { throw ValidationError.invalid("位置包含子位置或物品，请先移动，或明确清空位置") }
             for var item in items { item.storageNodeId = nil; item.locationId = nil; try item.update(db) }
-            try Self.rewriteDrafts(db) { item in if item.storageNodeId.map(ids.contains) == true { item.storageNodeId = nil } }
+            try Self.rewriteDrafts(db, nodeIds: ids) { item in if item.storageNodeId.map(ids.contains) == true { item.storageNodeId = nil } }
             let removed = graph.filter { ids.contains($0.id) }.sorted { ($0.parentNodeId == nil ? 0 : 1) > ($1.parentNodeId == nil ? 0 : 1) }
             for node in removed { try node.delete(db) }
             return removed.compactMap(\.imageUrl)
@@ -98,7 +98,7 @@ final class StorageRepository: Sendable {
             let items = try Item.filter(Column("locationId") == room.id).fetchAll(db)
             guard clearContents || (nodes.isEmpty && items.isEmpty) else { throw ValidationError.invalid("房间仍有收纳位置或物品，请先移动内容") }
             for var item in items { item.storageNodeId = nil; item.locationId = nil; try item.update(db) }
-            try Self.rewriteDrafts(db) { item in if item.locationId == room.id { item.storageNodeId = nil; item.locationId = nil } }
+            try Self.rewriteDrafts(db, roomIds: [room.id]) { item in if item.locationId == room.id { item.storageNodeId = nil; item.locationId = nil } }
             for node in nodes.sorted(by: { ($0.parentNodeId == nil ? 0 : 1) > ($1.parentNodeId == nil ? 0 : 1) }) { try node.delete(db) }
             try room.delete(db)
             return nodes.compactMap(\.imageUrl) + [room.imageUrl].compactMap { $0 }
@@ -148,8 +148,13 @@ final class StorageRepository: Sendable {
         }
         _ = try WardrobeSpecifications.decode(item.specificationsJson)
     }
-    private static func rewriteDrafts(_ db: Database, change: (inout Item) -> Void) throws {
+    private struct DraftPlacement: Decodable { let locationId: Int64?; let storageNodeId: Int64? }
+    private static func rewriteDrafts(_ db: Database, roomIds: Set<Int64> = [], nodeIds: Set<Int64> = [], change: (inout Item) -> Void) throws {
         for draft in try ItemDraft.fetchAll(db) {
+            // An unrelated draft must remain byte-for-byte intact. Its legacy specification
+            // payload may need repair when opened, but cannot block another room's operation.
+            let placement = try JSONDecoder().decode(DraftPlacement.self, from: Data(draft.dataJson.utf8))
+            guard placement.locationId.map(roomIds.contains) == true || placement.storageNodeId.map(nodeIds.contains) == true else { continue }
             var item = try draft.item(); change(&item)
             let updated = try ItemDraft.make(id: draft.id, item: item, baseline: draft.baselineUpdatedAt)
             var saved = updated; saved.updatedAt = draft.updatedAt; try saved.update(db)

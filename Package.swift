@@ -19,7 +19,8 @@ let package = Package(
             ],
             path: "Sources",
             exclude: ["Info.plist", "Lolita.entitlements"],
-            resources: [.process("Resources")]
+            resources: [.process("Resources/fonts"), .process("Resources/skin-art"),
+                        .process("Resources/Assets.xcassets"), .copy("Resources/builtin")]
         ),
         .testTarget(name: "LolitaTests", dependencies: ["lolita"], path: "Tests"),
         // Native interaction tests run through the Lolita-Ledger-UI Xcode scheme.

@@ -60,6 +60,7 @@ for _ in range(150):
 else:
     raise SystemExit('Upgrade migration did not complete')
 PY
+python3 scripts/simulator/wait_for_builtin.py "$container"
 python3 scripts/simulator/ledger_fixtures.py verify-upgrade "$container" "$output"
 xcrun simctl terminate "$device_id" com.lolita.ios
 python3 scripts/simulator/import_fixtures.py seed "$container" "$output"

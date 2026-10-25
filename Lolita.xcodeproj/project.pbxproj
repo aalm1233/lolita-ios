@@ -1185,7 +1185,10 @@
         "CE2C5158B6F1E5093F0DB4D7",
         "0ACC987B912EE92C6B344320",
         "3313E23CD045C18E94132B26",
-        "9597F0B7168DB6FFC5B2D90B"
+        "9597F0B7168DB6FFC5B2D90B",
+        "C7BFB477ECE65BF2D19FA8C4",
+        "40415CD4AAFD02E45CE59C84",
+        "8B283D71706EE118149BD838"
       ],
       "name": "Sources",
       "path": "Sources",
@@ -1355,7 +1358,9 @@
         "9A1CB616D0A01888CFECDAA2",
         "4937D6EA641B8ECF2E969188",
         "4DF6C41E4D46FAE65F533065",
-        "C96848134A62F24B00C8287B"
+        "C96848134A62F24B00C8287B",
+        "B4120A5305CF83040C83CFBA",
+        "6BBDCEC767C4CFB362A4A54F"
       ],
       "runOnlyForDeploymentPostprocessing": "0"
     },
@@ -1377,7 +1382,8 @@
         "6C80B3F529D2C59BCB9E0B29",
         "D66BACFFA8765012D527B889",
         "E90C4D74CB858B31E982E86E",
-        "9504F67B5B9E2C7E42DCA0B6"
+        "9504F67B5B9E2C7E42DCA0B6",
+        "CB4EF3C0ABA3BFBAAFDEFD71"
       ],
       "runOnlyForDeploymentPostprocessing": "0"
     },
@@ -2070,7 +2076,8 @@
         "46E3FB04FDE7D4E37D8687D6",
         "9C2EE75A3C0D288287AD8116",
         "ED790B612F3BBC00EA22BDA8",
-        "B638A40816A700ED0C63E67D"
+        "B638A40816A700ED0C63E67D",
+        "38CEE607C961FB05C672295A"
       ],
       "path": "UITests",
       "sourceTree": "<group>"
@@ -2091,7 +2098,8 @@
         "40245DFDAB75DB9EA489C928",
         "D4205E969FC893AE616C80FD",
         "65225E3522A090BA88784B40",
-        "1EB9FE213302F93E52DA3B24"
+        "1EB9FE213302F93E52DA3B24",
+        "BB732A9474F445EDAF3B22C1"
       ],
       "runOnlyForDeploymentPostprocessing": "0"
     },
@@ -2679,6 +2687,46 @@
     "9504F67B5B9E2C7E42DCA0B6": {
       "isa": "PBXBuildFile",
       "fileRef": "9597F0B7168DB6FFC5B2D90B"
+    },
+    "C7BFB477ECE65BF2D19FA8C4": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "Data/Preset/BuiltInLibrary.swift",
+      "sourceTree": "<group>"
+    },
+    "B4120A5305CF83040C83CFBA": {
+      "isa": "PBXBuildFile",
+      "fileRef": "C7BFB477ECE65BF2D19FA8C4"
+    },
+    "40415CD4AAFD02E45CE59C84": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "UI/Screen/Location/BuiltInArtworkScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "6BBDCEC767C4CFB362A4A54F": {
+      "isa": "PBXBuildFile",
+      "fileRef": "40415CD4AAFD02E45CE59C84"
+    },
+    "8B283D71706EE118149BD838": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "folder",
+      "path": "Resources/builtin",
+      "sourceTree": "<group>"
+    },
+    "CB4EF3C0ABA3BFBAAFDEFD71": {
+      "isa": "PBXBuildFile",
+      "fileRef": "8B283D71706EE118149BD838"
+    },
+    "38CEE607C961FB05C672295A": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "BuiltInLibraryUITests.swift",
+      "sourceTree": "<group>"
+    },
+    "BB732A9474F445EDAF3B22C1": {
+      "isa": "PBXBuildFile",
+      "fileRef": "38CEE607C961FB05C672295A"
     }
   },
   "rootObject": "366F8106F2E6FA5C5333C87D"

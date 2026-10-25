@@ -10,6 +10,24 @@ from pathlib import Path
 
 TABLES = ["brands", "categories", "styles", "seasons", "sources", "locations", "coordinates", "items", "prices", "payments", "outfitLogs", "outfitItemCrossRef"]
 
+def is_builtin_blank_fill(table, columns, wanted, actual, container):
+    """Only permit a previously blank image to receive the exact bundled default."""
+    if table not in ('brands', 'locations'): return False
+    column = 'logoUrl' if table == 'brands' else 'imageUrl'
+    index = columns.index(column)
+    if (wanted[index] or '').strip() or not actual[index]: return False
+    root = Path(__file__).resolve().parents[2] / 'Sources/Resources'
+    catalog = json.loads((root / 'builtin/catalog.json').read_text())
+    name = wanted[columns.index('name')]
+    if table == 'brands':
+        assets = {n.strip().lower(): b['assetPath'] for b in catalog['brands'] for n in b['names']}
+        asset = assets.get(name.strip().lower())
+    else:
+        asset = next((r['assetPath'] for r in catalog['rooms'] if r['name'] == name), None)
+    if not asset: return False
+    image = container / 'Documents/images' / Path(actual[index]).name
+    return image.is_file() and image.read_bytes() == (root / asset).read_bytes()
+
 
 def snapshot(db):
     result = {}
@@ -46,6 +64,8 @@ def main():
         pixels = b"".join(b"\x00"+b"".join(bytes((220 if (x//8+y//8)%2 else 250,180,210)) for x in range(64)) for y in range(80))
         photo.write_bytes(b"\x89PNG\r\n\x1a\n"+chunk(b"IHDR",struct.pack(">IIBBBBB",64,80,8,2,0,0,0))+chunk(b"IDAT",zlib.compress(pixels))+chunk(b"IEND",b""))
         db.execute("INSERT INTO locations(id,name,description,sortOrder,createdAt,updatedAt) VALUES(101,'回归衣柜','原位置保留',1,111,222)")
+        # Keep fixed IDs 102… available to later UI fixtures when defaults are appended.
+        db.execute("UPDATE sqlite_sequence SET seq = 1000 WHERE name = 'locations'")
         db.execute("INSERT INTO coordinates(id,name,description,imageUrls,createdAt,updatedAt) VALUES(101,'回归套装','原搭配关系保留','[]',111,222)")
         for id, name, status in [(101,"回归·新购买","OWNED"),(102,"回归·主件","PENDING_BALANCE"),(103,"回归·历史已购","OWNED"),(104,"回归·多价格核对","OWNED")]:
             db.execute("""INSERT INTO items(id,name,brandId,categoryId,status,description,imageUrls,colors,season,style,size,locationId,coordinateId,importOrderKeys,createdAt,updatedAt)
@@ -69,6 +89,15 @@ def main():
             columns = ",".join('"'+c+'"' for c in expected["columns"])
             actual = [list(r) for r in db.execute(f'SELECT {columns} FROM "{table}" ORDER BY rowid')]
             wanted = [list(r) for r in expected["rows"]]
+            if table in ('brands', 'categories', 'styles', 'seasons', 'sources', 'locations'):
+                index = expected['columns'].index('id')
+                ids = {row[index] for row in wanted}
+                actual = [row for row in actual if row[index] in ids]
+                old = {row[index]: row for row in wanted}
+                for row in actual:
+                    if is_builtin_blank_fill(table, expected['columns'], old[row[index]], row, args.container):
+                        image_index = expected['columns'].index('logoUrl' if table == 'brands' else 'imageUrl')
+                        row[image_index] = old[row[index]][image_index]
             for rows in [actual, wanted]:
                 for row in rows:
                     for index, column in enumerate(expected["columns"]):
@@ -122,6 +151,8 @@ def main():
                     if table == "items" and name == "status":
                         continue  # Explicit purchasing in the UI changes derived ownership.
                     if name in ["imageUrls", "sizeChartImageUrl", "imageUrl", "logoUrl"]:
+                        if name == ('logoUrl' if table == 'brands' else 'imageUrl') and is_builtin_blank_fill(table, names, wanted, actual, args.container):
+                            continue
                         def normalized(value):
                             if not value: return value
                             return [Path(p).name for p in json.loads(value)] if name == "imageUrls" else Path(value).name

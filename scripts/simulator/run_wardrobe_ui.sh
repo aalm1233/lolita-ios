@@ -60,6 +60,7 @@ for _ in range(150):
 else:
     raise SystemExit('Upgrade migration did not complete')
 PY
+python3 scripts/simulator/wait_for_builtin.py "$container"
 python3 scripts/simulator/ledger_fixtures.py verify-upgrade "$container" "$output"
 python3 scripts/simulator/wardrobe_fixtures.py prepare-current "$container" "$output"
 xcrun simctl addmedia "$device_id" "$output/picker-a.png" "$output/picker-b.png"

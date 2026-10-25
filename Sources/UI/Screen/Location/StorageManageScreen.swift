@@ -5,17 +5,18 @@ struct StorageManageScreen: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var rooms: [Location] = []
     @State private var nodes: [StorageNode] = []
-    @State private var editing: StorageNode?
+    @State private var editorTarget: StorageEditorTarget?
     @State private var moving: StorageNode?
     @State private var assigning: StorageNode?
     @State private var deleting: StorageNode?
     @State private var error: String?
-    @State private var showEditor = false
+    @State private var showTemplates = false
     @State private var reload = 0
     private var repository: StorageRepository { StorageRepository(db: AppModule.shared.db.dbQueue) }
     var body: some View {
         List {
             Section("房间 → 柜架 → 层格") {
+                Button("从示意图添加柜架") { showTemplates = true }.accessibilityIdentifier("choose-builtin-storage")
                 Text("移动柜架会同步移动下级层格、物品与编辑草稿；物品和照片均会保留。")
                     .font(.caption).foregroundStyle(.secondary)
                 ForEach(nodes.filter { $0.locationId == roomId }, id: \.id) { node in
@@ -25,12 +26,13 @@ struct StorageManageScreen: View {
             }
         }
         .lolitaNavBar(title: "分层收纳", showBack: true)
-        .toolbar { ToolbarItem { Button("添加柜架／层格") { editing = nil; showEditor = true }.accessibilityIdentifier("add-storage-node") } }
+        .toolbar { ToolbarItem { Button("添加柜架／层格") { editorTarget = StorageEditorTarget(node: nil) }.accessibilityIdentifier("add-storage-node") } }
         .task(id: reload) {
             do { rooms = try await AppModule.shared.locationRepository.getAll(); nodes = try await repository.getAll() }
             catch { self.error = userFacingError(error) }
         }
-        .sheet(isPresented: $showEditor, onDismiss: { reload += 1 }) { StorageNodeEditor(roomId: roomId, node: editing, nodes: nodes) }
+        .sheet(item: $editorTarget, onDismiss: { reload += 1 }) { target in StorageNodeEditor(roomId: roomId, node: target.node, nodes: nodes).id(target.id) }
+        .sheet(isPresented: $showTemplates, onDismiss: { reload += 1 }) { BuiltInStorageTemplateScreen(roomId: roomId) }
         .sheet(item: $moving, onDismiss: { reload += 1 }) { node in StorageNodeMoveScreen(node: node, rooms: rooms, nodes: nodes).id(node.id) }
         .sheet(item: $assigning, onDismiss: { reload += 1 }) { node in StorageMembershipScreen(node: node).id(node.id) }
         .confirmationDialog("删除位置及下级位置？", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
@@ -44,10 +46,11 @@ struct StorageManageScreen: View {
     private var actionLayout: AnyLayout { dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 8)) }
     private func nodeRow(_ node: StorageNode) -> some View {
         VStack(alignment: .leading, spacing: 10) {
+            if let image = node.imageUrl { LolitaShimmerImage(url: ImageFileHelper.fileURL(for: image), contentMode: .fit).frame(height: 150) }
             Text(StorageTree.path(roomId: roomId, nodeId: node.id, rooms: rooms, nodes: nodes)).font(.headline)
             if !node.description.isEmpty { Text(node.description).font(.caption) }
             actionLayout {
-                Button("编辑") { editing = node; showEditor = true }.buttonStyle(.bordered).accessibilityIdentifier("edit-node-\(node.id)")
+                Button("编辑") { editorTarget = StorageEditorTarget(node: node) }.buttonStyle(.bordered).accessibilityIdentifier("edit-node-\(node.id)")
                 Button("移动") { moving = node }.buttonStyle(.bordered).accessibilityIdentifier("move-node-\(node.id)")
                 Button("放入物品") { assigning = node }.buttonStyle(.bordered).accessibilityIdentifier("assign-node-\(node.id)")
             }
@@ -55,6 +58,11 @@ struct StorageManageScreen: View {
         .swipeActions { Button("删除", role: .destructive) { deleting = node } }
     }
 
+}
+
+private struct StorageEditorTarget: Identifiable {
+    let node: StorageNode?
+    var id: String { node.map { "edit-\($0.id)" } ?? "new" }
 }
 
 private struct StorageNodeEditor: View {

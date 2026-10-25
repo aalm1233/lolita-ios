@@ -24,21 +24,29 @@ final class BrandRepository: Sendable {
     }
 
     func insert(_ brand: Brand) async throws -> Brand {
-        try await db.write { db in
-            var b = brand
-            try b.insert(db)
-            return b
+        let prepared = try BuiltInLibrary.prepareNewBrand(brand)
+        do {
+            return try await db.write { db in
+                var b = prepared
+                try b.insert(db)
+                return b
+            }
+        } catch {
+            if prepared.logoUrl != brand.logoUrl, let path = prepared.logoUrl {
+                try? ImageFileHelper.deleteUnreferenced(paths: [path], db: db)
+            }
+            throw error
         }
     }
 
     func update(_ brand: Brand) async throws {
         try await db.write { db in
-            var b = brand
+            let b = brand
             try b.update(db)
         }
     }
 
     func delete(_ brand: Brand) async throws {
-        try await db.write { db in try brand.delete(db) }
+        _ = try await db.write { db in try brand.delete(db) }
     }
 }

@@ -223,7 +223,7 @@ struct AttributeSettingsScreen: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
-                NavigationLink { BrandManageScreen() } label: { SettingsMenuCard(title: "品牌", subtitle: "管理衣橱品牌", symbol: "tag", color: .pink) }
+                NavigationLink { BrandManageScreen() } label: { SettingsMenuCard(title: "品牌", subtitle: "管理衣橱品牌", symbol: "tag", color: .pink) }.accessibilityIdentifier("brand-management")
                 NavigationLink { CategoryManageScreen() } label: { SettingsMenuCard(title: "分类", subtitle: "服饰与配饰类型", symbol: "square.grid.2x2", color: .purple) }.accessibilityIdentifier("category-management")
                 NavigationLink { StyleManageScreen() } label: { SettingsMenuCard(title: "风格", subtitle: "搭配风格与偏好", symbol: "sparkles", color: .orange) }
                 NavigationLink { SeasonManageScreen() } label: { SettingsMenuCard(title: "季节", subtitle: "服饰适用季节", symbol: "leaf", color: .green) }
@@ -257,6 +257,7 @@ struct AttributeRow: Identifiable, Sendable {
     var name: String
     var group: CategoryGroup?
     var semantic: CategorySemantic = .unconfirmed
+    var logoUrl: String?
 }
 
 @MainActor
@@ -278,7 +279,7 @@ final class AttributeManageViewModel: ObservableObject {
         AsyncStream { continuation in
             let observation = ValueObservation.tracking { @Sendable db in
                 try Row.fetchAll(db, sql: "SELECT * FROM \(kind.table) ORDER BY name").map { row in
-                    AttributeRow(id: row["id"], name: row["name"], group: kind == .category ? row["group"] : nil, semantic: kind == .category ? row["categorySemantic"] : .unconfirmed)
+                    AttributeRow(id: row["id"], name: row["name"], group: kind == .category ? row["group"] : nil, semantic: kind == .category ? row["categorySemantic"] : .unconfirmed, logoUrl: kind == .brand ? row["logoUrl"] : nil)
                 }
             }
             let token = observation.start(in: queue, onError: { _ in continuation.finish() }, onChange: { continuation.yield($0) })
@@ -286,11 +287,16 @@ final class AttributeManageViewModel: ObservableObject {
         }
     }
 
-    func save(kind: AttributeKind, original: AttributeRow?, name: String, group: CategoryGroup, semantic: CategorySemantic? = nil) async throws {
+    func save(kind: AttributeKind, original: AttributeRow?, name: String, group: CategoryGroup, semantic: CategorySemantic? = nil, removeLogo: Bool = false) async throws {
         let name = try kind == .season ? SeasonRepository.validatedName(name) : InputValidation.name(name)
+        if kind == .brand, original == nil {
+            _ = try await BrandRepository(db: queue).insert(Brand(name: name))
+            return
+        }
         try await queue.write { db in
             if let original {
                 try db.execute(sql: "UPDATE \(kind.table) SET name = ? WHERE id = ?", arguments: [name, original.id])
+                if kind == .brand, removeLogo { try db.execute(sql: "UPDATE brands SET logoUrl = NULL WHERE id = ?", arguments: [original.id]) }
                 if kind == .season {
                     try SeasonRepository.rewriteItemReferences(in: db, oldName: original.name, newName: name)
                 } else if let reference = kind.reference {
@@ -308,6 +314,7 @@ final class AttributeManageViewModel: ObservableObject {
                 }
             }
         }
+        if kind == .brand, removeLogo, let path = original?.logoUrl { try? ImageFileHelper.deleteUnreferenced(paths: [path], db: queue) }
     }
 
     func delete(kind: AttributeKind, row: AttributeRow) async throws {
@@ -325,21 +332,24 @@ final class AttributeManageViewModel: ObservableObject {
 struct AttributeManageScreen: View {
     let kind: AttributeKind
     @StateObject private var vm = AttributeManageViewModel()
-    @State private var editing: AttributeRow?
+    @State private var editorTarget: AttributeEditorTarget?
     @State private var name = ""
     @State private var group: CategoryGroup = .clothing
     @State private var semantic: CategorySemantic = .unconfirmed
-    @State private var showEditor = false
     @State private var error: String?
     @State private var search = ""
+    @State private var removeLogo = false
 
     var body: some View {
         List {
             ForEach(vm.rows.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) }) { row in
                 Button {
-                    editing = row; name = row.name; group = row.group ?? .clothing; semantic = row.semantic; showEditor = true
+                    name = row.name; group = row.group ?? .clothing; semantic = row.semantic; removeLogo = false; editorTarget = AttributeEditorTarget(row: row)
                 } label: {
-                    HStack { Text(row.name).foregroundStyle(.primary); Spacer(); SkinIcon(systemName: "pencil").foregroundStyle(.secondary) }
+                    HStack {
+                        if let path = row.logoUrl { LolitaShimmerImage(url: ImageFileHelper.fileURL(for: path), contentMode: .fit).frame(width: 44, height: 44) }
+                        Text(row.name).foregroundStyle(.primary); Spacer(); SkinIcon(systemName: "pencil").foregroundStyle(.secondary)
+                    }
                 }
                 .swipeActions {
                     Button("删除", role: .destructive) {
@@ -348,13 +358,18 @@ struct AttributeManageScreen: View {
                 }
             }
         }
-        .searchable(text: $search, prompt: "搜索\(kind.rawValue)")
+        .searchable(text: $search, placement: attributeSearchPlacement, prompt: "搜索\(kind.rawValue)")
         .lolitaNavBar(title: "\(kind.rawValue)管理", showBack: true)
-        .toolbar { ToolbarItem { Button("添加") { editing = nil; name = ""; group = .clothing; semantic = .unconfirmed; showEditor = true } } }
-        .sheet(isPresented: $showEditor) {
+        .toolbar { ToolbarItem { Button("添加") { name = ""; group = .clothing; semantic = .unconfirmed; removeLogo = false; editorTarget = AttributeEditorTarget(row: nil) } } }
+        .sheet(item: $editorTarget) { target in
+            let editing = target.row
             NavigationStack {
                 Form {
                     TextField("名称", text: $name)
+                    if kind == .brand, let path = editing?.logoUrl, !removeLogo {
+                        LolitaShimmerImage(url: ImageFileHelper.fileURL(for: path), contentMode: .fit).frame(height: 160)
+                        Button("移除品牌图片", role: .destructive) { removeLogo = true }
+                    }
                     if kind == .category {
                         Picker("稳定品类", selection: $semantic) { ForEach(CategorySemantic.allCases, id: \.self) { Text($0.label).tag($0) } }
                         Text("显示名称可以修改；稳定品类决定专属规格，重命名不会自动改类型。").font(.caption).foregroundStyle(.secondary)
@@ -363,11 +378,11 @@ struct AttributeManageScreen: View {
                 }
                 .navigationTitle(editing == nil ? "新增\(kind.rawValue)" : "编辑\(kind.rawValue)")
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("取消") { showEditor = false } }
+                    ToolbarItem(placement: .cancellationAction) { Button("取消") { editorTarget = nil } }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("保存") {
                             Task {
-                                do { try await vm.save(kind: kind, original: editing, name: name, group: group, semantic: kind == .category ? semantic : nil); showEditor = false }
+                                do { try await vm.save(kind: kind, original: editing, name: name, group: group, semantic: kind == .category ? semantic : nil, removeLogo: removeLogo); editorTarget = nil }
                                 catch { self.error = userFacingError(error) }
                             }
                         }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -378,11 +393,23 @@ struct AttributeManageScreen: View {
                 } message: { Text(error ?? "") }
             }
         }
-        .alert("操作失败", isPresented: Binding(get: { error != nil && !showEditor }, set: { if !$0 { error = nil } })) {
+        .alert("操作失败", isPresented: Binding(get: { error != nil && editorTarget == nil }, set: { if !$0 { error = nil } })) {
             Button("确定") { error = nil }
         } message: { Text(error ?? "") }
         .task { await vm.observe(kind: kind) }
     }
+    private var attributeSearchPlacement: SearchFieldPlacement {
+        #if os(iOS)
+        .navigationBarDrawer(displayMode: .always)
+        #else
+        .automatic
+        #endif
+    }
+}
+
+private struct AttributeEditorTarget: Identifiable {
+    let row: AttributeRow?
+    var id: String { row.map { "edit-\($0.id)" } ?? "new" }
 }
 
 struct LocationManageScreen: View {

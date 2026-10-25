@@ -19,6 +19,11 @@ destination="platform=iOS Simulator,id=$device_id"
 xcodebuild -project Lolita.xcodeproj -scheme Lolita-Ledger-UI -configuration Debug -destination "$destination" -derivedDataPath .build/derivedData "${packages[@]}" "${signing[@]}" build-for-testing > "$output/ui-build.log" 2>&1
 xcrun simctl install "$device_id" .build/derivedData/Build/Products/Debug-iphonesimulator/Lolita.app
 container="$(xcrun simctl get_app_container "$device_id" com.lolita.ios data)"
+# Initialize local defaults through the shipping UI before restoring the test snapshot.
+# The separate builtin runner verifies first-time installation and upgrade additions.
+xcrun simctl launch "$device_id" com.lolita.ios > "$output/initialization.log"
+python3 scripts/simulator/wait_for_builtin.py "$container"
+xcrun simctl terminate "$device_id" com.lolita.ios
 python3 scripts/simulator/look_fixtures.py copy-v8 "$container" "$output" "$source_container"
 printf '%s\n' "$container" > "$output/app-data-path"
 for appearance in light dark; do

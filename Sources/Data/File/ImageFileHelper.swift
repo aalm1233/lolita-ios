@@ -15,9 +15,9 @@ enum ImageFileHelper {
     }
 
     /// Copy image data to images directory with UUID filename. Returns the stored path.
-    static func save(imageData: Data) -> String? {
+    static func save(imageData: Data, imagesDirectory: URL? = nil) -> String? {
         let uuid = UUID().uuidString
-        guard let directory = safeDirectory(imagesDir) else { return nil }
+        guard let directory = safeDirectory(imagesDirectory ?? imagesDir) else { return nil }
         let url = directory.appendingPathComponent("\(uuid).jpg")
         do {
             try imageData.write(to: url)

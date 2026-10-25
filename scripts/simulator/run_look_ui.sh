@@ -60,6 +60,7 @@ for _ in range(150):
 else:raise SystemExit('Migration did not finish')
 PY
 xcrun simctl terminate "$device_id" com.lolita.ios
+python3 scripts/simulator/wait_for_builtin.py "$container"
 python3 scripts/simulator/ledger_fixtures.py verify-upgrade "$container" "$output"
 if [[ -n "$source_container" && -f "$source_container/Documents/lolita.sqlite" ]]; then
 python3 scripts/simulator/look_fixtures.py copy-v8 "$container" "$output" "$source_container"

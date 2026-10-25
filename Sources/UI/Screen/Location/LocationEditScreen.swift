@@ -11,6 +11,7 @@ struct LocationEditScreen: View {
     @State private var showCancelAlert = false
     @State private var isSubmitting = false
     @State private var isImportingImage = false
+    @State private var showBuiltInArtwork = false
 
     #if os(iOS)
     @State private var selectedItem: PhotosPickerItem? = nil
@@ -71,6 +72,9 @@ struct LocationEditScreen: View {
                     }
                     .disabled(isImportingImage)
                     #endif
+                    Button("使用房间示意图") { showBuiltInArtwork = true }
+                        .disabled(isImportingImage)
+                        .accessibilityIdentifier("choose-builtin-room")
                 }
 
                 // Name field
@@ -101,6 +105,15 @@ struct LocationEditScreen: View {
             .padding()
         }
         .disabled(isBusy)
+        .sheet(isPresented: $showBuiltInArtwork) {
+            BuiltInRoomArtworkScreen { room in
+                let image = try BuiltInLibrary.copyImage(room.assetPath)
+                viewModel.removeImage()
+                viewModel.imageUrl = image
+                if viewModel.name.isEmpty { viewModel.name = room.name }
+                if viewModel.description.isEmpty { viewModel.description = room.description }
+            }
+        }
         .interactiveDismissDisabled(isBusy || isImportingImage || viewModel.hasChanges)
         .onDisappear {
             #if os(iOS)

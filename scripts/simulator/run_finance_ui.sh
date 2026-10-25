@@ -60,6 +60,7 @@ for _ in range(150):
 else:
     raise SystemExit('Upgrade migration did not complete')
 PY
+python3 scripts/simulator/wait_for_builtin.py "$container"
 python3 scripts/simulator/ledger_fixtures.py verify-upgrade "$container" "$output"
 python3 scripts/simulator/finance_fixtures.py prepare-current "$container" "$output"
 xcodebuild -project Lolita.xcodeproj -scheme Lolita-Ledger-UI -configuration Debug -destination "$destination" -derivedDataPath .build/derivedData "${packages[@]}" "${signing[@]}" -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 240 -only-testing:LolitaUITests/AfterSaleUITests -skip-testing:LolitaUITests/AfterSaleUITests/test05DarkLargeTextActualKeyboardAndSave -resultBundlePath "$output/native-ui.xcresult" test-without-building > "$output/native-ui.log" 2>&1

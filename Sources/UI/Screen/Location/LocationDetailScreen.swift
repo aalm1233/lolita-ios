@@ -91,6 +91,8 @@ struct LocationDetailScreen: View {
                 SkinButton("管理存放服饰", systemImage: "hanger") { showPicker = true }
                 SkinButton("删除位置", systemImage: "trash", role: .destructive) { showDelete = true }
             } label: { SkinIcon(systemName: "ellipsis") }
+                .accessibilityLabel("更多位置操作")
+                .accessibilityIdentifier("location-more-actions")
         }
     }
 }
