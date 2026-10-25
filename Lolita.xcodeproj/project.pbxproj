@@ -1072,7 +1072,8 @@
         "82FC5F6FD92C6AB50EAC2E36",
         "D71034553F38C82804C63CFC",
         "2500BB53F2737C5A4224CCCB",
-        "ECDA47BC44F8B86C10459A1D"
+        "ECDA47BC44F8B86C10459A1D",
+        "033DBD83F4C58CBA0A9412AA"
       ],
       "name": "Payment",
       "path": "UI/Screen/Payment",
@@ -1360,7 +1361,8 @@
         "4DF6C41E4D46FAE65F533065",
         "C96848134A62F24B00C8287B",
         "B4120A5305CF83040C83CFBA",
-        "6BBDCEC767C4CFB362A4A54F"
+        "6BBDCEC767C4CFB362A4A54F",
+        "2256AC0D8820EEF291EE895E"
       ],
       "runOnlyForDeploymentPostprocessing": "0"
     },
@@ -2077,7 +2079,8 @@
         "9C2EE75A3C0D288287AD8116",
         "ED790B612F3BBC00EA22BDA8",
         "B638A40816A700ED0C63E67D",
-        "38CEE607C961FB05C672295A"
+        "38CEE607C961FB05C672295A",
+        "A6ED5CF375E2B6437B8D7D29"
       ],
       "path": "UITests",
       "sourceTree": "<group>"
@@ -2099,7 +2102,8 @@
         "D4205E969FC893AE616C80FD",
         "65225E3522A090BA88784B40",
         "1EB9FE213302F93E52DA3B24",
-        "BB732A9474F445EDAF3B22C1"
+        "BB732A9474F445EDAF3B22C1",
+        "C18A01BAFAE56A01926217A5"
       ],
       "runOnlyForDeploymentPostprocessing": "0"
     },
@@ -2727,6 +2731,26 @@
     "BB732A9474F445EDAF3B22C1": {
       "isa": "PBXBuildFile",
       "fileRef": "38CEE607C961FB05C672295A"
+    },
+    "033DBD83F4C58CBA0A9412AA": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "PaymentYearSummaryScreen.swift",
+      "sourceTree": "<group>"
+    },
+    "2256AC0D8820EEF291EE895E": {
+      "isa": "PBXBuildFile",
+      "fileRef": "033DBD83F4C58CBA0A9412AA"
+    },
+    "A6ED5CF375E2B6437B8D7D29": {
+      "isa": "PBXFileReference",
+      "lastKnownFileType": "sourcecode.swift",
+      "path": "PaymentYearUITests.swift",
+      "sourceTree": "<group>"
+    },
+    "C18A01BAFAE56A01926217A5": {
+      "isa": "PBXBuildFile",
+      "fileRef": "A6ED5CF375E2B6437B8D7D29"
     }
   },
   "rootObject": "366F8106F2E6FA5C5333C87D"

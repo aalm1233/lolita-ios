@@ -7,6 +7,7 @@ private enum StatsTab: String, CaseIterable {
 
 struct StatsPageScreen: View {
     @State private var finance = FinanceSnapshot()
+    @State private var showBackgroundOptions = false
     @StateObject private var viewModel = StatsPageViewModel()
     @EnvironmentObject var skinManager: SkinManager
     @Environment(\.colorScheme) private var colorScheme
@@ -28,7 +29,7 @@ struct StatsPageScreen: View {
             HStack(spacing: 4) {
                 LolitaPageTabs(options: StatsTab.allCases, selection: $selectedTab, label: { $0.rawValue }, compact: true)
                 if selectedTab == .calendar {
-                    CalendarBackgroundPicker()
+                    CalendarBackgroundPicker(showActions: $showBackgroundOptions)
                         .frame(width: 44, height: 44)
                 }
             }
@@ -36,7 +37,7 @@ struct StatsPageScreen: View {
             .background { SkinTopBarBackground() }
 
             if selectedTab == .calendar {
-                PaymentYearSummaryScreen()
+                PaymentYearSummaryScreen { showBackgroundOptions = true }
             } else {
                 ScrollView {
                     VStack(spacing: skinManager.current.spacingL) {
@@ -739,146 +740,6 @@ struct StatsEmptyState: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, skinManager.current.spacingL)
-    }
-}
-
-struct PaymentYearSummaryScreen: View {
-    @EnvironmentObject var skinManager: SkinManager
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @State private var year = Calendar.current.component(.year, from: Date())
-    @State private var payments: [PaymentWithItemInfo] = []
-
-    private var monthColumns: [GridItem] {
-        Array(repeating: GridItem(.flexible()), count: dynamicTypeSize.isAccessibilitySize ? 1 : 2)
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: skinManager.current.spacingL) {
-                NavigationLink("年度退款、净支出与预算", destination: FinanceOverviewScreen(month: date(month: 1), annual: true))
-                HStack {
-                    Button { year -= 1 } label: {
-                        SkinIcon(systemName: "chevron.left").frame(width: 40, height: 40)
-                    }
-                    .accessibilityLabel("上一年")
-                    Spacer()
-                    Text("\(String(year)) 年").font(.title3.weight(.semibold)).monospacedDigit()
-                    Spacer()
-                    Button { year += 1 } label: {
-                        SkinIcon(systemName: "chevron.right").frame(width: 40, height: 40)
-                    }
-                    .accessibilityLabel("下一年")
-                }
-                .buttonStyle(.plain)
-
-                LolitaSection(title: "全年付款") {
-                    StatsAmountRow(name: "已付", amount: payments.filter(\.isPaid).reduce(0) { $0 + $1.amount }, color: .green)
-                    StatsAmountRow(name: "待付", amount: payments.filter { !$0.isPaid }.reduce(0) { $0 + $1.amount }, color: .orange)
-                    StatsAmountRow(name: "逾期", amount: payments.filter { !$0.isPaid && $0.dueDate < Int64(Date().timeIntervalSince1970 * 1000) }.reduce(0) { $0 + $1.amount }, color: .red)
-                }
-
-                LazyVGrid(columns: monthColumns, spacing: skinManager.current.spacingM + skinManager.current.spacingS) {
-                    ForEach(1...12, id: \.self) { month in
-                        let values = payments.filter { Calendar.current.component(.month, from: Date(timeIntervalSince1970: Double($0.dueDate) / 1000)) == month }
-                        NavigationLink(destination: PaymentCalendarScreen(month: date(month: month))) {
-                            PaymentMonthSummaryCard(
-                                month: month,
-                                paymentCount: values.count,
-                                pendingAmount: values.filter { !$0.isPaid }.reduce(0) { $0 + $1.amount },
-                                isCurrentMonth: Calendar.current.component(.year, from: Date()) == year && Calendar.current.component(.month, from: Date()) == month
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-            .padding(.horizontal, skinManager.current.spacingL)
-            .padding(.top, 8)
-            .padding(.bottom, skinManager.current.spacingL)
-        }
-        .background { CalendarBackground() }
-        .task(id: year) {
-            payments = []
-            let start = Int64(date(month: 1).timeIntervalSince1970 * 1000)
-            let end = Int64(Calendar.current.date(byAdding: .year, value: 1, to: date(month: 1))!.timeIntervalSince1970 * 1000)
-            for await values in AppModule.shared.paymentRepository.getByDateRange(start: start, end: end) {
-                guard !Task.isCancelled else { return }
-                payments = values
-            }
-        }
-    }
-
-    private func date(month: Int) -> Date {
-        Calendar.current.date(from: DateComponents(year: year, month: month, day: 1))!
-    }
-}
-
-struct PaymentMonthSummaryCard: View {
-    @AppStorage("showTotalPrice") private var showTotalPrice = true
-    @EnvironmentObject var skinManager: SkinManager
-    @Environment(\.colorScheme) private var colorScheme
-    let month: Int
-    let paymentCount: Int
-    let pendingAmount: Double
-    var isCurrentMonth: Bool = false
-
-    private var primaryColor: Color {
-        colorScheme == .dark ? skinManager.current.primaryColorDark : skinManager.current.primaryColor
-    }
-
-    var body: some View {
-        LolitaCard {
-            VStack(alignment: .leading, spacing: skinManager.current.spacingM) {
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: skinManager.current.spacingM) {
-                        monthTitle
-                        Spacer(minLength: 4)
-                        monthIndicator
-                    }
-                    VStack(alignment: .leading, spacing: skinManager.current.spacingS) {
-                        monthTitle
-                        monthIndicator
-                    }
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("待付").font(.caption2).foregroundStyle(.secondary)
-                    Text(statsMoney(pendingAmount, visible: showTotalPrice))
-                        .font(.title3.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(pendingAmount > 0 ? primaryColor : .secondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                }
-                Text("\(paymentCount) 笔付款")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(month) 月，\(paymentCount) 笔付款，待付\(statsMoney(pendingAmount, visible: showTotalPrice))")
-    }
-
-    private var monthTitle: some View {
-        Text("\(month) 月")
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(isCurrentMonth ? primaryColor : .primary)
-            .fixedSize(horizontal: true, vertical: false)
-    }
-
-    @ViewBuilder private var monthIndicator: some View {
-        if isCurrentMonth {
-            Text("本月")
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(primaryColor)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(primaryColor.opacity(0.12), in: Capsule())
-                .fixedSize(horizontal: true, vertical: false)
-        } else {
-            SkinIcon(systemName: "chevron.right", size: 10)
-                .foregroundStyle(.tertiary)
-        }
     }
 }
 

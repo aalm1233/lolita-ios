@@ -5,6 +5,7 @@ import AVFoundation
 #endif
 
 struct CalendarBackground: View {
+    var overlayOpacity: Double = 0.76
     @AppStorage("paymentCalendarBackgroundPath") private var path = ""
     @EnvironmentObject private var skinManager: SkinManager
     @Environment(\.colorScheme) private var colorScheme
@@ -14,7 +15,7 @@ struct CalendarBackground: View {
             GeometryReader { geometry in
                 LolitaShimmerImage(url: ImageFileHelper.fileURL(for: path))
                     .frame(width: geometry.size.width, height: geometry.size.height)
-                    .overlay((colorScheme == .dark ? skinManager.current.backgroundColorDark : skinManager.current.backgroundColor).opacity(0.76))
+                    .overlay((colorScheme == .dark ? skinManager.current.backgroundColorDark : skinManager.current.backgroundColor).opacity(overlayOpacity))
                     .clipped()
             }
             .allowsHitTesting(false)
@@ -24,6 +25,9 @@ struct CalendarBackground: View {
 }
 
 struct CalendarBackgroundPicker: View {
+    @Binding var showActions: Bool
+
+    init(showActions: Binding<Bool> = .constant(false)) { _showActions = showActions }
     @AppStorage("paymentCalendarBackgroundPath") private var path = ""
     @State private var error: String?
     @State private var showPreview = false
@@ -37,28 +41,10 @@ struct CalendarBackgroundPicker: View {
 
     var body: some View {
         Menu {
-            #if os(iOS)
-            SkinButton("从相册选择", systemImage: "photo") { showPhotos = true }
-            SkinButton("拍摄背景", systemImage: "camera") {
-                Task {
-                    guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
-                        error = "当前设备没有可用相机，请从相册选择。"
-                        return
-                    }
-                    let status = AVCaptureDevice.authorizationStatus(for: .video)
-                    var allowed = status == .authorized
-                    if status == .notDetermined { allowed = await AVCaptureDevice.requestAccess(for: .video) }
-                    if allowed { showCamera = true }
-                    else { error = "相机权限未开启，请在系统设置中允许访问相机。" }
-                }
-            }
-            #endif
-            if !path.isEmpty {
-                SkinButton("查看背景", systemImage: "arrow.up.left.and.arrow.down.right") { showPreview = true }
-                SkinButton("恢复默认", systemImage: "arrow.counterclockwise", role: .destructive) { replaceBackground(with: "") }
-            }
+            actions
         } label: { SkinIcon(systemName: "photo.on.rectangle.angled") }
         .accessibilityLabel("设置日历背景")
+        .confirmationDialog("日历背景", isPresented: $showActions, titleVisibility: .visible) { actions }
         .alert("日历背景", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
             Button("确定") { error = nil }
         } message: { Text(error ?? "") }
@@ -96,6 +82,29 @@ struct CalendarBackgroundPicker: View {
         #else
         .sheet(isPresented: $showPreview) { FullScreenImageViewer(url: ImageFileHelper.fileURL(for: path)) }
         #endif
+    }
+
+    @ViewBuilder private var actions: some View {
+        #if os(iOS)
+        SkinButton("从相册选择", systemImage: "photo") { showPhotos = true }
+        SkinButton("拍摄背景", systemImage: "camera") {
+            Task {
+                guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+                    error = "当前设备没有可用相机，请从相册选择。"
+                    return
+                }
+                let status = AVCaptureDevice.authorizationStatus(for: .video)
+                var allowed = status == .authorized
+                if status == .notDetermined { allowed = await AVCaptureDevice.requestAccess(for: .video) }
+                if allowed { showCamera = true }
+                else { error = "相机权限未开启，请在系统设置中允许访问相机。" }
+            }
+        }
+        #endif
+        if !path.isEmpty {
+            SkinButton("查看背景", systemImage: "arrow.up.left.and.arrow.down.right") { showPreview = true }
+            SkinButton("恢复默认", systemImage: "arrow.counterclockwise", role: .destructive) { replaceBackground(with: "") }
+        }
     }
 
     private func replaceBackground(with newPath: String) {

@@ -240,9 +240,13 @@ private struct CalendarPreviewContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("付款安排").font(.title2.weight(.semibold))
-            HStack(spacing: 12) {
-                PaymentMonthSummaryCard(month: 10, paymentCount: 4, pendingAmount: 1280, isCurrentMonth: true)
-                PaymentMonthSummaryCard(month: 11, paymentCount: 2, pendingAmount: 360)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 4), spacing: 4) {
+                ForEach(1...12, id: \.self) { month in
+                    PaymentYearMonthCard(month: month, paid: month == 10 ? 680 : 0,
+                                         pending: month == 10 ? 1280 : month == 11 ? 360 : 0,
+                                         overdue: month == 10 ? 1280 : 0,
+                                         selected: month == 10, showMoney: true)
+                }
             }
             LolitaSection(title: "2026 年 10 月") {
                 let calendar = Calendar.current
